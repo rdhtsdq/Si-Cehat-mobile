@@ -6,6 +6,7 @@ import '../../core/widgets/safety_banner.dart';
 import '../../data/models/reminder_model.dart';
 import '../../providers/reminder_provider.dart';
 import 'reminder_editor_sheet.dart';
+import '../diary/food_diary_screen.dart';
 
 class ReminderScreen extends StatelessWidget {
   const ReminderScreen({super.key});
@@ -22,7 +23,11 @@ class ReminderScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: false,
         leading: IconButton(
-          icon: const Icon(Icons.chevron_left, size: 28, color: AppColors.textDark),
+          icon: const Icon(
+            Icons.chevron_left,
+            size: 28,
+            color: AppColors.textDark,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -43,7 +48,9 @@ class ReminderScreen extends StatelessWidget {
                     context: context,
                     isScrollControlled: true,
                     shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(16),
+                      ),
                     ),
                     builder: (_) => const ReminderEditorSheet(),
                   );
@@ -52,7 +59,11 @@ class ReminderScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 8.0),
                   child: Row(
                     children: [
-                      const Icon(Icons.add, color: AppColors.primaryGreen, size: 20),
+                      const Icon(
+                        Icons.add,
+                        color: AppColors.primaryGreen,
+                        size: 20,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         'Tambah Reminder',
@@ -69,7 +80,8 @@ class ReminderScreen extends StatelessWidget {
               const SizedBox(height: 12),
 
               const SafetyBanner(
-                text: 'Jadwal tersimpan di perangkat. Pengingat ini berfungsi sebagai alarm kebiasaan keluarga.',
+                text:
+                    'Jadwal tersimpan di perangkat. Pengingat ini berfungsi sebagai alarm kebiasaan keluarga.',
                 type: BannerType.offline,
               ),
 
@@ -87,6 +99,23 @@ class ReminderScreen extends StatelessWidget {
               else
                 ...reminders.map((r) => _buildReminderCard(context, r)),
 
+              const SizedBox(height: 12),
+              SizedBox(
+                width: 190,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryGreen,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                  ),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const FoodDiaryScreen()),
+                  ),
+                  child: const Text('Food Diary'),
+                ),
+              ),
               const SizedBox(height: 24),
             ],
           ),
@@ -121,7 +150,9 @@ class ReminderScreen extends StatelessWidget {
               style: AppTypography.titleCard.copyWith(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
-                color: item.isEnabled ? AppColors.textDark : AppColors.textMuted,
+                color: item.isEnabled
+                    ? AppColors.textDark
+                    : AppColors.textMuted,
               ),
             ),
           ),
@@ -136,7 +167,9 @@ class ReminderScreen extends StatelessWidget {
                   item.title,
                   style: AppTypography.bodyRegular.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: item.isEnabled ? AppColors.textDark : AppColors.textMuted,
+                    color: item.isEnabled
+                        ? AppColors.textDark
+                        : AppColors.textMuted,
                   ),
                 ),
                 Text(
