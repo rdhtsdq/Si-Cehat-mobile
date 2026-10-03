@@ -6,6 +6,8 @@ import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/safety_banner.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/profile_provider.dart';
+import '../../providers/reminder_provider.dart';
 import '../shell/main_shell_screen.dart';
 import 'register_screen.dart';
 import 'forgot_password_sheet.dart';
@@ -19,18 +21,61 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _identifierController = TextEditingController(text: 'ibu.rina@example.com');
-  final _passwordController = TextEditingController(text: 'Password123!');
+  final _passwordController = TextEditingController(text: 'PasswordSehat123!');
   bool _isLoading = false;
+  String? _errorMessage;
 
   void _handleLogin() async {
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 300));
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final authProv = context.read<AuthProvider>();
+    final result = await authProv.login(
+      identifier: _identifierController.text,
+      password: _passwordController.text,
+    );
+
     if (!mounted) return;
 
+    if (result['success'] == true) {
+      await context.read<ProfileProvider>().loadProfiles();
+      if (!mounted) return;
+      await context.read<ReminderProvider>().loadReminders();
+      if (!mounted) return;
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const MainShellScreen()),
+      );
+    } else {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = result['message'] as String? ?? 'Gagal masuk. Periksa email & password Anda.';
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_errorMessage!),
+          backgroundColor: Colors.red[700],
+          action: SnackBarAction(
+            label: 'Mode Demo',
+            textColor: Colors.white,
+            onPressed: _handleDemoLogin,
+          ),
+        ),
+      );
+    }
+  }
+
+  void _handleDemoLogin() async {
+    setState(() => _isLoading = true);
     await context.read<AuthProvider>().loginDemo(
           identifier: _identifierController.text,
           password: _passwordController.text,
         );
+    if (!mounted) return;
+    await context.read<ProfileProvider>().loadProfiles();
     if (!mounted) return;
 
     Navigator.of(context).pushReplacement(
@@ -57,12 +102,36 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Banner Demo Transparan
+              // Banner Status Integrasi
               const SafetyBanner(
-                text: 'Mode demo · tidak terhubung ke akun nyata. Masuk langsung menggunakan akun fiktif.',
+                text: 'Terhubung ke Backend Si-Cehat API. Masuk dengan akun terdaftar atau gunakan mode demo.',
                 type: BannerType.demo,
               ),
               const SizedBox(height: 12),
+
+              if (_errorMessage != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red[200]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.error_outline, color: Colors.red[700], size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: TextStyle(color: Colors.red[800], fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
 
               // Field "Email / No. HP"
               AppTextField(
@@ -82,9 +151,24 @@ class _LoginScreenState extends State<LoginScreen> {
 
               // Tombol hijau lebar "Masuk"
               PrimaryButton(
-                text: 'Masuk',
+                text: 'Masuk ke Akun',
                 isLoading: _isLoading,
                 onPressed: _handleLogin,
+              ),
+              const SizedBox(height: 10),
+
+              // Tombol alternatif "Masuk Mode Demo"
+              OutlinedButton(
+                onPressed: _handleDemoLogin,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: AppColors.primaryGreen),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+                child: const Text(
+                  'Masuk Mode Demo (Offline)',
+                  style: TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.w600),
+                ),
               ),
               const SizedBox(height: 12),
 
@@ -117,7 +201,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
 
-              const SizedBox(height: 48),
+              const SizedBox(height: 36),
 
               // Bagian bawah: "Belum punya akun? Daftar"
               Row(

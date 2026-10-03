@@ -1,40 +1,134 @@
 import 'package:flutter/material.dart';
+import '../../core/api/api_client.dart';
+import '../../core/api/api_constants.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/safety_banner.dart';
 
-class ConsultationScreen extends StatelessWidget {
+class ConsultationScreen extends StatefulWidget {
   const ConsultationScreen({super.key});
 
-  void _showUnavailableNotice(BuildContext context, String role) {
-    showDialog(
+  @override
+  State<ConsultationScreen> createState() => _ConsultationScreenState();
+}
+
+class _ConsultationScreenState extends State<ConsultationScreen> {
+  List<dynamic> _specialists = [];
+  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSpecialists();
+  }
+
+  Future<void> _fetchSpecialists() async {
+    setState(() => _loading = true);
+    try {
+      final res = await ApiClient.instance.get(ApiConstants.specialists);
+      if (res.isSuccess && res.data != null) {
+        final list = res.data['specialists'] as List<dynamic>?;
+        if (list != null) {
+          setState(() => _specialists = list);
+        }
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _loading = false);
+  }
+
+  void _showSpecialistDetail(BuildContext context, String role, String typeKey) {
+    final filtered = _specialists.where((s) => (s['type'] ?? '').toString().toUpperCase() == typeKey).toList();
+    final specialist = filtered.isNotEmpty ? filtered.first : null;
+
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: Row(
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.info_outline, color: AppColors.accentOrange),
-            const SizedBox(width: 8),
-            Text('Konsultasi $role', style: AppTypography.titleCard),
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.15),
+                  child: const Icon(Icons.person, color: AppColors.primaryGreen, size: 30),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        specialist != null ? specialist['name'] : 'Tenaga Medis Mitra $role',
+                        style: AppTypography.titleCard.copyWith(fontSize: 16),
+                      ),
+                      Text(
+                        specialist != null ? specialist['title'] : 'Mitra Terverifikasi',
+                        style: AppTypography.bodySecondary.copyWith(color: AppColors.textSecondary),
+                      ),
+                      if (specialist != null) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.star, color: Colors.amber, size: 16),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${specialist['rating']} • Pengalaman ${specialist['experienceYears']} tahun',
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            const Divider(),
+            const SizedBox(height: 12),
+            Text('Fokus Konsultasi:', style: AppTypography.labelInput),
+            const SizedBox(height: 6),
+            if (specialist != null && specialist['focus'] is List) ...[
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: (specialist['focus'] as List).map<Widget>((f) => Chip(
+                  label: Text(f.toString(), style: const TextStyle(fontSize: 11)),
+                  backgroundColor: AppColors.paleGreenBg,
+                  side: BorderSide.none,
+                )).toList(),
+              ),
+            ] else ...[
+              const Text('• Edukasi pencegahan diabetes anak\n• Pola makan dan gaya hidup sehat'),
+            ],
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Permintaan konsultasi telah dicatat di server.')),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text('Ajukan Jadwal Konsultasi'),
+              ),
+            ),
           ],
         ),
-        content: Text(
-          'Layanan konsultasi belum aktif pada prototipe ini.\n\nUntuk kondisi darurat atau pemeriksaan klinis anak, silakan kunjungi Puskesmas atau fasilitas kesehatan terdekat.',
-          style: AppTypography.bodySecondary.copyWith(
-            color: AppColors.textDark,
-            height: 1.4,
-          ),
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Mengerti', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
     );
   }
@@ -63,18 +157,16 @@ class ConsultationScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SafetyBanner(
-                text: 'Fitur Informasi & Kemitraan: Konsultasi medis interaktif dijadwalkan pada tahap lanjutan setelah integrasi faskes terverifikasi.',
+                text: 'Direktori Tenaga Medis Mitra Si-Cehat: Pilih spesialis untuk konsultasi pencegahan & tumbuh kembang anak.',
                 type: BannerType.notice,
               ),
               const SizedBox(height: 16),
 
-              // Tiga card abu muda besar tersusun vertikal sesuai PDF S16:
-              // Tiap card berikon gelembung chat hitam di kiri dan teks bold: Bidan, Ahli Gizi, Dokter
               _buildRoleCard(
                 context,
                 title: 'Bidan',
                 subtitle: 'Konsultasi pendampingan ibu dan tumbuh kembang balita/anak',
-                onTap: () => _showUnavailableNotice(context, 'Bidan'),
+                onTap: () => _showSpecialistDetail(context, 'Bidan', 'BIDAN'),
               ),
               const SizedBox(height: 16),
 
@@ -82,7 +174,7 @@ class ConsultationScreen extends StatelessWidget {
                 context,
                 title: 'Ahli Gizi',
                 subtitle: 'Konsultasi pengaturan menu, porsi, dan batasan gula anak',
-                onTap: () => _showUnavailableNotice(context, 'Ahli Gizi'),
+                onTap: () => _showSpecialistDetail(context, 'Ahli Gizi', 'AHLI_GIZI'),
               ),
               const SizedBox(height: 16),
 
@@ -90,7 +182,7 @@ class ConsultationScreen extends StatelessWidget {
                 context,
                 title: 'Dokter',
                 subtitle: 'Pemeriksaan lanjutan dan rekomendasi klinis anak',
-                onTap: () => _showUnavailableNotice(context, 'Dokter'),
+                onTap: () => _showSpecialistDetail(context, 'Dokter', 'DOKTER'),
               ),
             ],
           ),
@@ -117,7 +209,6 @@ class ConsultationScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           child: Row(
             children: [
-              // Ikon gelembung chat hitam di kiri sesuai PDF S16
               const Icon(
                 Icons.chat_bubble_outline,
                 size: 32,

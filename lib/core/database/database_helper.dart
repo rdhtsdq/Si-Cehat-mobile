@@ -20,6 +20,13 @@ class DatabaseHelper {
   DatabaseHelper._init();
 
   Future<Database?> get database async {
+    if (kIsWeb) {
+      if (!_useInMemoryFallback) {
+        _useInMemoryFallback = true;
+        _initFallbackData();
+      }
+      return null;
+    }
     if (_useInMemoryFallback) return null;
     if (_database != null) return _database!;
     try {
@@ -248,11 +255,11 @@ class DatabaseHelper {
     await db.update('child_profile', child.toMap(), where: 'id = ?', whereArgs: [child.id]);
   }
 
-  Future<void> setActiveChild(int childId) async {
+  Future<void> setActiveChild(dynamic childId) async {
     final db = await database;
     if (db == null) {
       for (int i = 0; i < _fallbackChildren.length; i++) {
-        _fallbackChildren[i] = _fallbackChildren[i].copyWith(isActive: _fallbackChildren[i].id == childId);
+        _fallbackChildren[i] = _fallbackChildren[i].copyWith(isActive: _fallbackChildren[i].id.toString() == childId.toString());
       }
       return;
     }
@@ -261,10 +268,10 @@ class DatabaseHelper {
   }
 
   // --- MEASUREMENTS OPERATIONS ---
-  Future<List<MeasurementModel>> getMeasurements(int childId) async {
+  Future<List<MeasurementModel>> getMeasurements(dynamic childId) async {
     final db = await database;
     if (db == null) {
-      return _fallbackMeasurements.where((m) => m.childId == childId).toList()
+      return _fallbackMeasurements.where((m) => m.childId.toString() == childId.toString()).toList()
         ..sort((a, b) => a.date.compareTo(b.date));
     }
     final result = await db.query(
@@ -324,10 +331,10 @@ class DatabaseHelper {
     await db.update('reminders', reminder.toMap(), where: 'id = ?', whereArgs: [reminder.id]);
   }
 
-  Future<void> deleteReminder(int id) async {
+  Future<void> deleteReminder(dynamic id) async {
     final db = await database;
     if (db == null) {
-      _fallbackReminders.removeWhere((r) => r.id == id);
+      _fallbackReminders.removeWhere((r) => r.id.toString() == id.toString());
       return;
     }
     await db.delete('reminders', where: 'id = ?', whereArgs: [id]);

@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
+import '../../core/api/api_client.dart';
+import '../../core/api/api_constants.dart';
 
 class FoodDiaryScreen extends StatefulWidget {
   final String? initialFood;
@@ -343,24 +345,48 @@ class _FoodDiaryScreenState extends State<FoodDiaryScreen> {
       return;
     }
     setState(() => _saving = true);
+
+    final dateStr = DateFormat('yyyy-MM-dd').format(_date);
+    final foodName = _foodController.text.trim();
+    final notes = _notesController.text.trim();
+
+    // 1. Post to Backend API if authenticated
+    try {
+      final token = await ApiClient.instance.getToken();
+      if (token != null && token.isNotEmpty) {
+        await ApiClient.instance.post(
+          ApiConstants.foodDiary,
+          body: {
+            'date': dateStr,
+            'mealSlot': _meal,
+            'foodName': foodName,
+            'portion': _portion,
+            'portionDescription': notes.isNotEmpty ? '$_portion ($notes)' : _portion,
+          },
+        );
+      }
+    } catch (_) {}
+
+    // 2. Local persistence in SharedPreferences
     final preferences = await SharedPreferences.getInstance();
     final entries = preferences.getStringList('food_diary_entries') ?? [];
     entries.add(
       jsonEncode({
-        'date': DateFormat('yyyy-MM-dd').format(_date),
+        'date': dateStr,
         'meal': _meal,
         'type': _foodType,
         'portion': _portion,
-        'food': _foodController.text.trim(),
+        'food': foodName,
         'addedSugar': _addedSugar,
-        'notes': _notesController.text.trim(),
+        'notes': notes,
       }),
     );
     await preferences.setStringList('food_diary_entries', entries);
+
     if (!mounted) return;
     setState(() => _saving = false);
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Catatan makan tersimpan di perangkat.')),
+      const SnackBar(content: Text('Catatan makan berhasil disimpan.')),
     );
     Navigator.of(context).pop();
   }

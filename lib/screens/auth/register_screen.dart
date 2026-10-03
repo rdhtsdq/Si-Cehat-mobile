@@ -7,6 +7,7 @@ import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/safety_banner.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
+import '../../providers/reminder_provider.dart';
 import '../shell/main_shell_screen.dart';
 import 'privacy_sheet.dart';
 
@@ -22,33 +23,76 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _phoneController = TextEditingController(text: '081234567890');
   final _emailController = TextEditingController(text: 'rina@example.com');
   final _passwordController = TextEditingController(text: 'Password123!');
+  final _childNameController = TextEditingController(text: 'Ahmad');
 
   String? _nameError;
+  String? _emailError;
+  String? _passwordError;
+  String? _serverError;
+  bool _isLoading = false;
 
-  void _handleRegister() {
-    if (_nameController.text.trim().isEmpty) {
-      setState(() {
-        _nameError = 'Nama ibu wajib diisi';
-      });
+  void _handleRegister() async {
+    setState(() {
+      _nameError = null;
+      _emailError = null;
+      _passwordError = null;
+      _serverError = null;
+    });
+
+    final name = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final childName = _childNameController.text.trim();
+
+    bool hasError = false;
+    if (name.isEmpty) {
+      _nameError = 'Nama ibu wajib diisi';
+      hasError = true;
+    }
+    if (email.isEmpty || !email.contains('@')) {
+      _emailError = 'Format email tidak valid';
+      hasError = true;
+    }
+    if (password.length < 6) {
+      _passwordError = 'Password minimal 6 karakter';
+      hasError = true;
+    }
+
+    if (hasError) {
+      setState(() {});
       return;
     }
 
-    final profileProv = context.read<ProfileProvider>();
-    if (profileProv.mother != null) {
-      profileProv.updateMother(
-        profileProv.mother!.copyWith(name: _nameController.text.trim()),
-      );
-    }
+    setState(() => _isLoading = true);
 
-    context.read<AuthProvider>().loginDemo(
-          identifier: _emailController.text,
-          password: _passwordController.text,
-        );
-
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const MainShellScreen()),
-      (route) => false,
+    final authProv = context.read<AuthProvider>();
+    final result = await authProv.register(
+      name: name,
+      phone: phone,
+      email: email,
+      password: password,
+      childName: childName.isNotEmpty ? childName : 'Anak Sehat',
     );
+
+    if (!mounted) return;
+
+    if (result['success'] == true) {
+      await context.read<ProfileProvider>().loadProfiles();
+      if (!mounted) return;
+      await context.read<ReminderProvider>().loadReminders();
+      if (!mounted) return;
+
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const MainShellScreen()),
+        (route) => false,
+      );
+    } else {
+      setState(() {
+        _isLoading = false;
+        _serverError = result['message'] as String? ?? 'Pendaftaran gagal.';
+      });
+    }
   }
 
   @override
@@ -69,30 +113,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Judul center "Daftar Akun"
               Text(
                 'Daftar Akun',
                 textAlign: TextAlign.center,
                 style: AppTypography.headingLogin.copyWith(fontSize: 26),
               ),
               const SizedBox(height: 6),
-              // Subjudul "Isi data berikut"
               Text(
-                'Isi data berikut',
+                'Lengkapi data untuk pendampingan keluarga',
                 textAlign: TextAlign.center,
                 style: AppTypography.bodySecondary.copyWith(
                   color: AppColors.textSecondary,
-                  fontSize: 16,
+                  fontSize: 15,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              const SafetyBanner(
-                text: 'Mode Demo: Pendaftaran akun disimulasikan secara lokal untuk kemudahan eksplorasi.',
-                type: BannerType.demo,
-              ),
+              if (_serverError != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red[200]!),
+                  ),
+                  child: Text(
+                    _serverError!,
+                    style: TextStyle(color: Colors.red[800], fontSize: 13),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
 
-              // 4 Field berurutan sesuai PDF
               AppTextField(
                 hintText: 'Nama Ibu',
                 controller: _nameController,
@@ -102,54 +154,69 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 },
               ),
               const SizedBox(height: 16),
+
               AppTextField(
-                hintText: 'No. HP',
+                hintText: 'Nama Anak Pertama',
+                controller: _childNameController,
+              ),
+              const SizedBox(height: 16),
+
+              AppTextField(
+                hintText: 'Nomor HP',
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
               ),
               const SizedBox(height: 16),
+
               AppTextField(
                 hintText: 'Email',
                 controller: _emailController,
+                errorText: _emailError,
                 keyboardType: TextInputType.emailAddress,
+                onChanged: (_) {
+                  if (_emailError != null) setState(() => _emailError = null);
+                },
               ),
               const SizedBox(height: 16),
+
               AppTextField(
                 hintText: 'Password',
                 controller: _passwordController,
+                errorText: _passwordError,
                 isPassword: true,
-              ),
-              const SizedBox(height: 16),
-
-              // Tautan Privasi & Kebijakan
-              GestureDetector(
-                onTap: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                    ),
-                    builder: (_) => const PrivacyConsentSheet(),
-                  );
+                onChanged: (_) {
+                  if (_passwordError != null) setState(() => _passwordError = null);
                 },
-                child: Text(
-                  'Dengan mendaftar, Anda menyetujui Kebijakan Privasi & Ketentuan Layanan',
-                  textAlign: TextAlign.center,
-                  style: AppTypography.bodySecondary.copyWith(
-                    fontSize: 12,
-                    decoration: TextDecoration.underline,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 28),
-
-              // Tombol hijau "Daftar"
-              PrimaryButton(
-                text: 'Daftar',
-                onPressed: _handleRegister,
               ),
               const SizedBox(height: 24),
+
+              PrimaryButton(
+                text: 'Daftar Sekarang',
+                isLoading: _isLoading,
+                onPressed: _handleRegister,
+              ),
+              const SizedBox(height: 20),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Sudah punya akun? ',
+                    style: AppTypography.bodySecondary.copyWith(color: AppColors.textSecondary),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Text(
+                      'Masuk',
+                      style: AppTypography.bodySecondary.copyWith(
+                        color: AppColors.primaryGreen,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
             ],
           ),
         ),

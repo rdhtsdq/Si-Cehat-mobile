@@ -1,5 +1,5 @@
 class ChildModel {
-  final int id;
+  final dynamic id;
   final String name;
   final String dateOfBirth; // YYYY-MM-DD date-only
   final String gender;
@@ -15,20 +15,38 @@ class ChildModel {
     this.isActive = false,
   });
 
+  static String _formatGender(dynamic val) {
+    if (val == null) return 'Laki-laki';
+    final s = val.toString().toUpperCase();
+    if (s == 'FEMALE' || s == 'P' || s.contains('PEREMPUAN')) {
+      return 'Perempuan';
+    }
+    return 'Laki-laki';
+  }
+
+  static String _formatDob(dynamic val) {
+    if (val == null) return '2018-05-14';
+    final s = val.toString();
+    if (s.length >= 10) return s.substring(0, 10);
+    return '2018-05-14';
+  }
+
   factory ChildModel.fromMap(Map<String, dynamic> map) {
     return ChildModel(
-      id: map['id'] as int,
-      name: map['name'] as String,
-      dateOfBirth: map['date_of_birth'] as String? ?? '2018-05-14',
-      gender: map['gender'] as String? ?? 'Laki-laki',
-      healthNotes: map['health_notes'] as String? ?? 'Belum ada catatan khusus',
-      isActive: (map['is_active'] as int? ?? 0) == 1,
+      id: map['id'] ?? 0,
+      name: map['name'] as String? ?? 'Anak',
+      dateOfBirth: _formatDob(map['date_of_birth'] ?? map['birthDate']),
+      gender: _formatGender(map['gender']),
+      healthNotes: (map['health_notes'] ?? map['healthHistory']) as String? ?? 'Belum ada catatan khusus',
+      isActive: (map['is_active'] == 1 || map['isActive'] == true),
     );
   }
 
+  factory ChildModel.fromJson(Map<String, dynamic> json) => ChildModel.fromMap(json);
+
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
+      'id': (id is int) ? id : (int.tryParse(id.toString()) ?? 1),
       'name': name,
       'date_of_birth': dateOfBirth,
       'gender': gender,
@@ -37,8 +55,19 @@ class ChildModel {
     };
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id.toString(),
+      'name': name,
+      'birthDate': dateOfBirth,
+      'gender': gender == 'Perempuan' ? 'FEMALE' : 'MALE',
+      'healthHistory': healthNotes,
+      'isActive': isActive,
+    };
+  }
+
   ChildModel copyWith({
-    int? id,
+    dynamic id,
     String? name,
     String? dateOfBirth,
     String? gender,

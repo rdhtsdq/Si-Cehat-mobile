@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/api/api_client.dart';
+import '../../core/api/api_constants.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/primary_button.dart';
@@ -18,6 +20,7 @@ class _ScreeningStep1ScreenState extends State<ScreeningStep1Screen> {
   int _selectedAge = 8;
   double _selectedWeight = 25.0;
   double _selectedHeight = 120.0;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -82,6 +85,68 @@ class _ScreeningStep1ScreenState extends State<ScreeningStep1Screen> {
     );
   }
 
+  void _handleCalculate() async {
+    setState(() => _isLoading = true);
+
+    final child = context.read<ProfileProvider>().activeChild;
+    try {
+      final res = await ApiClient.instance.post(
+        ApiConstants.screening,
+        body: {
+          if (child?.id != null) 'childId': child!.id.toString(),
+          'ageYears': _selectedAge,
+          'weightKg': _selectedWeight,
+          'heightCm': _selectedHeight,
+          'familyHistory': false,
+          'sweetDrinkFrequency': 'kadang',
+          'physicalActivityHours': 1.0,
+        },
+      );
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      if (res.isSuccess && res.data != null) {
+        final d = res.data as Map<String, dynamic>;
+        final score = (d['riskScore'] as num?)?.toInt() ?? 50;
+        final cat = d['riskCategory'] as String? ?? 'SEDANG';
+        final title = d['title'] as String?;
+        final recs = (d['recommendations'] as List<dynamic>?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            [];
+
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ScreeningResultScreen(
+              score: score,
+              category: cat,
+              statusText: title,
+              recommendations: recs,
+              isRealResult: true,
+            ),
+          ),
+        );
+        return;
+      }
+    } catch (_) {}
+
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+
+    // Fallback to demo explanation modal
+    showDialog(
+      context: context,
+      builder: (ctx) => ScreeningDemoDialog(
+        onProceedToExample: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const ScreeningResultScreen()),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -105,27 +170,27 @@ class _ScreeningStep1ScreenState extends State<ScreeningStep1Screen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Teks kecil "Langkah 1 dari 3" sesuai PDF
               Text(
-                'Langkah 1 dari 3',
-                style: AppTypography.bodySecondary.copyWith(
-                  color: AppColors.textSecondary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
+                'Data Awal Anak',
+                style: AppTypography.titleCard.copyWith(fontSize: 16),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Masukkan usia, berat badan, dan tinggi badan aktual anak untuk analisis risiko.',
+                style: AppTypography.bodySecondary,
               ),
               const SizedBox(height: 24),
 
-              // Kontrol dropdown / picker Usia Anak (Tahun)
+              // Kontrol dropdown / picker Usia
               _buildSelectorRow(
                 label: 'Usia Anak (Tahun)',
-                value: '$_selectedAge',
+                value: '$_selectedAge Tahun',
                 onTap: () {
                   _showNumericPicker(
                     title: 'Pilih Usia Anak',
                     initialValue: _selectedAge.toDouble(),
                     min: 5,
-                    max: 15,
+                    max: 18,
                     unit: 'Tahun',
                     onSelected: (val) => setState(() => _selectedAge = val.toInt()),
                   );
@@ -136,13 +201,13 @@ class _ScreeningStep1ScreenState extends State<ScreeningStep1Screen> {
               // Kontrol dropdown / picker Berat Badan (Kg)
               _buildSelectorRow(
                 label: 'Berat Badan (Kg)',
-                value: _selectedWeight.toStringAsFixed(0),
+                value: '${_selectedWeight.toStringAsFixed(1)} Kg',
                 onTap: () {
                   _showNumericPicker(
                     title: 'Pilih Berat Badan Anak',
                     initialValue: _selectedWeight,
                     min: 15,
-                    max: 60,
+                    max: 80,
                     unit: 'Kg',
                     onSelected: (val) => setState(() => _selectedWeight = val),
                   );
@@ -153,13 +218,13 @@ class _ScreeningStep1ScreenState extends State<ScreeningStep1Screen> {
               // Kontrol dropdown / picker Tinggi Badan (Cm)
               _buildSelectorRow(
                 label: 'Tinggi Badan (Cm)',
-                value: _selectedHeight.toStringAsFixed(0),
+                value: '${_selectedHeight.toStringAsFixed(0)} Cm',
                 onTap: () {
                   _showNumericPicker(
                     title: 'Pilih Tinggi Badan Anak',
                     initialValue: _selectedHeight,
                     min: 90,
-                    max: 160,
+                    max: 180,
                     unit: 'Cm',
                     onSelected: (val) => setState(() => _selectedHeight = val),
                   );
@@ -170,19 +235,9 @@ class _ScreeningStep1ScreenState extends State<ScreeningStep1Screen> {
 
               // Tombol hijau lebar "Selanjutnya"
               PrimaryButton(
-                text: 'Selanjutnya',
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (ctx) => ScreeningDemoDialog(
-                      onProceedToExample: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const ScreeningResultScreen()),
-                        );
-                      },
-                    ),
-                  );
-                },
+                text: 'Analisis Risiko Diabetes',
+                isLoading: _isLoading,
+                onPressed: _handleCalculate,
               ),
               const SizedBox(height: 16),
             ],

@@ -7,10 +7,41 @@ import '../../core/widgets/safety_banner.dart';
 import '../menu/menu_catalog_screen.dart';
 
 class ScreeningResultScreen extends StatelessWidget {
-  const ScreeningResultScreen({super.key});
+  final int score;
+  final String category;
+  final String? statusText;
+  final List<String> recommendations;
+  final bool isRealResult;
+
+  const ScreeningResultScreen({
+    super.key,
+    this.score = 50,
+    this.category = 'SEDANG',
+    this.statusText,
+    this.recommendations = const [
+      'Perbanyak sayur & buah harian',
+      'Batasi minuman berpemanis dan boba',
+      'Aktivitas fisik aktif minimal 60 menit sehari',
+    ],
+    this.isRealResult = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final titleMessage = statusText ??
+        (category.toUpperCase() == 'TINGGI'
+            ? 'Anak memiliki potensi risiko tinggi\nterhadap diabetes melitus'
+            : category.toUpperCase() == 'RENDAH'
+                ? 'Anak memiliki risiko rendah\nterhadap diabetes melitus'
+                : 'Anak memiliki risiko sedang\nterhadap diabetes melitus');
+
+    Color categoryColor = AppColors.primaryGreen;
+    if (category.toUpperCase() == 'TINGGI') {
+      categoryColor = Colors.orange[800]!;
+    } else if (category.toUpperCase() == 'SEDANG') {
+      categoryColor = const Color(0xFFE6A23C);
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -32,28 +63,42 @@ class ScreeningResultScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // SAFETY BADGE PERMANEN SESUAI SPEC S10
-              const SafetyBanner(
-                text: 'SIMULASI · 50% hanya contoh desain tampilan, bukan risiko klinis anak.',
-                type: BannerType.simulation,
+              SafetyBanner(
+                text: isRealResult
+                    ? 'Hasil analisis server berdasarkan antropometri & gaya hidup anak.'
+                    : 'SIMULASI · 50% hanya contoh desain tampilan, bukan risiko klinis anak.',
+                type: isRealResult ? BannerType.notice : BannerType.simulation,
               ),
               const SizedBox(height: 16),
 
-              // Donut chart separuh hijau pekat (#4CAF50) dan separuh hijau muda (#8BC34A)
+              // Donut chart dengan persentase skor
               Center(
                 child: SizedBox(
                   width: 170,
                   height: 170,
                   child: CustomPaint(
-                    painter: _DonutChartPainter(),
+                    painter: _DonutChartPainter(percentage: score.toDouble()),
                     child: Center(
-                      child: Text(
-                        '50%',
-                        style: AppTypography.headingScreen.copyWith(
-                          fontSize: 34,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.primaryGreen,
-                        ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '$score%',
+                            style: AppTypography.headingScreen.copyWith(
+                              fontSize: 34,
+                              fontWeight: FontWeight.w800,
+                              color: categoryColor,
+                            ),
+                          ),
+                          Text(
+                            'Kategori $category',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: categoryColor,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -61,9 +106,8 @@ class ScreeningResultScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
 
-              // Teks center: "Anda memiliki risiko sedang terhadap diabetes melitus"
               Text(
-                'Anda memiliki risiko sedang\nterhadap diabetes melitus',
+                titleMessage,
                 textAlign: TextAlign.center,
                 style: AppTypography.titleCard.copyWith(
                   fontSize: 17,
@@ -74,11 +118,10 @@ class ScreeningResultScreen extends StatelessWidget {
               ),
               const SizedBox(height: 32),
 
-              // Heading kiri bold "Rekomendasi untuk Anda"
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'Rekomendasi untuk Anda',
+                  'Rekomendasi Tindak Lanjut',
                   style: AppTypography.titleCard.copyWith(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -87,32 +130,40 @@ class ScreeningResultScreen extends StatelessWidget {
               ),
               const SizedBox(height: 14),
 
-              // Tiga baris rekomendasi dengan penanda panah/chevron sesuai PDF S10
-              _buildRecommendationItem(
-                text: 'Perbanyak sayur & buah',
-                icon: Icons.eco_outlined,
-              ),
-              const SizedBox(height: 10),
-              _buildRecommendationItem(
-                text: 'Batasi minuman manis',
-                icon: Icons.no_drinks_outlined,
-              ),
-              const SizedBox(height: 10),
-              _buildRecommendationItem(
-                text: 'Ajak anak aktif bergerak',
-                icon: Icons.directions_run_outlined,
-              ),
+              ...recommendations.map((rec) => Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _buildRecommendationItem(
+                      text: rec,
+                      icon: Icons.check_circle_outline,
+                    ),
+                  )),
 
-              const SizedBox(height: 36),
+              const SizedBox(height: 32),
 
-              // Tombol hijau "Selanjutnya" menuju Menu Tradisional (S12)
               PrimaryButton(
-                text: 'Selanjutnya',
+                text: 'Lihat Contoh Menu Tradisional',
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const MenuCatalogScreen()),
                   );
                 },
+              ),
+              const SizedBox(height: 12),
+
+              OutlinedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                  side: const BorderSide(color: AppColors.primaryGreen),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                child: const Text(
+                  'Kembali ke Beranda',
+                  style: TextStyle(
+                    color: AppColors.primaryGreen,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
             ],
@@ -122,36 +173,29 @@ class ScreeningResultScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRecommendationItem({
-    required String text,
-    required IconData icon,
-  }) {
+  Widget _buildRecommendationItem({required String text, required IconData icon}) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: AppColors.fieldBackground,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE8E8E8)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFEEEEEE)),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 22, color: AppColors.primaryGreen),
-          const SizedBox(width: 14),
+          Icon(icon, color: AppColors.primaryGreen, size: 22),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               text,
               style: AppTypography.bodyRegular.copyWith(
-                fontWeight: FontWeight.w600,
-                color: AppColors.textDark,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
-          const Icon(
-            Icons.chevron_right,
-            color: AppColors.textSecondary,
-            size: 22,
-          ),
+          const Icon(Icons.chevron_right, color: AppColors.textSecondary, size: 20),
         ],
       ),
     );
@@ -159,41 +203,38 @@ class ScreeningResultScreen extends StatelessWidget {
 }
 
 class _DonutChartPainter extends CustomPainter {
+  final double percentage;
+  _DonutChartPainter({this.percentage = 50.0});
+
   @override
   void paint(Canvas canvas, Size size) {
-    final strokeWidth = 26.0;
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = (size.width - strokeWidth) / 2;
+    final radius = size.width / 2;
+    const strokeWidth = 18.0;
 
-    final paintGreenDark = Paint()
+    final bgPaint = Paint()
+      ..color = const Color(0xFFE8F5E9)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+    canvas.drawCircle(center, radius - strokeWidth / 2, bgPaint);
+
+    final sweepAngle = 2 * math.pi * (percentage / 100.0);
+    final fillPaint = Paint()
       ..color = AppColors.primaryGreen
       ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
       ..strokeWidth = strokeWidth;
 
-    final paintGreenLight = Paint()
-      ..color = AppColors.lightGreen
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
-
-    // Separuh atas/kiri hijau tua (#4CAF50)
     canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
+      Rect.fromCircle(center: center, radius: radius - strokeWidth / 2),
       -math.pi / 2,
-      math.pi,
+      sweepAngle,
       false,
-      paintGreenDark,
-    );
-
-    // Separuh bawah/kanan hijau muda (#8BC34A)
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      math.pi / 2,
-      math.pi,
-      false,
-      paintGreenLight,
+      fillPaint,
     );
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _DonutChartPainter oldDelegate) =>
+      oldDelegate.percentage != percentage;
 }
