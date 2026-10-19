@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/api/api_client.dart';
 import '../../core/api/api_constants.dart';
+import '../../providers/profile_provider.dart';
 
 class FoodDiaryScreen extends StatefulWidget {
   final String? initialFood;
@@ -39,6 +41,21 @@ class _FoodDiaryScreenState extends State<FoodDiaryScreen> {
     _foodController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  String _mapMealSlot(String mealLabel) {
+    switch (mealLabel) {
+      case 'Sarapan':
+        return 'sarapan';
+      case 'Makan Siang':
+        return 'siang';
+      case 'Makan Malam':
+        return 'malam';
+      case 'Camilan Pagi':
+      case 'Camilan Sore':
+      default:
+        return 'camilan';
+    }
   }
 
   @override
@@ -106,9 +123,9 @@ class _FoodDiaryScreenState extends State<FoodDiaryScreen> {
                       const SizedBox(height: 10),
                       _label('Porsi'),
                       _dropdown(_portion, [
-                        '½ porsi',
+                        '\u00bd porsi',
                         '1 porsi',
-                        '1½ porsi',
+                        '1\u00bd porsi',
                         '2 porsi',
                         '100 gram',
                       ], (v) => setState(() => _portion = v!)),
@@ -349,19 +366,20 @@ class _FoodDiaryScreenState extends State<FoodDiaryScreen> {
     final dateStr = DateFormat('yyyy-MM-dd').format(_date);
     final foodName = _foodController.text.trim();
     final notes = _notesController.text.trim();
+    final activeChild = context.read<ProfileProvider>().activeChild;
 
-    // 1. Post to Backend API if authenticated
+    // 1. Post to Backend API if authenticated and childId is available
     try {
       final token = await ApiClient.instance.getToken();
-      if (token != null && token.isNotEmpty) {
+      if (token != null && token.isNotEmpty && activeChild != null) {
         await ApiClient.instance.post(
           ApiConstants.foodDiary,
           body: {
+            'childId': activeChild.id.toString(),
             'date': dateStr,
-            'mealSlot': _meal,
+            'mealSlot': _mapMealSlot(_meal),
             'foodName': foodName,
-            'portion': _portion,
-            'portionDescription': notes.isNotEmpty ? '$_portion ($notes)' : _portion,
+            'portion': notes.isNotEmpty ? '$_portion ($notes)' : _portion,
           },
         );
       }

@@ -19,10 +19,38 @@ class _AddMeasurementSheetState extends State<AddMeasurementSheet> {
   final _dateController = TextEditingController(
     text: DateTime.now().toString().substring(0, 10),
   );
-  final _weightController = TextEditingController(text: '20.8');
-  final _heightController = TextEditingController(text: '119');
+  final _weightController = TextEditingController();
+  final _heightController = TextEditingController();
   final _notesController = TextEditingController();
   String _source = 'Mandiri';
+  String? _weightError;
+  String? _heightError;
+  bool _isSaving = false;
+
+  @override
+  void dispose() {
+    _dateController.dispose();
+    _weightController.dispose();
+    _heightController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: DateTime(now.year - 5),
+      lastDate: now,
+    );
+    if (picked != null) {
+      setState(() {
+        _dateController.text =
+            '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,29 +83,49 @@ class _AddMeasurementSheetState extends State<AddMeasurementSheet> {
           const Divider(),
           const SizedBox(height: 12),
 
-          AppTextField(
-            label: 'Tanggal Pengukuran (YYYY-MM-DD)',
-            hintText: '2026-06-01',
-            controller: _dateController,
+          GestureDetector(
+            onTap: _pickDate,
+            child: AbsorbPointer(
+              child: AppTextField(
+                label: 'Tanggal Pengukuran (YYYY-MM-DD)',
+                hintText: 'Pilih tanggal pengukuran',
+                controller: _dateController,
+              ),
+            ),
           ),
           const SizedBox(height: 14),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: AppTextField(
                   label: 'Berat Badan (Kg)',
-                  hintText: 'Contoh: 20.8',
+                  hintText: 'Masukkan BB (kg)',
                   controller: _weightController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  errorText: _weightError,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  onChanged: (_) {
+                    if (_weightError != null)
+                      setState(() => _weightError = null);
+                  },
                 ),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: AppTextField(
                   label: 'Tinggi Badan (Cm)',
-                  hintText: 'Contoh: 119',
+                  hintText: 'Masukkan TB (cm)',
                   controller: _heightController,
-                  keyboardType: TextInputType.number,
+                  errorText: _heightError,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  onChanged: (_) {
+                    if (_heightError != null)
+                      setState(() => _heightError = null);
+                  },
                 ),
               ),
             ],
@@ -109,16 +157,34 @@ class _AddMeasurementSheetState extends State<AddMeasurementSheet> {
           const SizedBox(height: 24),
           PrimaryButton(
             text: 'Simpan Pengukuran',
+            isLoading: _isSaving,
             onPressed: () async {
               if (activeChild == null) return;
-              final weight = double.tryParse(_weightController.text.replaceAll(',', '.')) ?? 20.0;
-              final height = double.tryParse(_heightController.text.replaceAll(',', '.')) ?? 118.0;
+              final weight = double.tryParse(
+                _weightController.text.trim().replaceAll(',', '.'),
+              );
+              final height = double.tryParse(
+                _heightController.text.trim().replaceAll(',', '.'),
+              );
+
+              setState(() {
+                _weightError = (weight == null || weight < 3 || weight > 150)
+                    ? 'BB tidak valid (3-150 kg)'
+                    : null;
+                _heightError = (height == null || height < 40 || height > 220)
+                    ? 'TB tidak valid (40-220 cm)'
+                    : null;
+              });
+
+              if (_weightError != null || _heightError != null) return;
+
+              setState(() => _isSaving = true);
 
               final measurement = MeasurementModel(
                 childId: activeChild.id,
                 date: _dateController.text.trim(),
-                weight: weight,
-                height: height,
+                weight: weight!,
+                height: height!,
                 source: _source,
                 notes: _notesController.text.trim(),
               );
@@ -126,7 +192,9 @@ class _AddMeasurementSheetState extends State<AddMeasurementSheet> {
               await context.read<TrackerProvider>().addMeasurement(measurement);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Data pengukuran berhasil ditambahkan')),
+                  const SnackBar(
+                    content: Text('Data pengukuran berhasil ditambahkan'),
+                  ),
                 );
                 Navigator.of(context).pop();
               }

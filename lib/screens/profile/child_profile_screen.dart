@@ -23,7 +23,11 @@ class ChildProfileScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.chevron_left, size: 28, color: AppColors.textDark),
+          icon: const Icon(
+            Icons.chevron_left,
+            size: 28,
+            color: AppColors.textDark,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -54,7 +58,6 @@ class ChildProfileScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 10),
-              // Avatar orang generik dalam lingkaran abu
               Container(
                 width: 90,
                 height: 90,
@@ -70,15 +73,18 @@ class ChildProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
 
-              // Empat baris sesuai PDF: Nama Anak, Tanggal Lahir, Riwayat Kesehatan, Riwayat Pengukuran
               _buildProfileRow(
                 label: 'Nama Anak',
-                value: child?.name ?? 'Ahmad',
+                value: (child?.name.isNotEmpty == true)
+                    ? child!.name
+                    : 'Belum diisi',
               ),
               const SizedBox(height: 14),
               _buildProfileRow(
                 label: 'Tanggal Lahir',
-                value: child?.dateOfBirth ?? '2018-05-14',
+                value: (child?.dateOfBirth.isNotEmpty == true)
+                    ? child!.dateOfBirth
+                    : 'Belum diisi',
               ),
               const SizedBox(height: 14),
               _buildProfileRow(
@@ -89,7 +95,6 @@ class ChildProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 14),
 
-              // Riwayat Pengukuran: tap mengarahkan ke S11 Tracker!
               InkWell(
                 onTap: () {
                   Navigator.of(context).push(
@@ -100,11 +105,16 @@ class ChildProfileScreen extends StatelessWidget {
                 child: Container(
                   width: double.infinity,
                   constraints: const BoxConstraints(minHeight: 56),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.fieldBackground,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.primaryGreen.withValues(alpha: 0.3)),
+                    border: Border.all(
+                      color: AppColors.primaryGreen.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -131,7 +141,10 @@ class ChildProfileScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const Icon(Icons.chevron_right, color: AppColors.primaryGreenDark),
+                      const Icon(
+                        Icons.chevron_right,
+                        color: AppColors.primaryGreenDark,
+                      ),
                     ],
                   ),
                 ),
@@ -182,7 +195,9 @@ class ChildProfileScreen extends StatelessWidget {
             style: AppTypography.bodyRegular.copyWith(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: AppColors.textDark,
+              color: value == 'Belum diisi'
+                  ? AppColors.textSecondary
+                  : AppColors.textDark,
             ),
           ),
         ],

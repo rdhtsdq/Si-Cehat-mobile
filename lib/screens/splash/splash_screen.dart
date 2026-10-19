@@ -4,6 +4,9 @@ import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/profile_provider.dart';
+import '../../providers/reminder_provider.dart';
+import '../auth/login_screen.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../shell/main_shell_screen.dart';
 
@@ -22,20 +25,35 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _navigateNext() async {
-    // Memberikan waktu inisialisasi minimal yang responsif
-    await Future.delayed(const Duration(milliseconds: 1200));
+    final auth = context.read<AuthProvider>();
+    await Future.wait([
+      auth.ensureInitialized(),
+      Future.delayed(const Duration(milliseconds: 1000)),
+    ]);
     if (!mounted) return;
 
-    final auth = context.read<AuthProvider>();
     if (!auth.hasSeenOnboarding) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const OnboardingScreen()),
       );
-    } else {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const MainShellScreen()),
-      );
+      return;
     }
+
+    if (!auth.isLoggedIn) {
+      Navigator.of(
+        context,
+      ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
+      return;
+    }
+
+    await context.read<ProfileProvider>().loadProfiles();
+    if (!mounted) return;
+    await context.read<ReminderProvider>().loadReminders();
+    if (!mounted) return;
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const MainShellScreen()),
+    );
   }
 
   @override
@@ -50,14 +68,12 @@ class _SplashScreenState extends State<SplashScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // "Si Cehat" hijau besar dan tebal
                 Text(
                   'Si Cehat',
                   textAlign: TextAlign.center,
                   style: AppTypography.headingSplash,
                 ),
                 const SizedBox(height: 12),
-                // Judul hitam tebal dua baris
                 Text(
                   'Sistem Cerdas Anak Sehat\nAnti Diabetes',
                   textAlign: TextAlign.center,

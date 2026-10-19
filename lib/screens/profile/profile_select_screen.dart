@@ -24,7 +24,6 @@ class ProfileSelectScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 20),
-              // Ilustrasi siluet ibu menggendong anak berwarna hitam di tengah area atas sesuai PDF
               Center(
                 child: Container(
                   width: 140,
@@ -32,7 +31,10 @@ class ProfileSelectScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: const Color(0xFFF0F0F0),
                     shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFFE0E0E0), width: 1.5),
+                    border: Border.all(
+                      color: const Color(0xFFE0E0E0),
+                      width: 1.5,
+                    ),
                   ),
                   child: const Center(
                     child: Icon(
@@ -45,7 +47,6 @@ class ProfileSelectScreen extends StatelessWidget {
               ),
               const SizedBox(height: 36),
 
-              // Dua bidang abu muda lebar: Profil Ibu, kemudian Profil Anak sesuai PDF
               _buildProfileOption(
                 context,
                 title: 'Profil Ibu',
@@ -53,7 +54,9 @@ class ProfileSelectScreen extends StatelessWidget {
                 icon: Icons.person_outline,
                 onTap: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const MotherProfileScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const MotherProfileScreen(),
+                    ),
                   );
                 },
               ),
@@ -65,7 +68,9 @@ class ProfileSelectScreen extends StatelessWidget {
                 icon: Icons.child_care,
                 onTap: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const ChildProfileScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const ChildProfileScreen(),
+                    ),
                   );
                 },
               ),
@@ -74,24 +79,34 @@ class ProfileSelectScreen extends StatelessWidget {
               const Divider(),
               const SizedBox(height: 16),
 
-              // Tambahan operasional usulan spec
               Text(
-                'Pengaturan Sesi Demo',
-                style: AppTypography.titleCard.copyWith(fontSize: 14, color: AppColors.textSecondary),
+                'Pengaturan Akun & Keluarga',
+                style: AppTypography.titleCard.copyWith(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                ),
               ),
               const SizedBox(height: 8),
 
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.people_outline, color: AppColors.textDark),
-                title: Text('Ganti / Tambah Anak', style: AppTypography.bodyRegular),
+                leading: const Icon(
+                  Icons.people_outline,
+                  color: AppColors.textDark,
+                ),
+                title: Text(
+                  'Ganti / Tambah Anak',
+                  style: AppTypography.bodyRegular,
+                ),
                 trailing: const Icon(Icons.chevron_right, size: 20),
                 onTap: () {
                   showModalBottomSheet(
                     context: context,
                     isScrollControlled: true,
                     shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(16),
+                      ),
                     ),
                     builder: (_) => const ChildManageSheet(),
                   );
@@ -99,15 +114,23 @@ class ProfileSelectScreen extends StatelessWidget {
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.privacy_tip_outlined, color: AppColors.textDark),
-                title: Text('Informasi Privasi & Data', style: AppTypography.bodyRegular),
+                leading: const Icon(
+                  Icons.privacy_tip_outlined,
+                  color: AppColors.textDark,
+                ),
+                title: Text(
+                  'Informasi Privasi & Data',
+                  style: AppTypography.bodyRegular,
+                ),
                 trailing: const Icon(Icons.chevron_right, size: 20),
                 onTap: () {
                   showModalBottomSheet(
                     context: context,
                     isScrollControlled: true,
                     shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(16),
+                      ),
                     ),
                     builder: (_) => const PrivacyConsentSheet(),
                   );
@@ -115,51 +138,18 @@ class ProfileSelectScreen extends StatelessWidget {
               ),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.restore, color: AppColors.accentOrange),
-                title: Text(
-                  'Reset Data Demo ke Awal',
-                  style: AppTypography.bodyRegular.copyWith(color: AppColors.accentOrange),
-                ),
-                onTap: () async {
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      title: const Text('Reset Data Demo?'),
-                      content: const Text(
-                        'Semua perubahan data lokal, pengukuran, dan catatan akan dikembalikan ke data awal.',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(ctx).pop(false),
-                          child: const Text('Batal'),
-                        ),
-                        ElevatedButton(
-                          onPressed: () => Navigator.of(ctx).pop(true),
-                          style: ElevatedButton.styleFrom(backgroundColor: AppColors.accentOrange),
-                          child: const Text('Reset', style: TextStyle(color: Colors.white)),
-                        ),
-                      ],
-                    ),
-                  );
-                  if (confirm == true && context.mounted) {
-                    await context.read<ProfileProvider>().resetAllData();
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Data demo berhasil direset ke awal')),
-                      );
-                    }
-                  }
-                },
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.logout, color: AppColors.accentRed),
                 title: Text(
-                  'Keluar Sesi Demo',
-                  style: AppTypography.bodyRegular.copyWith(color: AppColors.accentRed),
+                  'Keluar Akun',
+                  style: AppTypography.bodyRegular.copyWith(
+                    color: AppColors.accentRed,
+                  ),
                 ),
                 onTap: () async {
-                  await context.read<AuthProvider>().logout();
+                  final authProv = context.read<AuthProvider>();
+                  final profileProv = context.read<ProfileProvider>();
+                  await authProv.logout();
+                  profileProv.clearSession();
                   if (context.mounted) {
                     Navigator.of(context).pushAndRemoveUntil(
                       MaterialPageRoute(builder: (_) => const LoginScreen()),

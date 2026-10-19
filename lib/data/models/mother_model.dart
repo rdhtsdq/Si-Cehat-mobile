@@ -25,14 +25,15 @@ class MotherModel {
       name: map['name'] as String? ?? 'Ibu',
       email: map['email'] as String? ?? '',
       phone: map['phone'] as String? ?? '',
-      education: map['education'] as String? ?? 'S1 / Sarjana',
-      occupation: map['occupation'] as String? ?? 'Ibu Rumah Tangga',
-      address: map['address'] as String? ?? 'Bandung',
+      education: map['education'] as String? ?? '',
+      occupation: map['occupation'] as String? ?? '',
+      address: map['address'] as String? ?? '',
       role: map['role'] as String? ?? 'GUARDIAN',
     );
   }
 
-  factory MotherModel.fromJson(Map<String, dynamic> json) => MotherModel.fromMap(json);
+  factory MotherModel.fromJson(Map<String, dynamic> json) =>
+      MotherModel.fromMap(json);
 
   Map<String, dynamic> toMap() {
     return {

@@ -28,12 +28,13 @@ class ScreeningResultScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final titleMessage = statusText ??
+    final titleMessage =
+        statusText ??
         (category.toUpperCase() == 'TINGGI'
             ? 'Anak memiliki potensi risiko tinggi\nterhadap diabetes melitus'
             : category.toUpperCase() == 'RENDAH'
-                ? 'Anak memiliki risiko rendah\nterhadap diabetes melitus'
-                : 'Anak memiliki risiko sedang\nterhadap diabetes melitus');
+            ? 'Anak memiliki risiko rendah\nterhadap diabetes melitus'
+            : 'Anak memiliki risiko sedang\nterhadap diabetes melitus');
 
     Color categoryColor = AppColors.primaryGreen;
     if (category.toUpperCase() == 'TINGGI') {
@@ -49,8 +50,13 @@ class ScreeningResultScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: false,
         leading: IconButton(
-          icon: const Icon(Icons.chevron_left, size: 28, color: AppColors.textDark),
-          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(
+            Icons.chevron_left,
+            size: 28,
+            color: AppColors.textDark,
+          ),
+          onPressed: () =>
+              Navigator.of(context).popUntil((route) => route.isFirst),
         ),
         title: Text(
           'Hasil Skrining',
@@ -65,13 +71,12 @@ class ScreeningResultScreen extends StatelessWidget {
             children: [
               SafetyBanner(
                 text: isRealResult
-                    ? 'Hasil analisis server berdasarkan antropometri & gaya hidup anak.'
-                    : 'SIMULASI · 50% hanya contoh desain tampilan, bukan risiko klinis anak.',
+                    ? 'Hasil analisis berdasarkan antropometri & gaya hidup anak.'
+                    : 'SIMULASI \u00b7 50% hanya contoh desain tampilan, bukan risiko klinis anak.',
                 type: isRealResult ? BannerType.notice : BannerType.simulation,
               ),
               const SizedBox(height: 16),
 
-              // Donut chart dengan persentase skor
               Center(
                 child: SizedBox(
                   width: 170,
@@ -130,13 +135,15 @@ class ScreeningResultScreen extends StatelessWidget {
               ),
               const SizedBox(height: 14),
 
-              ...recommendations.map((rec) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _buildRecommendationItem(
-                      text: rec,
-                      icon: Icons.check_circle_outline,
-                    ),
-                  )),
+              ...recommendations.map(
+                (rec) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _buildRecommendationItem(
+                    text: rec,
+                    icon: Icons.check_circle_outline,
+                  ),
+                ),
+              ),
 
               const SizedBox(height: 32),
 
@@ -144,18 +151,23 @@ class ScreeningResultScreen extends StatelessWidget {
                 text: 'Lihat Contoh Menu Tradisional',
                 onPressed: () {
                   Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const MenuCatalogScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const MenuCatalogScreen(),
+                    ),
                   );
                 },
               ),
               const SizedBox(height: 12),
 
               OutlinedButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () =>
+                    Navigator.of(context).popUntil((route) => route.isFirst),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 48),
                   side: const BorderSide(color: AppColors.primaryGreen),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 child: const Text(
                   'Kembali ke Beranda',
@@ -173,7 +185,10 @@ class ScreeningResultScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRecommendationItem({required String text, required IconData icon}) {
+  Widget _buildRecommendationItem({
+    required String text,
+    required IconData icon,
+  }) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -195,7 +210,11 @@ class ScreeningResultScreen extends StatelessWidget {
               ),
             ),
           ),
-          const Icon(Icons.chevron_right, color: AppColors.textSecondary, size: 20),
+          const Icon(
+            Icons.chevron_right,
+            color: AppColors.textSecondary,
+            size: 20,
+          ),
         ],
       ),
     );

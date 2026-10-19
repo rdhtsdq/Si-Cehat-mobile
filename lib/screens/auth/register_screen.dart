@@ -4,12 +4,11 @@ import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/primary_button.dart';
-import '../../core/widgets/safety_banner.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/reminder_provider.dart';
+import '../screening/screening_step1_screen.dart';
 import '../shell/main_shell_screen.dart';
-import 'privacy_sheet.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -19,21 +18,33 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _nameController = TextEditingController(text: 'Ibu Rina');
-  final _phoneController = TextEditingController(text: '081234567890');
-  final _emailController = TextEditingController(text: 'rina@example.com');
-  final _passwordController = TextEditingController(text: 'Password123!');
-  final _childNameController = TextEditingController(text: 'Ahmad');
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _childNameController = TextEditingController();
 
   String? _nameError;
+  String? _childNameError;
   String? _emailError;
   String? _passwordError;
   String? _serverError;
   bool _isLoading = false;
 
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _childNameController.dispose();
+    super.dispose();
+  }
+
   void _handleRegister() async {
     setState(() {
       _nameError = null;
+      _childNameError = null;
       _emailError = null;
       _passwordError = null;
       _serverError = null;
@@ -48,6 +59,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     bool hasError = false;
     if (name.isEmpty) {
       _nameError = 'Nama ibu wajib diisi';
+      hasError = true;
+    }
+    if (childName.isEmpty) {
+      _childNameError = 'Nama anak wajib diisi';
       hasError = true;
     }
     if (email.isEmpty || !email.contains('@')) {
@@ -72,7 +87,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       phone: phone,
       email: email,
       password: password,
-      childName: childName.isNotEmpty ? childName : 'Anak Sehat',
+      childName: childName,
     );
 
     if (!mounted) return;
@@ -83,9 +98,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
       await context.read<ReminderProvider>().loadReminders();
       if (!mounted) return;
 
-      Navigator.of(context).pushAndRemoveUntil(
+      final navigator = Navigator.of(context);
+      navigator.pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const MainShellScreen()),
         (route) => false,
+      );
+      navigator.push(
+        MaterialPageRoute(
+          builder: (_) => const ScreeningStep1Screen(isPostRegistration: true),
+        ),
       );
     } else {
       setState(() {
@@ -103,7 +124,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         backgroundColor: AppColors.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.chevron_left, size: 28, color: AppColors.textDark),
+          icon: const Icon(
+            Icons.chevron_left,
+            size: 28,
+            color: AppColors.textDark,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
@@ -146,7 +171,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ],
 
               AppTextField(
-                hintText: 'Nama Ibu',
+                label: 'Nama Ibu',
+                hintText: 'Masukkan nama lengkap Ibu',
                 controller: _nameController,
                 errorText: _nameError,
                 onChanged: (_) {
@@ -156,20 +182,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 16),
 
               AppTextField(
-                hintText: 'Nama Anak Pertama',
+                label: 'Nama Anak',
+                hintText: 'Masukkan nama panggilan / lengkap anak',
                 controller: _childNameController,
+                errorText: _childNameError,
+                onChanged: (_) {
+                  if (_childNameError != null)
+                    setState(() => _childNameError = null);
+                },
               ),
               const SizedBox(height: 16),
 
               AppTextField(
-                hintText: 'Nomor HP',
+                label: 'Nomor HP',
+                hintText: 'Contoh: 0812xxxxxxxx',
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
               ),
               const SizedBox(height: 16),
 
               AppTextField(
-                hintText: 'Email',
+                label: 'Email',
+                hintText: 'Masukkan alamat email aktif',
                 controller: _emailController,
                 errorText: _emailError,
                 keyboardType: TextInputType.emailAddress,
@@ -180,18 +214,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 16),
 
               AppTextField(
-                hintText: 'Password',
+                label: 'Password',
+                hintText: 'Minimal 6 karakter',
                 controller: _passwordController,
                 errorText: _passwordError,
                 isPassword: true,
                 onChanged: (_) {
-                  if (_passwordError != null) setState(() => _passwordError = null);
+                  if (_passwordError != null)
+                    setState(() => _passwordError = null);
                 },
               ),
               const SizedBox(height: 24),
 
               PrimaryButton(
-                text: 'Daftar Sekarang',
+                text: 'Daftar & Mulai Skrining',
                 isLoading: _isLoading,
                 onPressed: _handleRegister,
               ),
@@ -202,7 +238,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 children: [
                   Text(
                     'Sudah punya akun? ',
-                    style: AppTypography.bodySecondary.copyWith(color: AppColors.textSecondary),
+                    style: AppTypography.bodySecondary.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   GestureDetector(
                     onTap: () => Navigator.of(context).pop(),

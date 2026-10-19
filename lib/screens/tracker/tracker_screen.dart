@@ -20,16 +20,20 @@ class TrackerScreen extends StatefulWidget {
 
 class _TrackerScreenState extends State<TrackerScreen> {
   int _selectedTab = 0; // 0: Tumbuh Kembang, 1: Aktivitas
+  dynamic _loadedChildId;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final child = context.read<ProfileProvider>().activeChild;
-      if (child != null) {
-        context.read<TrackerProvider>().loadMeasurements(child.id);
-      }
-    });
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final child = context.watch<ProfileProvider>().activeChild;
+    if (child != null && child.id != _loadedChildId) {
+      _loadedChildId = child.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          context.read<TrackerProvider>().loadMeasurements(child.id);
+        }
+      });
+    }
   }
 
   @override
@@ -38,8 +42,8 @@ class _TrackerScreenState extends State<TrackerScreen> {
     final measurements = trackerProv.measurements;
     final latest = trackerProv.latestMeasurement;
 
-    final String lastWeight = latest != null ? latest.formattedWeight : '20,5 kg';
-    final String lastHeight = latest != null ? latest.formattedHeight : '118 cm';
+    final String lastWeight = latest != null ? latest.formattedWeight : '- kg';
+    final String lastHeight = latest != null ? latest.formattedHeight : '- cm';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -50,7 +54,11 @@ class _TrackerScreenState extends State<TrackerScreen> {
         automaticallyImplyLeading: false,
         leading: widget.showBackButton
             ? IconButton(
-                icon: const Icon(Icons.chevron_left, size: 28, color: AppColors.textDark),
+                icon: const Icon(
+                  Icons.chevron_left,
+                  size: 28,
+                  color: AppColors.textDark,
+                ),
                 onPressed: () => Navigator.of(context).maybePop(),
               )
             : null,
@@ -65,7 +73,6 @@ class _TrackerScreenState extends State<TrackerScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Dua tab horizontal: "Tumbuh Kembang" & "Aktivitas" sesuai PDF S11
               Row(
                 children: [
                   Expanded(
@@ -88,7 +95,6 @@ class _TrackerScreenState extends State<TrackerScreen> {
               const SizedBox(height: 20),
 
               if (_selectedTab == 0) ...[
-                // Heading "Grafik BB (Kg)"
                 Text(
                   'Grafik BB (Kg)',
                   style: AppTypography.titleCard.copyWith(
@@ -98,7 +104,6 @@ class _TrackerScreenState extends State<TrackerScreen> {
                 ),
                 const SizedBox(height: 12),
 
-                // Kartu Grafik Berbayang Putih
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
@@ -119,34 +124,59 @@ class _TrackerScreenState extends State<TrackerScreen> {
                       SizedBox(
                         height: 180,
                         width: double.infinity,
-                        child: CustomPaint(
-                          painter: _GrowthChartPainter(measurements: measurements),
+                        child: measurements.isEmpty
+                            ? Center(
+                                child: Text(
+                                  'Belum ada riwayat pengukuran.\nTambahkan pengukuran atau lakukan skrining.',
+                                  textAlign: TextAlign.center,
+                                  style: AppTypography.bodySecondary.copyWith(
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              )
+                            : CustomPaint(
+                                painter: _GrowthChartPainter(
+                                  measurements: measurements,
+                                ),
+                              ),
+                      ),
+                      if (measurements.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: measurements
+                              .skip(
+                                measurements.length > 5
+                                    ? measurements.length - 5
+                                    : 0,
+                              )
+                              .map(
+                                (m) => Text(
+                                  m.date.length >= 10
+                                      ? m.date.substring(5, 10)
+                                      : m.date,
+                                  style: const TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              )
+                              .toList(),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      // Sumbu bulan Jan - Mei
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: const [
-                          Text('Jan', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                          Text('Feb', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                          Text('Mar', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                          Text('Apr', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                          Text('Mei', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                        ],
-                      ),
+                      ],
                     ],
                   ),
                 ),
                 const SizedBox(height: 18),
 
-                // Bagian bawah kartu informasi ringkasan:
-                // "Berat Badan Terakhir" (20,5 kg) dan "Tinggi Badan Terakhir" (118 cm)
                 Row(
                   children: [
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 14,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.fieldBackground,
                           borderRadius: BorderRadius.circular(10),
@@ -177,7 +207,10 @@ class _TrackerScreenState extends State<TrackerScreen> {
                     const SizedBox(width: 14),
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 14,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.fieldBackground,
                           borderRadius: BorderRadius.circular(10),
@@ -210,7 +243,6 @@ class _TrackerScreenState extends State<TrackerScreen> {
 
                 const SizedBox(height: 24),
 
-                // Tombol "Tambah Pengukuran" membuka E06
                 PrimaryButton(
                   text: '+ Tambah Pengukuran',
                   onPressed: () {
@@ -218,14 +250,15 @@ class _TrackerScreenState extends State<TrackerScreen> {
                       context: context,
                       isScrollControlled: true,
                       shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(16),
+                        ),
                       ),
                       builder: (_) => const AddMeasurementSheet(),
                     );
                   },
                 ),
               ] else ...[
-                // Tab Aktivitas (E07)
                 const HabitLogView(),
               ],
               const SizedBox(height: 20),
@@ -271,7 +304,6 @@ class _GrowthChartPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Sumbu horizontal & grid halus
     final gridPaint = Paint()
       ..color = const Color(0xFFEEEEEE)
       ..strokeWidth = 1.0;
@@ -281,7 +313,8 @@ class _GrowthChartPainter extends CustomPainter {
       canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
-    // Warna garis toska sesuai PDF S11
+    if (measurements.isEmpty) return;
+
     const toscaColor = Color(0xFF009688);
     final linePaint = Paint()
       ..color = toscaColor
@@ -297,23 +330,39 @@ class _GrowthChartPainter extends CustomPainter {
       ..color = Colors.white
       ..style = PaintingStyle.fill;
 
-    // Nilai BB (19.0 sampai 20.5 kg)
-    final points = <Offset>[
-      Offset(size.width * 0.05, size.height * 0.85),
-      Offset(size.width * 0.28, size.height * 0.65),
-      Offset(size.width * 0.50, size.height * 0.50),
-      Offset(size.width * 0.73, size.height * 0.35),
-      Offset(size.width * 0.95, size.height * 0.15),
-    ];
+    final recent = measurements.length > 5
+        ? measurements.sublist(measurements.length - 5)
+        : measurements;
 
-    final path = Path();
-    path.moveTo(points[0].dx, points[0].dy);
-    for (int i = 1; i < points.length; i++) {
-      path.lineTo(points[i].dx, points[i].dy);
+    final weights = recent.map((m) => m.weight).toList();
+    double minW = weights.reduce((a, b) => a < b ? a : b);
+    double maxW = weights.reduce((a, b) => a > b ? a : b);
+    if ((maxW - minW).abs() < 1.0) {
+      minW -= 2.0;
+      maxW += 2.0;
+    } else {
+      minW -= 1.0;
+      maxW += 1.0;
     }
-    canvas.drawPath(path, linePaint);
 
-    // Titik bulat pada garis
+    final points = <Offset>[];
+    for (int i = 0; i < recent.length; i++) {
+      final double x = recent.length == 1
+          ? size.width * 0.5
+          : size.width * (0.06 + (0.88 * i / (recent.length - 1)));
+      final double normY = (recent[i].weight - minW) / (maxW - minW);
+      final double y = size.height * (0.85 - (normY * 0.70));
+      points.add(Offset(x, y));
+    }
+
+    if (points.length > 1) {
+      final path = Path()..moveTo(points.first.dx, points.first.dy);
+      for (int i = 1; i < points.length; i++) {
+        path.lineTo(points[i].dx, points[i].dy);
+      }
+      canvas.drawPath(path, linePaint);
+    }
+
     for (final p in points) {
       canvas.drawCircle(p, 6.0, dotPaint);
       canvas.drawCircle(p, 3.0, dotInner);
@@ -321,5 +370,6 @@ class _GrowthChartPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _GrowthChartPainter oldDelegate) =>
+      oldDelegate.measurements != measurements;
 }

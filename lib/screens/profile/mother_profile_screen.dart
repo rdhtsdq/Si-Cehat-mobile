@@ -9,6 +9,11 @@ import 'edit_profile_screen.dart';
 class MotherProfileScreen extends StatelessWidget {
   const MotherProfileScreen({super.key});
 
+  String _valOrPlaceholder(String? val) {
+    if (val == null || val.trim().isEmpty) return 'Belum diisi';
+    return val;
+  }
+
   @override
   Widget build(BuildContext context) {
     final profileProv = context.watch<ProfileProvider>();
@@ -21,7 +26,11 @@ class MotherProfileScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.chevron_left, size: 28, color: AppColors.textDark),
+          icon: const Icon(
+            Icons.chevron_left,
+            size: 28,
+            color: AppColors.textDark,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -36,7 +45,6 @@ class MotherProfileScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 10),
-              // Avatar generik orang hitam/abu dalam lingkaran abu sesuai PDF
               Container(
                 width: 90,
                 height: 90,
@@ -52,14 +60,25 @@ class MotherProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
 
-              // Empat baris/field abu muda sesuai PDF
-              _buildProfileRow(label: 'Nama Ibu', value: mother?.name ?? 'Ibu Rina'),
+              _buildProfileRow(
+                label: 'Nama Ibu',
+                value: _valOrPlaceholder(mother?.name),
+              ),
               const SizedBox(height: 14),
-              _buildProfileRow(label: 'Pendidikan', value: mother?.education ?? 'S1 / Sarjana'),
+              _buildProfileRow(
+                label: 'Pendidikan',
+                value: _valOrPlaceholder(mother?.education),
+              ),
               const SizedBox(height: 14),
-              _buildProfileRow(label: 'Pekerjaan', value: mother?.occupation ?? 'Ibu Rumah Tangga'),
+              _buildProfileRow(
+                label: 'Pekerjaan',
+                value: _valOrPlaceholder(mother?.occupation),
+              ),
               const SizedBox(height: 14),
-              _buildProfileRow(label: 'Alamat', value: mother?.address ?? 'Bandung, Jawa Barat'),
+              _buildProfileRow(
+                label: 'Alamat',
+                value: _valOrPlaceholder(mother?.address),
+              ),
 
               const SizedBox(height: 32),
               PrimaryButton(
@@ -106,7 +125,9 @@ class MotherProfileScreen extends StatelessWidget {
             style: AppTypography.bodyRegular.copyWith(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: AppColors.textDark,
+              color: value == 'Belum diisi'
+                  ? AppColors.textSecondary
+                  : AppColors.textDark,
             ),
           ),
         ],

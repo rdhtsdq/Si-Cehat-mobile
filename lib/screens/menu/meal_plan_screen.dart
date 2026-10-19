@@ -5,10 +5,12 @@ import '../../core/constants/typography.dart';
 import '../../data/models/recipe_model.dart';
 import '../../providers/education_provider.dart';
 import '../diary/food_diary_screen.dart';
+import 'menu_catalog_screen.dart';
 import 'menu_detail_screen.dart';
 
 class _MealItemData {
-  final String type; // Sarapan, Camilan Pagi, Makan Siang, Camilan Sore, Makan Malam
+  final String
+  type; // Sarapan, Camilan Pagi, Makan Siang, Camilan Sore, Makan Malam
   final String title;
   final String time;
   final String image;
@@ -20,6 +22,7 @@ class _MealItemData {
   final String description;
   final String tips;
   final String? relatedRecipeId;
+  final String? relatedRecipeTitle;
 
   const _MealItemData({
     required this.type,
@@ -34,7 +37,35 @@ class _MealItemData {
     required this.description,
     required this.tips,
     this.relatedRecipeId,
+    this.relatedRecipeTitle,
   });
+
+  factory _MealItemData.fromModel(MealPlanItemModel model) {
+    return _MealItemData(
+      type: model.type,
+      title: model.title,
+      time: model.time,
+      image: model.image,
+      icon: _iconForType(model.type),
+      calories: model.calories,
+      protein: model.protein,
+      fiber: model.fiber,
+      carbs: model.carbs,
+      description: model.description,
+      tips: model.tips,
+      relatedRecipeId: model.relatedRecipeId,
+      relatedRecipeTitle: model.relatedRecipeTitle,
+    );
+  }
+
+  static IconData _iconForType(String type) {
+    final lower = type.toLowerCase();
+    if (lower.contains('sarapan')) return Icons.wb_sunny_outlined;
+    if (lower.contains('pagi')) return Icons.local_cafe_outlined;
+    if (lower.contains('siang')) return Icons.lunch_dining_outlined;
+    if (lower.contains('sore')) return Icons.bakery_dining_outlined;
+    return Icons.dinner_dining_outlined;
+  }
 }
 
 class MealPlanScreen extends StatefulWidget {
@@ -48,8 +79,17 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
   int _range = 0; // 0: Menu 1 Hari, 1: Menu 7 Hari, 2: Smart Traditional
   int _day = 0; // 0..6 for 7 days
 
-  // 7-day balanced Indonesian child nutrition plan
-  static const List<List<_MealItemData>> _weeklyMeals = [
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<EducationProvider>().loadMealPlan();
+    });
+  }
+
+  // Offline fallback 7-day balanced Indonesian child nutrition plan
+  static const List<List<_MealItemData>> _fallbackWeeklyMeals = [
     // Hari 1
     [
       _MealItemData(
@@ -62,8 +102,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '14 g',
         fiber: '3.5 g',
         carbs: '42 g',
-        description: '1 centong nasi putih hangat, 1 butir telur mata sapi minim minyak, 1 mangkuk sayur bening bayam jagung manis, dan 2 potong pepaya segar.',
-        tips: 'Kombinasi protein telur dan serat bayam membantu fokus belajar anak di pagi hari tanpa lonjakan gula mendadak.',
+        description:
+            '1 centong nasi putih hangat, 1 butir telur mata sapi minim minyak, 1 mangkuk sayur bening bayam jagung manis, dan 2 potong pepaya segar.',
+        tips:
+            'Kombinasi protein telur dan serat bayam membantu fokus belajar anak di pagi hari tanpa lonjakan gula mendadak.',
       ),
       _MealItemData(
         type: 'Camilan Pagi',
@@ -75,9 +117,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '1.2 g',
         fiber: '2.6 g',
         carbs: '22 g',
-        description: '1 buah pisang barangan ukuran sedang, dikukus hangat tanpa tambahan gula.',
-        tips: 'Manis alami buah menyediakan energi cadangan yang aman dan ramah insulin.',
+        description:
+            '1 buah pisang barangan ukuran sedang, dikukus hangat tanpa tambahan gula.',
+        tips:
+            'Manis alami buah menyediakan energi cadangan yang aman dan ramah insulin.',
         relatedRecipeId: 'rec_pisang_kukus',
+        relatedRecipeTitle: 'Pisang Barangan Kukus',
       ),
       _MealItemData(
         type: 'Makan Siang',
@@ -89,9 +134,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '22 g',
         fiber: '4.8 g',
         carbs: '45 g',
-        description: '1 ekor pepes ikan bumbu kuning rempah daun kemangi, 1 centong nasi, dan 1 mangkuk kuah sayur asem labu siam kacang panjang.',
-        tips: 'Pepes ikan kaya asam lemak omega-3 dan protein berkualitas tinggi tanpa minyak jenuh.',
+        description:
+            '1 ekor pepes ikan bumbu kuning rempah daun kemangi, 1 centong nasi, dan 1 mangkuk kuah sayur asem labu siam kacang panjang.',
+        tips:
+            'Pepes ikan kaya asam lemak omega-3 dan protein berkualitas tinggi tanpa minyak jenuh.',
         relatedRecipeId: 'rec_pepes_ikan',
+        relatedRecipeTitle: 'Pepes Ikan Nila Kemangi',
       ),
       _MealItemData(
         type: 'Camilan Sore',
@@ -103,8 +151,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '3.0 g',
         fiber: '3.2 g',
         carbs: '24 g',
-        description: '1/2 buah jagung manis rebus diserut hangat, tanpa kental manis atau margarin.',
-        tips: 'Camilan biji-bijian utuh kaya serat larut yang baik untuk kesehatan pencernaan.',
+        description:
+            '1/2 buah jagung manis rebus diserut hangat, tanpa kental manis atau margarin.',
+        tips:
+            'Camilan biji-bijian utuh kaya serat larut yang baik untuk kesehatan pencernaan.',
       ),
       _MealItemData(
         type: 'Makan Malam',
@@ -116,8 +166,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '16 g',
         fiber: '4.2 g',
         carbs: '38 g',
-        description: '1 centong nasi, 2 potong tempe bacem panggang teflon, dan tumis kangkung bawang putih minim minyak.',
-        tips: 'Fermentasi tempe mendukung mikrobiota usus dan penyerapan zat besi sebelum istirahat malam.',
+        description:
+            '1 centong nasi, 2 potong tempe bacem panggang teflon, dan tumis kangkung bawang putih minim minyak.',
+        tips:
+            'Fermentasi tempe mendukung mikrobiota usus dan penyerapan zat besi sebelum istirahat malam.',
       ),
     ],
 
@@ -133,8 +185,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '15 g',
         fiber: '2.8 g',
         carbs: '38 g',
-        description: '1 mangkuk bubur beras kaldu ayam kampung asli, suwiran dada ayam, irisan wortel rebus, dan daun seledri segar.',
-        tips: 'Kuah kaldu alami memberi kehangatan lambung anak dan hidrasi awal hari.',
+        description:
+            '1 mangkuk bubur beras kaldu ayam kampung asli, suwiran dada ayam, irisan wortel rebus, dan daun seledri segar.',
+        tips:
+            'Kuah kaldu alami memberi kehangatan lambung anak dan hidrasi awal hari.',
       ),
       _MealItemData(
         type: 'Camilan Pagi',
@@ -147,7 +201,8 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         fiber: '2.5 g',
         carbs: '14 g',
         description: '1/2 buah apel potong dicuci bersih dengan kulitnya.',
-        tips: 'Pektin pada apel menjaga rasa kenyang dan kestabilan mikrobioma.',
+        tips:
+            'Pektin pada apel menjaga rasa kenyang dan kestabilan mikrobioma.',
       ),
       _MealItemData(
         type: 'Makan Siang',
@@ -159,8 +214,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '20 g',
         fiber: '4.0 g',
         carbs: '40 g',
-        description: '1 porsi nasi tim gurih dada ayam cincang dan jamur merang, disajikan dengan semangkuk sup brokoli tahu sutra hangat.',
-        tips: 'Brokoli kaya antioksidan sulforaphane yang memperkuat sistem imun anak.',
+        description:
+            '1 porsi nasi tim gurih dada ayam cincang dan jamur merang, disajikan dengan semangkuk sup brokoli tahu sutra hangat.',
+        tips:
+            'Brokoli kaya antioksidan sulforaphane yang memperkuat sistem imun anak.',
       ),
       _MealItemData(
         type: 'Camilan Sore',
@@ -173,7 +230,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         fiber: '3.0 g',
         carbs: '23 g',
         description: '1 potong ubi ungu kukus manis alami.',
-        tips: 'Karbohidrat kompleks berindeks glikemik rendah baik untuk menjaga energi sore hari.',
+        tips:
+            'Karbohidrat kompleks berindeks glikemik rendah baik untuk menjaga energi sore hari.',
+        relatedRecipeTitle: 'Ubi Jalar Ungu Kukus',
       ),
       _MealItemData(
         type: 'Makan Malam',
@@ -185,8 +244,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '12 g',
         fiber: '4.5 g',
         carbs: '44 g',
-        description: '1 centong nasi, kuah sayur lodeh santan sangat encer dengan labu siam dan kacang panjang, ditambah 2 potong tahu bumbu kuning.',
-        tips: 'Gunakan santan encer untuk mengurangi lemak jenuh berlebih pada sajian malam anak.',
+        description:
+            '1 centong nasi, kuah sayur lodeh santan sangat encer dengan labu siam dan kacang panjang, ditambah 2 potong tahu bumbu kuning.',
+        tips:
+            'Gunakan santan encer untuk mengurangi lemak jenuh berlebih pada sajian malam anak.',
       ),
     ],
 
@@ -202,8 +263,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '13 g',
         fiber: '3.0 g',
         carbs: '30 g',
-        description: '1 butir telur dikocok dengan wortel cincang, buncis halus, disajikan bersama 1 lembar roti gandum panggang.',
-        tips: 'Warna-warni sayur menarik selera makan anak sekaligus melengkapi aneka fitonutrien.',
+        description:
+            '1 butir telur dikocok dengan wortel cincang, buncis halus, disajikan bersama 1 lembar roti gandum panggang.',
+        tips:
+            'Warna-warni sayur menarik selera makan anak sekaligus melengkapi aneka fitonutrien.',
       ),
       _MealItemData(
         type: 'Camilan Pagi',
@@ -228,8 +291,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '24 g',
         fiber: '3.6 g',
         carbs: '42 g',
-        description: '1 ekor ikan kembung bakar teflon bumbu rempah kunyit jahe, 1 centong nasi putih, dan 1 mangkuk sayur bayam hangat.',
-        tips: 'Ikan kembung mengandung DHA dan EPA setara salmon dengan harga yang sangat terjangkau.',
+        description:
+            '1 ekor ikan kembung bakar teflon bumbu rempah kunyit jahe, 1 centong nasi putih, dan 1 mangkuk sayur bayam hangat.',
+        tips:
+            'Ikan kembung mengandung DHA dan EPA setara salmon dengan harga yang sangat terjangkau.',
       ),
       _MealItemData(
         type: 'Camilan Sore',
@@ -242,7 +307,8 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         fiber: '3.8 g',
         carbs: '8 g',
         description: '1 mangkuk kecil edamame rebus dengan sejumput garam.',
-        tips: 'Sumber protein nabati lengkap dan serat pangan tinggi untuk cemilan sore.',
+        tips:
+            'Sumber protein nabati lengkap dan serat pangan tinggi untuk cemilan sore.',
       ),
       _MealItemData(
         type: 'Makan Malam',
@@ -254,8 +320,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '18 g',
         fiber: '3.2 g',
         carbs: '35 g',
-        description: 'Sup kaldu bening dengan potongan daging ayam tanpa kulit, kentang rebus, wortel, dan 2 potong tempe kukus gurih.',
-        tips: 'Makan malam berkuah hangat memudahkan pencernaan dan mendukung tidur nyenyak.',
+        description:
+            'Sup kaldu bening dengan potongan daging ayam tanpa kulit, kentang rebus, wortel, dan 2 potong tempe kukus gurih.',
+        tips:
+            'Makan malam berkuah hangat memudahkan pencernaan dan mendukung tidur nyenyak.',
       ),
     ],
 
@@ -271,8 +339,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '16 g',
         fiber: '4.0 g',
         carbs: '36 g',
-        description: '1 lembar roti gandum panggang, 1 butir telur mata sapi, selada segar, dan 1 gelas kecil susu sapi tawar tanpa gula.',
-        tips: 'Serat gandum utuh memperpanjang rasa kenyang tanpa membuat kantuk saat sekolah.',
+        description:
+            '1 lembar roti gandum panggang, 1 butir telur mata sapi, selada segar, dan 1 gelas kecil susu sapi tawar tanpa gula.',
+        tips:
+            'Serat gandum utuh memperpanjang rasa kenyang tanpa membuat kantuk saat sekolah.',
       ),
       _MealItemData(
         type: 'Camilan Pagi',
@@ -285,7 +355,8 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         fiber: '2.0 g',
         carbs: '12 g',
         description: '1 mangkuk kecil pepaya matang segar.',
-        tips: 'Enzim papain pada pepaya melancarkan pencernaan anak secara alami.',
+        tips:
+            'Enzim papain pada pepaya melancarkan pencernaan anak secara alami.',
       ),
       _MealItemData(
         type: 'Makan Siang',
@@ -297,22 +368,28 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '25 g',
         fiber: '4.5 g',
         carbs: '46 g',
-        description: '1 ekor lele panggang dengan sambal tomat segar tanpa minyak jelantah, nasi putih 1 centong, dan sayur asem segar.',
-        tips: 'Memanggang lele menggantikan proses goreng rendam minyak, menurunkan kalori hingga 40%.',
+        description:
+            '1 ekor lele panggang dengan sambal tomat segar tanpa minyak jelantah, nasi putih 1 centong, dan sayur asem segar.',
+        tips:
+            'Memanggang lele menggantikan proses goreng rendam minyak, menurunkan kalori hingga 40%.',
         relatedRecipeId: 'rec_sayur_asem',
+        relatedRecipeTitle: 'Pecel Lele Panggang',
       ),
       _MealItemData(
         type: 'Camilan Sore',
-        title: 'Pisang Barangan Segar',
+        title: 'Es Timun Serut Jeruk Nipis Segar',
         time: '16:00',
         image: 'dish-4.png',
         icon: Icons.bakery_dining_outlined,
-        calories: '85 kkal',
+        calories: '45 kkal',
         protein: '1.0 g',
-        fiber: '2.5 g',
-        carbs: '21 g',
-        description: '1 buah pisang ukuran sedang siap santap.',
-        tips: 'Kalium pada pisang menjaga tekanan darah dan keseimbangan elektrolit tubuh.',
+        fiber: '2.0 g',
+        carbs: '10 g',
+        description:
+            'Serutan mentimun segar dengan biji selasih dan perasan jeruk nipis alami.',
+        tips:
+            'Menyegarkan tubuh anak di sore hari tanpa sirup tinggi fruktosa.',
+        relatedRecipeTitle: 'Es Timun Serut Jeruk Nipis',
       ),
       _MealItemData(
         type: 'Makan Malam',
@@ -324,8 +401,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '15 g',
         fiber: '4.0 g',
         carbs: '30 g',
-        description: 'Kukusan tahu sutra dan kocokan telur gurih, disajikan dengan capcay aneka sayur (wortel, sawi, kembang kol).',
-        tips: 'Tekstur lembut dan kuah segar sangat disukai anak-anak di malam hari.',
+        description:
+            'Kukusan tahu sutra dan kocokan telur gurih, disajikan dengan capcay aneka sayur (wortel, sawi, kembang kol).',
+        tips:
+            'Tekstur lembut dan kuah segar sangat disukai anak-anak di malam hari.',
       ),
     ],
 
@@ -341,8 +420,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '13 g',
         fiber: '3.0 g',
         carbs: '45 g',
-        description: 'Nasi dimasak kaldu daun salam dan serai dengan sedikit santan, 1 butir telur rebus, dan irisan timun segar.',
-        tips: 'Aroma rempah alami menggugah nafsu makan anak tanpa perlu tambahan MSG berlebih.',
+        description:
+            'Nasi dimasak kaldu daun salam dan serai dengan sedikit santan, 1 butir telur rebus, dan irisan timun segar.',
+        tips:
+            'Aroma rempah alami menggugah nafsu makan anak tanpa perlu tambahan MSG berlebih.',
       ),
       _MealItemData(
         type: 'Camilan Pagi',
@@ -355,7 +436,8 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         fiber: '1.2 g',
         carbs: '11 g',
         description: '2 potong semangka merah dingin segar.',
-        tips: 'Tinggi kadar air (92%) dan likopen untuk mencegah dehidrasi anak saat aktif bermain.',
+        tips:
+            'Tinggi kadar air (92%) dan likopen untuk mencegah dehidrasi anak saat aktif bermain.',
       ),
       _MealItemData(
         type: 'Makan Siang',
@@ -367,8 +449,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '23 g',
         fiber: '5.2 g',
         carbs: '48 g',
-        description: 'Daging sapi tanpa lemak dipadu kacang merah empuk kaya serat dan zat besi, dipadukan 1 centong nasi hangat.',
-        tips: 'Kacang merah adalah juara serat nabati yang mencegah stunting dan lonjakan glukosa.',
+        description:
+            'Daging sapi tanpa lemak dipadu kacang merah empuk kaya serat dan zat besi, dipadukan 1 centong nasi hangat.',
+        tips:
+            'Kacang merah adalah juara serat nabati yang mencegah stunting dan lonjakan glukosa.',
       ),
       _MealItemData(
         type: 'Camilan Sore',
@@ -393,8 +477,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '16 g',
         fiber: '4.6 g',
         carbs: '38 g',
-        description: '1 centong nasi putih, tumisan buncis renyah dan potongan tempe gurih dengan minyak kelapa sedikit.',
-        tips: 'Buncis kaya kromium yang membantu efektivitas kerja hormon insulin alami tubuh.',
+        description:
+            '1 centong nasi putih, tumisan buncis renyah dan potongan tempe gurih dengan minyak kelapa sedikit.',
+        tips:
+            'Buncis kaya kromium yang membantu efektivitas kerja hormon insulin alami tubuh.',
       ),
     ],
 
@@ -410,8 +496,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '12 g',
         fiber: '3.8 g',
         carbs: '46 g',
-        description: 'Potongan lontong beras dengan kuah bumbu kuning labu siam encer dan 1/2 butir telur rebus.',
-        tips: 'Menu sarapan tradisional khas Nusantara yang disesuaikan agar rendah kolesterol.',
+        description:
+            'Potongan lontong beras dengan kuah bumbu kuning labu siam encer dan 1/2 butir telur rebus.',
+        tips:
+            'Menu sarapan tradisional khas Nusantara yang disesuaikan agar rendah kolesterol.',
       ),
       _MealItemData(
         type: 'Camilan Pagi',
@@ -424,7 +512,8 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         fiber: '2.9 g',
         carbs: '13 g',
         description: '1/2 buah naga merah dipotong dadu.',
-        tips: 'Antosianin dan serat buah naga merawat flora bakteri baik di usus.',
+        tips:
+            'Antosianin dan serat buah naga merawat flora bakteri baik di usus.',
       ),
       _MealItemData(
         type: 'Makan Siang',
@@ -436,9 +525,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '24 g',
         fiber: '3.8 g',
         carbs: '44 g',
-        description: 'Kuah rawon kluwek kaya rempah dengan irisan daging sapi has dalam, tauge pendek segar, dan 1 centong nasi.',
-        tips: 'Kluwek dan serai memiliki antioksidan tinggi pencegah inflamasi seluler.',
+        description:
+            'Kuah rawon kluwek kaya rempah dengan irisan daging sapi has dalam, tauge pendek segar, dan 1 centong nasi.',
+        tips:
+            'Kluwek dan serai memiliki antioksidan tinggi pencegah inflamasi seluler.',
         relatedRecipeId: 'rec_nasi_tutuk_oncom',
+        relatedRecipeTitle: 'Nasi Rawon Daging Tanpa Lemak',
       ),
       _MealItemData(
         type: 'Camilan Sore',
@@ -450,9 +542,11 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '5.0 g',
         fiber: '3.5 g',
         carbs: '22 g',
-        description: 'Semangkuk kacang hijau empuk dengan kuah jahe harum, tanpa santan kental, manis secukupnya madu/gula aren.',
+        description:
+            'Semangkuk kacang hijau empuk dengan kuah jahe harum, tanpa santan kental, manis secukupnya madu/gula aren.',
         tips: 'Kaya folat dan zinc penting untuk metabolisme sel anak.',
         relatedRecipeId: 'rec_wedang_jahe_sereh',
+        relatedRecipeTitle: 'Wedang Kacang Hijau Kuah Jahe',
       ),
       _MealItemData(
         type: 'Makan Malam',
@@ -464,9 +558,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '18 g',
         fiber: '3.0 g',
         carbs: '36 g',
-        description: 'Kukusan pepes daun pisang berisi tahu dan suwiran ikan nila harum kemangi, ditemani nasi dan timun segar.',
-        tips: 'Mudah dicerna sebelum istirahat malam dan menjaga gula darah puasa anak tetap stabil.',
+        description:
+            'Kukusan pepes daun pisang berisi tahu dan suwiran ikan nila harum kemangi, ditemani nasi dan timun segar.',
+        tips:
+            'Mudah dicerna sebelum istirahat malam dan menjaga gula darah puasa anak tetap stabil.',
         relatedRecipeId: 'rec_pepes_ikan',
+        relatedRecipeTitle: 'Pepes Ikan Nila Kemangi',
       ),
     ],
 
@@ -482,8 +579,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '12 g',
         fiber: '2.5 g',
         carbs: '48 g',
-        description: 'Nasi kuning rempah kunyit asli perasan segar, irisan telur dadar tipis, dan potongan mentimun segar.',
-        tips: 'Kurkumin pada kunyit melindungi lambung anak dan menstimulasi imunitas alami.',
+        description:
+            'Nasi kuning rempah kunyit asli perasan segar, irisan telur dadar tipis, dan potongan mentimun segar.',
+        tips:
+            'Kurkumin pada kunyit melindungi lambung anak dan menstimulasi imunitas alami.',
       ),
       _MealItemData(
         type: 'Camilan Pagi',
@@ -508,9 +607,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '22 g',
         fiber: '4.5 g',
         carbs: '46 g',
-        description: 'Sayur asem kuah segar isi jagung, labu, kacang panjang dan melinjo muda, disajikan dengan ikan bakar bumbu jahe.',
-        tips: 'Sajian lengkap kaya serat sayuran dan protein murni tanpa lemak berlebih.',
+        description:
+            'Sayur asem kuah segar isi jagung, labu, kacang panjang dan melinjo muda, disajikan dengan ikan bakar bumbu jahe.',
+        tips:
+            'Sajian lengkap kaya serat sayuran dan protein murni tanpa lemak berlebih.',
         relatedRecipeId: 'rec_sayur_asem',
+        relatedRecipeTitle: 'Sayur Asem',
       ),
       _MealItemData(
         type: 'Camilan Sore',
@@ -522,7 +624,8 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '1.0 g',
         fiber: '2.8 g',
         carbs: '16 g',
-        description: 'Puding agar-agar rumput laut bening dengan potongan buah asli tanpa pemanis sintetis.',
+        description:
+            'Puding agar-agar rumput laut bening dengan potongan buah asli tanpa pemanis sintetis.',
         tips: 'Serat larut agar-agar baik untuk saluran cerna anak.',
       ),
       _MealItemData(
@@ -535,14 +638,24 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         protein: '18 g',
         fiber: '3.0 g',
         carbs: '38 g',
-        description: 'Kuah soto bening rempah kapulaga serai, suwiran daging ayam kampung, tauge segar, dan 1 centong nasi putih.',
-        tips: 'Kuah hangat kaya rempah menghangatkan tubuh anak di malam hari dan menenangkan istirahatnya.',
+        description:
+            'Kuah soto bening rempah kapulaga serai, suwiran daging ayam kampung, tauge segar, dan 1 centong nasi putih.',
+        tips:
+            'Kuah hangat kaya rempah menghangatkan tubuh anak di malam hari dan menenangkan istirahatnya.',
       ),
     ],
   ];
 
   String _formatIndonesianDate(DateTime dt) {
-    const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+    const days = [
+      'Senin',
+      'Selasa',
+      'Rabu',
+      'Kamis',
+      'Jumat',
+      'Sabtu',
+      'Minggu',
+    ];
     const months = [
       'Januari',
       'Februari',
@@ -562,14 +675,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     return '$dayName, ${dt.day} $monthName ${dt.year}';
   }
 
-  void _showMealDetailsModal(_MealItemData meal, List<RecipeModel> allRecipes) {
-    RecipeModel? relatedRecipe;
-    if (meal.relatedRecipeId != null) {
-      final matches = allRecipes.where((r) => r.id == meal.relatedRecipeId);
-      if (matches.isNotEmpty) {
-        relatedRecipe = matches.first;
-      }
-    }
+  void _showMealDetailsModal(_MealItemData meal, EducationProvider eduProv) {
+    final RecipeModel? relatedRecipe = eduProv.findMatchingRecipe(
+      recipeId: meal.relatedRecipeId,
+      recipeTitle: meal.relatedRecipeTitle,
+      mealTitle: meal.title,
+    );
 
     showModalBottomSheet(
       context: context,
@@ -601,7 +712,11 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                 CircleAvatar(
                   radius: 18,
                   backgroundColor: const Color(0xFFE2F3E7),
-                  child: Icon(meal.icon, size: 20, color: AppColors.primaryGreenDark),
+                  child: Icon(
+                    meal.icon,
+                    size: 20,
+                    color: AppColors.primaryGreenDark,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -609,7 +724,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${meal.type} · ${meal.time}',
+                        '${meal.type} \u00b7 ${meal.time}',
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -630,13 +745,29 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
             // Nutrition chips
             Row(
               children: [
-                _buildModalNutriChip('Energi', meal.calories, const Color(0xFFE8F5E9)),
+                _buildModalNutriChip(
+                  'Energi',
+                  meal.calories,
+                  const Color(0xFFE8F5E9),
+                ),
                 const SizedBox(width: 8),
-                _buildModalNutriChip('Protein', meal.protein, const Color(0xFFE0F2FE)),
+                _buildModalNutriChip(
+                  'Protein',
+                  meal.protein,
+                  const Color(0xFFE0F2FE),
+                ),
                 const SizedBox(width: 8),
-                _buildModalNutriChip('Serat', meal.fiber, const Color(0xFFFEF3C7)),
+                _buildModalNutriChip(
+                  'Serat',
+                  meal.fiber,
+                  const Color(0xFFFEF3C7),
+                ),
                 const SizedBox(width: 8),
-                _buildModalNutriChip('Karbo', meal.carbs, const Color(0xFFFCE7F3)),
+                _buildModalNutriChip(
+                  'Karbo',
+                  meal.carbs,
+                  const Color(0xFFFCE7F3),
+                ),
               ],
             ),
             const SizedBox(height: 14),
@@ -648,7 +779,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
             const SizedBox(height: 4),
             Text(
               meal.description,
-              style: AppTypography.bodyRegular.copyWith(fontSize: 12, color: AppColors.textDark),
+              style: AppTypography.bodyRegular.copyWith(
+                fontSize: 12,
+                color: AppColors.textDark,
+              ),
             ),
             const SizedBox(height: 12),
 
@@ -662,12 +796,19 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.verified_outlined, size: 16, color: AppColors.primaryGreenDark),
+                  const Icon(
+                    Icons.verified_outlined,
+                    size: 16,
+                    color: AppColors.primaryGreenDark,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       meal.tips,
-                      style: const TextStyle(fontSize: 11, color: AppColors.primaryGreenDark),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.primaryGreenDark,
+                      ),
                     ),
                   ),
                 ],
@@ -684,19 +825,25 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                         foregroundColor: AppColors.primaryGreen,
                         side: const BorderSide(color: AppColors.primaryGreen),
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                       onPressed: () {
                         Navigator.pop(ctx);
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => MenuDetailScreen(recipe: relatedRecipe),
+                            builder: (_) =>
+                                MenuDetailScreen(recipe: relatedRecipe),
                           ),
                         );
                       },
                       icon: const Icon(Icons.menu_book, size: 18),
-                      label: const Text('Lihat Resep', style: TextStyle(fontSize: 12)),
+                      label: const Text(
+                        'Lihat Resep',
+                        style: TextStyle(fontSize: 12),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -707,7 +854,9 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                       backgroundColor: AppColors.primaryGreen,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                     onPressed: () {
                       Navigator.pop(ctx);
@@ -722,7 +871,13 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                       );
                     },
                     icon: const Icon(Icons.bookmark_add_outlined, size: 18),
-                    label: const Text('Catat di Diary', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    label: const Text(
+                      'Catat di Diary',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -744,22 +899,59 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         ),
         child: Column(
           children: [
-            Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 10,
+                color: AppColors.textSecondary,
+              ),
+            ),
             const SizedBox(height: 2),
-            Text(value, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textDark)),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textDark,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
+  List<List<_MealItemData>> _resolveWeeklyMeals(EducationProvider eduProv) {
+    final remoteDays = eduProv.weeklyMealPlan;
+    if (remoteDays.isEmpty) {
+      return _fallbackWeeklyMeals;
+    }
+    return remoteDays
+        .map((day) => day.meals.map(_MealItemData.fromModel).toList())
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final eduProv = Provider.of<EducationProvider>(context);
+    final eduProv = context.watch<EducationProvider>();
     final allRecipes = eduProv.allRecipes;
+    final recommendedMenus = eduProv.recommendedMenus;
+    final weeklyMeals = _resolveWeeklyMeals(eduProv);
 
-    final targetDate = DateTime.now().add(Duration(days: _range == 1 ? _day : 0));
-    final activeMeals = _range == 1 ? _weeklyMeals[_day] : _weeklyMeals[0];
+    final safeDayIndex = _day < weeklyMeals.length ? _day : 0;
+    final targetDate = DateTime.now().add(
+      Duration(days: _range == 1 ? safeDayIndex : 0),
+    );
+    final activeMeals = _range == 1
+        ? weeklyMeals[safeDayIndex]
+        : weeklyMeals[0];
+
+    final activeDayFocus =
+        eduProv.weeklyMealPlan.length > safeDayIndex && _range == 1
+        ? eduProv.weeklyMealPlan[safeDayIndex].focusTitle
+        : (eduProv.weeklyMealPlan.isNotEmpty
+              ? eduProv.weeklyMealPlan[0].focusTitle
+              : null);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -781,125 +973,211 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
             color: AppColors.textDark,
           ),
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Katalog Menu Tradisional',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const MenuCatalogScreen()),
+              );
+            },
+            icon: const Icon(
+              Icons.menu_book_outlined,
+              color: AppColors.primaryGreenDark,
+            ),
+          ),
+          IconButton(
+            tooltip: 'Muat Ulang Rencana Menu',
+            onPressed: eduProv.isLoadingMealPlan
+                ? null
+                : () => eduProv.loadMealPlan(),
+            icon: const Icon(Icons.refresh, color: AppColors.primaryGreenDark),
+          ),
+        ],
       ),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-          children: [
-            _introCard(),
-            const SizedBox(height: 12),
-            _focusCard(),
-            const SizedBox(height: 12),
+        child: RefreshIndicator(
+          color: AppColors.primaryGreen,
+          onRefresh: () => eduProv.loadMealPlan(),
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+            children: [
+              if (eduProv.isLoadingMealPlan)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 8.0),
+                  child: LinearProgressIndicator(
+                    minHeight: 2,
+                    color: AppColors.primaryGreen,
+                  ),
+                ),
+              _introCard(),
+              const SizedBox(height: 12),
+              _focusCard(activeDayFocus),
+              const SizedBox(height: 12),
 
-            // Top Menu Tabs
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _choice(
-                    'Menu 1 Hari',
-                    _range == 0,
-                    () => setState(() => _range = 0),
-                  ),
-                  _choice(
-                    'Menu 7 Hari',
-                    _range == 1,
-                    () => setState(() => _range = 1),
-                  ),
-                  _choice(
-                    'Smart Traditional Meal Plan',
-                    _range == 2,
-                    () => setState(() => _range = 2),
-                  ),
-                ],
-              ),
-            ),
-
-            // 7-day selectors
-            if (_range == 1) ...[
-              const SizedBox(height: 8),
+              // Top Menu Tabs
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
-                  children: List.generate(
-                    7,
-                    (i) => Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: ChoiceChip(
-                        label: Text(
-                          'Hari ${i + 1}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: _day == i ? Colors.white : AppColors.textDark,
+                  children: [
+                    _choice(
+                      'Menu 1 Hari',
+                      _range == 0,
+                      () => setState(() => _range = 0),
+                    ),
+                    _choice(
+                      'Menu 7 Hari',
+                      _range == 1,
+                      () => setState(() => _range = 1),
+                    ),
+                    _choice(
+                      'Smart Traditional Meal Plan',
+                      _range == 2,
+                      () => setState(() => _range = 2),
+                    ),
+                  ],
+                ),
+              ),
+
+              // 7-day selectors
+              if (_range == 1) ...[
+                const SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: List.generate(
+                      weeklyMeals.length,
+                      (i) => Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: ChoiceChip(
+                          label: Text(
+                            'Hari ${i + 1}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: _day == i
+                                  ? Colors.white
+                                  : AppColors.textDark,
+                            ),
                           ),
+                          selected: _day == i,
+                          selectedColor: AppColors.primaryGreen,
+                          backgroundColor: const Color(0xFFF1F5F9),
+                          onSelected: (_) => setState(() => _day = i),
                         ),
-                        selected: _day == i,
-                        selectedColor: AppColors.primaryGreen,
-                        backgroundColor: const Color(0xFFF1F5F9),
-                        onSelected: (_) => setState(() => _day = i),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
 
-            const SizedBox(height: 10),
-
-            // Date indicator (for 1-day or 7-day schedules)
-            if (_range != 2) ...[
-              Row(
-                children: [
-                  const Icon(Icons.calendar_month, size: 16, color: AppColors.primaryGreenDark),
-                  const SizedBox(width: 6),
-                  Text(
-                    _formatIndonesianDate(targetDate),
-                    style: AppTypography.bodySecondary.copyWith(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primaryGreenDark,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    '5 Jadwal Makan Seimbang',
-                    style: AppTypography.bodySecondary.copyWith(fontSize: 11),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              // Meal cards
-              ...activeMeals.map(
-                (meal) => _mealCard(meal, allRecipes),
-              ),
-            ] else ...[
-              // Smart Traditional Meal Plan View
-              Row(
-                children: [
-                  const Icon(Icons.restaurant_menu, size: 16, color: AppColors.primaryGreenDark),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Katalog Resep Tradisional Pintar (${allRecipes.length})',
-                    style: AppTypography.bodySecondary.copyWith(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primaryGreenDark,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Menu tradisional Nusantara bergizi seimbang, tinggi serat, dan rendah gula untuk pencegahan diabetes & stunting.',
-                style: AppTypography.bodySecondary.copyWith(fontSize: 11),
-              ),
               const SizedBox(height: 10),
 
-              ...allRecipes.map((recipe) => _traditionalRecipeCard(recipe)),
+              // Date indicator (for 1-day or 7-day schedules)
+              if (_range != 2) ...[
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.calendar_month,
+                      size: 16,
+                      color: AppColors.primaryGreenDark,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _formatIndonesianDate(targetDate),
+                      style: AppTypography.bodySecondary.copyWith(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primaryGreenDark,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${activeMeals.length} Jadwal Makan Seimbang',
+                      style: AppTypography.bodySecondary.copyWith(fontSize: 11),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // Meal cards
+                ...activeMeals.map((meal) => _mealCard(meal, eduProv)),
+
+                // Recommended Menus from Backend CMS (/api/meal-plan)
+                if (recommendedMenus.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.recommend_outlined,
+                        size: 18,
+                        color: AppColors.primaryGreenDark,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Rekomendasi Isi Piringku',
+                        style: AppTypography.titleCard.copyWith(
+                          fontSize: 13,
+                          color: AppColors.primaryGreenDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ...recommendedMenus.map(_recommendedMenuCard),
+                ],
+              ] else ...[
+                // Smart Traditional Meal Plan View
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.restaurant_menu,
+                      size: 16,
+                      color: AppColors.primaryGreenDark,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'Katalog Resep Tradisional Pintar (${allRecipes.length})',
+                        style: AppTypography.bodySecondary.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryGreenDark,
+                        ),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const MenuCatalogScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Lihat Semua',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primaryGreen,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  'Menu tradisional Nusantara bergizi seimbang, tinggi serat, dan rendah gula untuk pencegahan diabetes & stunting.',
+                  style: AppTypography.bodySecondary.copyWith(fontSize: 11),
+                ),
+                const SizedBox(height: 10),
+
+                ...allRecipes.map((recipe) => _traditionalRecipeCard(recipe)),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -947,7 +1225,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     ),
   );
 
-  Widget _focusCard() => Container(
+  Widget _focusCard(String? focusSubtitle) => Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
       color: const Color(0xFFF0F8F2),
@@ -957,12 +1235,20 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Fokus Nutrisi Minggu Ini',
-          style: AppTypography.titleCard.copyWith(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                focusSubtitle != null
+                    ? 'Fokus Nutrisi: $focusSubtitle'
+                    : 'Fokus Nutrisi Minggu Ini',
+                style: AppTypography.titleCard.copyWith(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         const Wrap(
@@ -970,8 +1256,14 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
           runSpacing: 8,
           children: [
             _FocusItem(Icons.eco_outlined, 'Sayur serat di\nsetiap menu'),
-            _FocusItem(Icons.local_drink_outlined, 'Air putih rutin,\nstop soda'),
-            _FocusItem(Icons.check_circle_outline, 'Variasi ikan &\ntempe alami'),
+            _FocusItem(
+              Icons.local_drink_outlined,
+              'Air putih rutin,\nstop soda',
+            ),
+            _FocusItem(
+              Icons.check_circle_outline,
+              'Variasi ikan &\ntempe alami',
+            ),
           ],
         ),
       ],
@@ -996,227 +1288,372 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     ),
   );
 
-  Widget _mealCard(_MealItemData meal, List<RecipeModel> allRecipes) => Container(
-    margin: const EdgeInsets.only(bottom: 10),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x0F000000),
-          blurRadius: 6,
-          offset: Offset(0, 2),
-        ),
-      ],
-      border: Border.all(color: const Color(0xFFF1F5F9)),
-    ),
-    child: Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
+  Widget _mealCard(_MealItemData meal, EducationProvider eduProv) {
+    final matchedRecipe = eduProv.findMatchingRecipe(
+      recipeId: meal.relatedRecipeId,
+      recipeTitle: meal.relatedRecipeTitle,
+      mealTitle: meal.title,
+    );
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        onTap: () => _showMealDetailsModal(meal, allRecipes),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  'assets/figma_features/${meal.image}',
-                  width: 68,
-                  height: 68,
-                  fit: BoxFit.cover,
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0F000000),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+        border: Border.all(color: const Color(0xFFF1F5F9)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => _showMealDetailsModal(meal, eduProv),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    'assets/figma_features/${meal.image}',
+                    width: 68,
+                    height: 68,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => Container(
+                      width: 68,
+                      height: 68,
+                      color: AppColors.paleGreenBg,
+                      alignment: Alignment.center,
+                      child: Icon(meal.icon, color: AppColors.primaryGreenDark),
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(meal.icon, size: 14, color: AppColors.primaryGreen),
-                        const SizedBox(width: 4),
-                        Text(
-                          meal.type,
-                          style: AppTypography.titleCard.copyWith(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primaryGreenDark,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            meal.icon,
+                            size: 14,
+                            color: AppColors.primaryGreen,
                           ),
-                        ),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(4),
+                          const SizedBox(width: 4),
+                          Text(
+                            meal.type,
+                            style: AppTypography.titleCard.copyWith(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primaryGreenDark,
+                            ),
                           ),
-                          child: Text(
-                            meal.time,
-                            style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                          if (matchedRecipe != null) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 5,
+                                vertical: 1,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.veryLightGreen,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                'Ada Resep',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primaryGreenDark,
+                                ),
+                              ),
+                            ),
+                          ],
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              meal.time,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      meal.title,
-                      style: AppTypography.bodyRegular.copyWith(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
+                        ],
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Text(
-                          meal.calories,
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryGreenDark,
+                      const SizedBox(height: 4),
+                      Text(
+                        meal.title,
+                        style: AppTypography.bodyRegular.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Text(
+                            meal.calories,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primaryGreenDark,
+                            ),
                           ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Prot: ${meal.protein} \u00b7 Serat: ${meal.fiber}',
+                            style: AppTypography.bodySecondary.copyWith(
+                              fontSize: 9,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(
+                  Icons.chevron_right,
+                  size: 20,
+                  color: AppColors.textSecondary,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _recommendedMenuCard(RecommendedMenuModel item) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const CircleAvatar(
+            radius: 15,
+            backgroundColor: Color(0xFFE2F3E7),
+            child: Icon(
+              Icons.restaurant,
+              size: 16,
+              color: AppColors.primaryGreenDark,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.title,
+                  style: AppTypography.titleCard.copyWith(fontSize: 13),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  item.note,
+                  style: AppTypography.bodySecondary.copyWith(fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Catat di Food Diary',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => FoodDiaryScreen(
+                    initialFood: item.title,
+                    initialMeal: 'Makan Siang',
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(
+              Icons.add_circle_outline,
+              color: AppColors.primaryGreen,
+              size: 20,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _traditionalRecipeCard(RecipeModel recipe) {
+    final hasImage =
+        recipe.imageUrl != null && recipe.imageUrl!.trim().isNotEmpty;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0C000000),
+            blurRadius: 4,
+            offset: Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => MenuDetailScreen(recipe: recipe)),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        alignment: Alignment.center,
+                        color: AppColors.veryLightGreen,
+                        child: hasImage
+                            ? Image.network(
+                                recipe.imageUrl!,
+                                width: 48,
+                                height: 48,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) => Text(
+                                  recipe.iconEmoji,
+                                  style: const TextStyle(fontSize: 24),
+                                ),
+                              )
+                            : Text(
+                                recipe.iconEmoji,
+                                style: const TextStyle(fontSize: 24),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            recipe.name,
+                            style: AppTypography.titleCard.copyWith(
+                              fontSize: 14,
+                            ),
+                          ),
+                          Text(
+                            recipe.summary,
+                            style: AppTypography.bodySecondary.copyWith(
+                              fontSize: 11,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE2F3E7),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        recipe.calories,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryGreenDark,
                         ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Prot: ${meal.protein} · Serat: ${meal.fiber}',
-                          style: AppTypography.bodySecondary.copyWith(fontSize: 9),
-                        ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 4),
-              const Icon(
-                Icons.chevron_right,
-                size: 20,
-                color: AppColors.textSecondary,
-              ),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
-
-  Widget _traditionalRecipeCard(RecipeModel recipe) => Container(
-    margin: const EdgeInsets.only(bottom: 10),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: const Color(0xFFE2E8F0)),
-      boxShadow: const [
-        BoxShadow(
-          color: Color(0x0C000000),
-          blurRadius: 4,
-          offset: Offset(0, 1),
-        ),
-      ],
-    ),
-    child: Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => MenuDetailScreen(recipe: recipe),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: AppColors.veryLightGreen,
-                      borderRadius: BorderRadius.circular(8),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    _recipeMiniTag(Icons.grass, 'Serat: ${recipe.fiber}'),
+                    const SizedBox(width: 8),
+                    _recipeMiniTag(
+                      Icons.fitness_center,
+                      'Protein: ${recipe.protein}',
                     ),
-                    child: Text(recipe.iconEmoji, style: const TextStyle(fontSize: 24)),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          recipe.name,
-                          style: AppTypography.titleCard.copyWith(fontSize: 14),
-                        ),
-                        Text(
-                          recipe.summary,
-                          style: AppTypography.bodySecondary.copyWith(fontSize: 11),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE2F3E7),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      recipe.calories,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryGreenDark,
+                    const Spacer(),
+                    TextButton.icon(
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(50, 24),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  _recipeMiniTag(Icons.grass, 'Serat: ${recipe.fiber}'),
-                  const SizedBox(width: 8),
-                  _recipeMiniTag(Icons.fitness_center, 'Protein: ${recipe.protein}'),
-                  const Spacer(),
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      minimumSize: const Size(50, 24),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => FoodDiaryScreen(
-                          initialFood: recipe.name,
-                          initialMeal: 'Makan Siang',
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => FoodDiaryScreen(
+                            initialFood: recipe.name,
+                            initialMeal: 'Makan Siang',
+                          ),
+                        ),
+                      ),
+                      icon: const Icon(
+                        Icons.add,
+                        size: 14,
+                        color: AppColors.primaryGreen,
+                      ),
+                      label: const Text(
+                        'Catat Diary',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.primaryGreen,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                    icon: const Icon(Icons.add, size: 14, color: AppColors.primaryGreen),
-                    label: const Text(
-                      'Catat Diary',
-                      style: TextStyle(fontSize: 11, color: AppColors.primaryGreen, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  }
 
   Widget _recipeMiniTag(IconData icon, String text) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
@@ -1230,7 +1667,10 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       children: [
         Icon(icon, size: 12, color: AppColors.textSecondary),
         const SizedBox(width: 4),
-        Text(text, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+        Text(
+          text,
+          style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+        ),
       ],
     ),
   );
@@ -1238,18 +1678,27 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
 class _FocusItem extends StatelessWidget {
   final IconData icon;
-  final String label;
-  const _FocusItem(this.icon, this.label);
+  final String text;
+  const _FocusItem(this.icon, this.text);
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-    width: 95,
-    child: Row(
-      children: [
-        Icon(icon, size: 15, color: AppColors.primaryGreenDark),
-        const SizedBox(width: 4),
-        Expanded(child: Text(label, style: const TextStyle(fontSize: 9))),
-      ],
-    ),
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      CircleAvatar(
+        radius: 13,
+        backgroundColor: const Color(0xFFE2F3E7),
+        child: Icon(icon, size: 15, color: AppColors.primaryGreenDark),
+      ),
+      const SizedBox(width: 6),
+      Text(
+        text,
+        style: const TextStyle(
+          fontSize: 10,
+          color: AppColors.textDark,
+          height: 1.2,
+        ),
+      ),
+    ],
   );
 }

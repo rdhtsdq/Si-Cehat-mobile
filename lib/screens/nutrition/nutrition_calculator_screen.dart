@@ -7,7 +7,8 @@ import '../diary/food_diary_screen.dart';
 
 class FoodNutritionItem {
   final String name;
-  final String category; // makanan_pokok, lauk_pauk, sayuran, buah, minuman_camilan
+  final String
+  category; // makanan_pokok, lauk_pauk, sayuran, buah, minuman_camilan
   final int calories;
   final double carbs;
   final double protein;
@@ -26,7 +27,7 @@ class FoodNutritionItem {
     required this.fat,
     required this.fiber,
     this.sugar = 0.0,
-    this.emoji = '🥗',
+    this.emoji = '\ud83e\udd57',
     this.portionDescription = '1 porsi (100g)',
   });
 
@@ -40,7 +41,7 @@ class FoodNutritionItem {
       fat: (json['fat'] as num?)?.toDouble() ?? 2.0,
       fiber: (json['fiber'] as num?)?.toDouble() ?? 1.0,
       sugar: (json['sugar'] as num?)?.toDouble() ?? 0.0,
-      emoji: json['emoji'] as String? ?? '🥗',
+      emoji: json['emoji'] as String? ?? '\ud83e\udd57',
       portionDescription: json['portionDescription'] as String? ?? '100g',
     );
   }
@@ -55,7 +56,6 @@ class NutritionCalculatorScreen extends StatefulWidget {
 }
 
 class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
-  // Built-in standard Indonesian food nutrition database (per 100g)
   static const List<FoodNutritionItem> _defaultFoods = [
     FoodNutritionItem(
       name: 'Nasi Putih',
@@ -66,7 +66,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       fat: 0.3,
       fiber: 0.4,
       sugar: 0.1,
-      emoji: '🍚',
+      emoji: '\ud83c\udf5a',
       portionDescription: '1 centong (100g)',
     ),
     FoodNutritionItem(
@@ -78,7 +78,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       fat: 0.9,
       fiber: 1.8,
       sugar: 0.4,
-      emoji: '🍚',
+      emoji: '\ud83c\udf5a',
       portionDescription: '1 centong (100g)',
     ),
     FoodNutritionItem(
@@ -90,7 +90,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       fat: 3.6,
       fiber: 0.0,
       sugar: 0.0,
-      emoji: '🍗',
+      emoji: '\ud83c\udf57',
       portionDescription: '1 potong sedang (100g)',
     ),
     FoodNutritionItem(
@@ -102,7 +102,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       fat: 17.0,
       fiber: 0.0,
       sugar: 0.1,
-      emoji: '🍗',
+      emoji: '\ud83c\udf57',
       portionDescription: '1 potong (100g)',
     ),
     FoodNutritionItem(
@@ -114,7 +114,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       fat: 11.0,
       fiber: 0.0,
       sugar: 1.1,
-      emoji: '🥚',
+      emoji: '\ud83e\udd5a',
       portionDescription: '2 butir (100g)',
     ),
     FoodNutritionItem(
@@ -126,7 +126,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       fat: 14.0,
       fiber: 0.0,
       sugar: 0.5,
-      emoji: '🍳',
+      emoji: '\ud83c\udf73',
       portionDescription: '1 butir besar (100g)',
     ),
     FoodNutritionItem(
@@ -138,7 +138,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       fat: 10.8,
       fiber: 4.8,
       sugar: 0.5,
-      emoji: '🧈',
+      emoji: '\ud83e\uddc8',
       portionDescription: '2 potong sedang (100g)',
     ),
     FoodNutritionItem(
@@ -150,7 +150,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       fat: 15.0,
       fiber: 4.0,
       sugar: 0.5,
-      emoji: '🧈',
+      emoji: '\ud83e\uddc8',
       portionDescription: '2 potong sedang (100g)',
     ),
     FoodNutritionItem(
@@ -162,7 +162,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       fat: 4.8,
       fiber: 0.3,
       sugar: 0.5,
-      emoji: '🧊',
+      emoji: '\ud83e\uddca',
       portionDescription: '1 kotak (100g)',
     ),
     FoodNutritionItem(
@@ -174,7 +174,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       fat: 8.0,
       fiber: 0.5,
       sugar: 0.3,
-      emoji: '🧊',
+      emoji: '\ud83e\uddca',
       portionDescription: '1 kotak sedang (100g)',
     ),
     FoodNutritionItem(
@@ -186,7 +186,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       fat: 8.0,
       fiber: 0.0,
       sugar: 0.0,
-      emoji: '🐟',
+      emoji: '\ud83d\udc1f',
       portionDescription: '1 ekor sedang (100g)',
     ),
     FoodNutritionItem(
@@ -198,7 +198,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       fat: 11.0,
       fiber: 1.5,
       sugar: 1.0,
-      emoji: '🐟',
+      emoji: '\ud83d\udc1f',
       portionDescription: '1 ekor lele (100g)',
     ),
     FoodNutritionItem(
@@ -210,7 +210,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       fat: 0.5,
       fiber: 2.5,
       sugar: 0.8,
-      emoji: '🥬',
+      emoji: '\ud83e\udd6c',
       portionDescription: '1 mangkuk (100g)',
     ),
     FoodNutritionItem(
@@ -222,7 +222,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       fat: 0.5,
       fiber: 1.5,
       sugar: 1.8,
-      emoji: '🍲',
+      emoji: '\ud83c\udf72',
       portionDescription: '1 mangkuk sedang (100g)',
     ),
     FoodNutritionItem(
@@ -234,7 +234,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       fat: 0.2,
       fiber: 2.8,
       sugar: 4.7,
-      emoji: '🥕',
+      emoji: '\ud83e\udd55',
       portionDescription: '1 buah sedang (100g)',
     ),
     FoodNutritionItem(
@@ -246,7 +246,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       fat: 0.2,
       fiber: 2.4,
       sugar: 10.4,
-      emoji: '🍎',
+      emoji: '\ud83c\udf4e',
       portionDescription: '1 buah kecil (100g)',
     ),
     FoodNutritionItem(
@@ -258,7 +258,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       fat: 0.3,
       fiber: 2.6,
       sugar: 12.2,
-      emoji: '🍌',
+      emoji: '\ud83c\udf4c',
       portionDescription: '1 buah sedang (100g)',
     ),
     FoodNutritionItem(
@@ -270,7 +270,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       fat: 0.3,
       fiber: 1.7,
       sugar: 7.8,
-      emoji: '🍈',
+      emoji: '\ud83c\udf48',
       portionDescription: '1 mangkuk potong (100g)',
     ),
     FoodNutritionItem(
@@ -282,7 +282,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       fat: 3.6,
       fiber: 0.0,
       sugar: 5.1,
-      emoji: '🥛',
+      emoji: '\ud83e\udd5b',
       portionDescription: '1 gelas kecil (100ml)',
     ),
     FoodNutritionItem(
@@ -294,7 +294,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       fat: 25.0,
       fiber: 1.5,
       sugar: 27.0,
-      emoji: '🍩',
+      emoji: '\ud83c\udf69',
       portionDescription: '1 buah (100g)',
     ),
     FoodNutritionItem(
@@ -306,7 +306,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       fat: 0.0,
       fiber: 0.0,
       sugar: 22.0,
-      emoji: '🧋',
+      emoji: '\ud83e\uddcb',
       portionDescription: '1 gelas (200ml)',
     ),
     FoodNutritionItem(
@@ -318,14 +318,14 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       fat: 1.2,
       fiber: 0.5,
       sugar: 48.0,
-      emoji: '🧋',
+      emoji: '\ud83e\uddcb',
       portionDescription: '1 cup (250ml)',
     ),
   ];
 
   List<FoodNutritionItem> _foods = List.from(_defaultFoods);
-  final _foodController = TextEditingController(text: 'Nasi Putih');
-  final _quantityController = TextEditingController(text: '100');
+  final _foodController = TextEditingController();
+  final _quantityController = TextEditingController();
   final _listSearchController = TextEditingController();
 
   String _unit = 'gram';
@@ -336,21 +336,19 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
 
   FoodNutritionItem _selected = _defaultFoods.first;
 
-  // Calculated values
-  int _calcCalories = 130;
-  double _calcCarbs = 28.0;
-  double _calcProtein = 2.7;
-  double _calcFat = 0.3;
-  double _calcFiber = 0.4;
-  double _calcSugar = 0.1;
+  int _calcCalories = 0;
+  double _calcCarbs = 0.0;
+  double _calcProtein = 0.0;
+  double _calcFat = 0.0;
+  double _calcFiber = 0.0;
+  double _calcSugar = 0.0;
   double _calcWeightGram = 100.0;
-  bool _hasCalculated = true;
+  bool _hasCalculated = false;
 
   @override
   void initState() {
     super.initState();
     _fetchFoodDatabase();
-    _calculateDirect(_selected, 100, 'gram', _preparation);
   }
 
   @override
@@ -366,7 +364,10 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       final res = await ApiClient.instance.get(ApiConstants.nutritionCalculate);
       if (res.isSuccess && res.data != null && res.data['foods'] is List) {
         final list = (res.data['foods'] as List)
-            .map((item) => FoodNutritionItem.fromJson(item as Map<String, dynamic>))
+            .map(
+              (item) =>
+                  FoodNutritionItem.fromJson(item as Map<String, dynamic>),
+            )
             .toList();
         if (list.isNotEmpty && mounted) {
           setState(() {
@@ -374,9 +375,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
           });
         }
       }
-    } catch (_) {
-      // Maintain robust offline fallback
-    }
+    } catch (_) {}
   }
 
   double _getWeightInGrams(double qty, String unit) {
@@ -419,7 +418,9 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       _calcCalories = (food.calories * mult * prepCaloriesMultiplier).round();
       _calcCarbs = double.parse((food.carbs * mult).toStringAsFixed(1));
       _calcProtein = double.parse((food.protein * mult).toStringAsFixed(1));
-      _calcFat = double.parse((food.fat * mult * prepFatMultiplier).toStringAsFixed(1));
+      _calcFat = double.parse(
+        (food.fat * mult * prepFatMultiplier).toStringAsFixed(1),
+      );
       _calcFiber = double.parse((food.fiber * mult).toStringAsFixed(1));
       _calcSugar = double.parse((food.sugar * mult).toStringAsFixed(1));
       _hasCalculated = true;
@@ -428,9 +429,19 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
 
   Future<void> _calculate() async {
     final query = _foodController.text.trim();
-    if (query.isEmpty) return;
+    if (query.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Masukkan nama makanan terlebih dahulu')),
+      );
+      return;
+    }
 
-    final qty = double.tryParse(_quantityController.text.replaceAll(',', '.')) ?? 100.0;
+    final qty =
+        double.tryParse(_quantityController.text.trim().replaceAll(',', '.')) ??
+        (_unit == 'gram' ? 100.0 : 1.0);
+    if (_quantityController.text.trim().isEmpty) {
+      _quantityController.text = qty.toStringAsFixed(0);
+    }
     final weightGram = _getWeightInGrams(qty, _unit);
 
     setState(() => _isLoading = true);
@@ -438,10 +449,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
     try {
       final res = await ApiClient.instance.post(
         ApiConstants.nutritionCalculate,
-        body: {
-          'foodName': query,
-          'weightGram': weightGram,
-        },
+        body: {'foodName': query, 'weightGram': weightGram},
       );
 
       if (res.isSuccess && res.data != null) {
@@ -454,7 +462,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
           fat: (d['fatGram'] as num?)?.toDouble() ?? 2.0,
           fiber: (d['fiberGram'] as num?)?.toDouble() ?? 1.0,
           sugar: (d['sugarGram'] as num?)?.toDouble() ?? 0.0,
-          emoji: d['emoji'] as String? ?? '🥗',
+          emoji: d['emoji'] as String? ?? '\ud83e\udd57',
         );
 
         if (!mounted) return;
@@ -474,10 +482,11 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
       }
     } catch (_) {}
 
-    // Fallback: match local
     final qLower = query.toLowerCase();
     final found = _foods.firstWhere(
-      (f) => f.name.toLowerCase() == qLower || f.name.toLowerCase().contains(qLower),
+      (f) =>
+          f.name.toLowerCase() == qLower ||
+          f.name.toLowerCase().contains(qLower),
       orElse: () => FoodNutritionItem(
         name: query,
         calories: 120,
@@ -486,7 +495,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
         fat: 3.0,
         fiber: 2.0,
         sugar: 2.0,
-        emoji: '🥗',
+        emoji: '\ud83e\udd57',
       ),
     );
 
@@ -499,10 +508,13 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
     setState(() {
       _selected = food;
       _foodController.text = food.name;
-      _quantityController.text = '100';
+      if (_quantityController.text.trim().isEmpty) {
+        _quantityController.text = '100';
+      }
       _unit = 'gram';
     });
-    _calculateDirect(food, 100, 'gram', _preparation);
+    final qty = double.tryParse(_quantityController.text) ?? 100.0;
+    _calculateDirect(food, qty, 'gram', _preparation);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -522,15 +534,18 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
   List<FoodNutritionItem> get _filteredFoods {
     final search = _listSearchController.text.trim().toLowerCase();
     return _foods.where((food) {
-      final matchesSearch = search.isEmpty || food.name.toLowerCase().contains(search);
+      final matchesSearch =
+          search.isEmpty || food.name.toLowerCase().contains(search);
       if (!matchesSearch) return false;
 
       if (_selectedCategory == 'Semua') return true;
-      if (_selectedCategory == 'Makanan Pokok') return food.category == 'makanan_pokok';
+      if (_selectedCategory == 'Makanan Pokok')
+        return food.category == 'makanan_pokok';
       if (_selectedCategory == 'Lauk Pauk') return food.category == 'lauk_pauk';
       if (_selectedCategory == 'Sayuran') return food.category == 'sayuran';
       if (_selectedCategory == 'Buah') return food.category == 'buah';
-      if (_selectedCategory == 'Camilan & Minuman') return food.category == 'minuman_camilan';
+      if (_selectedCategory == 'Camilan & Minuman')
+        return food.category == 'minuman_camilan';
       return true;
     }).toList();
   }
@@ -587,7 +602,6 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
           ),
           const SizedBox(height: 14),
 
-          // Conditional View
           if (!_fromList) ...[
             _buildManualInputForm(),
           ] else ...[
@@ -626,6 +640,9 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
             setState(() {
               _selected = food;
               _foodController.text = food.name;
+              if (_quantityController.text.trim().isEmpty) {
+                _quantityController.text = _unit == 'gram' ? '100' : '1';
+              }
             });
             final qty = double.tryParse(_quantityController.text) ?? 100;
             _calculateDirect(food, qty, _unit, _preparation);
@@ -637,9 +654,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
               onChanged: (v) => _foodController.text = v,
               decoration: _decoration(
                 'Contoh: Nasi Putih, Dada Ayam, Tempe, Sayur Asem...',
-              ).copyWith(
-                prefixIcon: const Icon(Icons.search, size: 18),
-              ),
+              ).copyWith(prefixIcon: const Icon(Icons.search, size: 18)),
             );
           },
         ),
@@ -652,27 +667,31 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
               flex: 3,
               child: TextField(
                 controller: _quantityController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: _decoration('100'),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: _decoration(
+                  _unit == 'gram' ? 'Contoh: 100' : 'Contoh: 1',
+                ),
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
               flex: 4,
               child: DropdownButtonFormField<String>(
-                value: _unit,
+                initialValue: _unit,
                 decoration: _decoration(''),
                 items: ['gram', 'porsi', 'potong', 'butir', 'gelas']
-                    .map((v) => DropdownMenuItem(value: v, child: Text(v, style: const TextStyle(fontSize: 12))))
+                    .map(
+                      (v) => DropdownMenuItem(
+                        value: v,
+                        child: Text(v, style: const TextStyle(fontSize: 12)),
+                      ),
+                    )
                     .toList(),
                 onChanged: (v) {
                   if (v != null) {
                     setState(() => _unit = v);
-                    if (v == 'porsi' && _quantityController.text == '100') {
-                      _quantityController.text = '1';
-                    } else if (v == 'gram' && _quantityController.text == '1') {
-                      _quantityController.text = '100';
-                    }
                   }
                 },
               ),
@@ -683,15 +702,23 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
         _fieldTitle(Icons.restaurant, 'Cara Pengolahan'),
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
-          value: _preparation,
+          initialValue: _preparation,
           decoration: _decoration('Pilih cara pengolahan'),
-          items: [
-            'Tanpa tambahan minyak',
-            'Direbus',
-            'Dikukus',
-            'Dipanggang',
-            'Digoreng',
-          ].map((v) => DropdownMenuItem(value: v, child: Text(v, style: const TextStyle(fontSize: 12)))).toList(),
+          items:
+              [
+                    'Tanpa tambahan minyak',
+                    'Direbus',
+                    'Dikukus',
+                    'Dipanggang',
+                    'Digoreng',
+                  ]
+                  .map(
+                    (v) => DropdownMenuItem(
+                      value: v,
+                      child: Text(v, style: const TextStyle(fontSize: 12)),
+                    ),
+                  )
+                  .toList(),
           onChanged: (v) {
             if (v != null) setState(() => _preparation = v);
           },
@@ -712,7 +739,10 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
                 : const Icon(Icons.calculate_outlined, size: 18),
             label: Text(_isLoading ? 'Menghitung...' : 'Hitung Nilai Gizi'),
@@ -753,26 +783,34 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
-            children: [
-              'Semua',
-              'Makanan Pokok',
-              'Lauk Pauk',
-              'Sayuran',
-              'Buah',
-              'Camilan & Minuman',
-            ].map((cat) {
-              final isSel = _selectedCategory == cat;
-              return Padding(
-                padding: const EdgeInsets.only(right: 6),
-                child: ChoiceChip(
-                  label: Text(cat, style: TextStyle(fontSize: 10, color: isSel ? Colors.white : AppColors.textDark)),
-                  selected: isSel,
-                  selectedColor: AppColors.primaryGreen,
-                  backgroundColor: const Color(0xFFF1F5F9),
-                  onSelected: (_) => setState(() => _selectedCategory = cat),
-                ),
-              );
-            }).toList(),
+            children:
+                [
+                  'Semua',
+                  'Makanan Pokok',
+                  'Lauk Pauk',
+                  'Sayuran',
+                  'Buah',
+                  'Camilan & Minuman',
+                ].map((cat) {
+                  final isSel = _selectedCategory == cat;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: ChoiceChip(
+                      label: Text(
+                        cat,
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isSel ? Colors.white : AppColors.textDark,
+                        ),
+                      ),
+                      selected: isSel,
+                      selectedColor: AppColors.primaryGreen,
+                      backgroundColor: const Color(0xFFF1F5F9),
+                      onSelected: (_) =>
+                          setState(() => _selectedCategory = cat),
+                    ),
+                  );
+                }).toList(),
           ),
         ),
         const SizedBox(height: 10),
@@ -785,17 +823,20 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: _filteredFoods.length,
-          separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+          separatorBuilder: (_, _) =>
+              const Divider(height: 1, color: Color(0xFFF1F5F9)),
           itemBuilder: (context, index) {
             final food = _filteredFoods[index];
-            final isCurrent = _selected.name == food.name;
+            final isCurrent = _hasCalculated && _selected.name == food.name;
             return InkWell(
               onTap: () => _selectFoodFromList(food),
               borderRadius: BorderRadius.circular(8),
               child: Container(
                 padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                 decoration: BoxDecoration(
-                  color: isCurrent ? AppColors.veryLightGreen : Colors.transparent,
+                  color: isCurrent
+                      ? AppColors.veryLightGreen
+                      : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -808,7 +849,10 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
                         color: const Color(0xFFF1F5F9),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(food.emoji, style: const TextStyle(fontSize: 20)),
+                      child: Text(
+                        food.emoji,
+                        style: const TextStyle(fontSize: 20),
+                      ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
@@ -824,7 +868,9 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
                           ),
                           Text(
                             food.portionDescription,
-                            style: AppTypography.bodySecondary.copyWith(fontSize: 10),
+                            style: AppTypography.bodySecondary.copyWith(
+                              fontSize: 10,
+                            ),
                           ),
                         ],
                       ),
@@ -833,7 +879,10 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFE2F3E7),
                             borderRadius: BorderRadius.circular(6),
@@ -849,8 +898,11 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'P: ${food.protein}g · K: ${food.carbs}g',
-                          style: const TextStyle(fontSize: 9, color: AppColors.textSecondary),
+                          'P: ${food.protein}g \u00b7 K: ${food.carbs}g',
+                          style: const TextStyle(
+                            fontSize: 9,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
@@ -858,7 +910,9 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
                     Icon(
                       isCurrent ? Icons.check_circle : Icons.chevron_right,
                       size: 18,
-                      color: isCurrent ? AppColors.primaryGreen : AppColors.textMuted,
+                      color: isCurrent
+                          ? AppColors.primaryGreen
+                          : AppColors.textMuted,
                     ),
                   ],
                 ),
@@ -870,26 +924,29 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
     ),
   );
 
-  Widget _modeButton(String label, bool selected, VoidCallback onTap) => SizedBox(
-    height: 40,
-    child: ElevatedButton(
-      onPressed: onTap,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: selected ? AppColors.primaryGreen : const Color(0xFFE9EAEC),
-        foregroundColor: selected ? Colors.white : AppColors.textDark,
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(7),
+  Widget _modeButton(String label, bool selected, VoidCallback onTap) =>
+      SizedBox(
+        height: 40,
+        child: ElevatedButton(
+          onPressed: onTap,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: selected
+                ? AppColors.primaryGreen
+                : const Color(0xFFE9EAEC),
+            foregroundColor: selected ? Colors.white : AppColors.textDark,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(7),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+          ),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 4),
-      ),
-      child: Text(
-        label,
-        textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-      ),
-    ),
-  );
+      );
 
   Widget _fieldTitle(IconData icon, String text) => Row(
     children: [
@@ -957,7 +1014,11 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
                 ),
                 child: Text(
                   '${_calcWeightGram.toStringAsFixed(0)} gram',
-                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primaryGreenDark),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primaryGreenDark,
+                  ),
                 ),
               ),
             ],
@@ -979,7 +1040,10 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
                     color: const Color(0xFFF8FAFC),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(_selected.emoji, style: const TextStyle(fontSize: 30)),
+                  child: Text(
+                    _selected.emoji,
+                    style: const TextStyle(fontSize: 30),
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -1003,7 +1067,10 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFE2F3E7),
                     borderRadius: BorderRadius.circular(10),
@@ -1072,12 +1139,19 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.warning_amber_rounded, size: 18, color: Colors.redAccent),
+                  const Icon(
+                    Icons.warning_amber_rounded,
+                    size: 18,
+                    color: Colors.redAccent,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'Tinggi Gula (${_calcSugar.toStringAsFixed(1)}g). Batasi konsumsi manis harian untuk mencegah lonjakan gula darah dan risiko diabetes anak.',
-                      style: const TextStyle(fontSize: 10, color: Color(0xFF9F1239)),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Color(0xFF9F1239),
+                      ),
                     ),
                   ),
                 ],
@@ -1094,14 +1168,21 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.tips_and_updates_outlined, size: 16, color: AppColors.primaryGreenDark),
+                const Icon(
+                  Icons.tips_and_updates_outlined,
+                  size: 16,
+                  color: AppColors.primaryGreenDark,
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     _calcFiber >= 2.0
                         ? 'Bagus! Kandungan serat pangan membantu memperlambat penyerapan glukosa dan menjaga rasa kenyang lebih lama.'
                         : 'Tips Cehat: Kombinasikan dengan sayur atau buah segar untuk melengkapi kebutuhan serat dan vitamin anak.',
-                    style: const TextStyle(fontSize: 10, color: AppColors.primaryGreenDark),
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: AppColors.primaryGreenDark,
+                    ),
                   ),
                 ),
               ],
@@ -1122,12 +1203,16 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => FoodDiaryScreen(
-                    initialFood: '${_selected.name} (${_quantityController.text} $_unit)',
+                    initialFood:
+                        '${_selected.name} (${_quantityController.text} $_unit)',
                   ),
                 ),
               ),
               icon: const Icon(Icons.bookmark_add_outlined, size: 18),
-              label: const Text('Catat di Diary Makan', style: TextStyle(fontWeight: FontWeight.bold)),
+              label: const Text(
+                'Catat di Diary Makan',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ),
         ],
@@ -1135,38 +1220,42 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
     );
   }
 
-  Widget _macro(String name, String value, Color color, IconData icon) => Expanded(
-    child: Container(
-      margin: const EdgeInsets.symmetric(horizontal: 2),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: 13,
-            backgroundColor: color,
-            child: Icon(icon, size: 15, color: AppColors.primaryGreenDark),
+  Widget _macro(String name, String value, Color color, IconData icon) =>
+      Expanded(
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
           ),
-          const SizedBox(height: 4),
-          Text(
-            name,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 8, color: AppColors.textSecondary),
+          child: Column(
+            children: [
+              CircleAvatar(
+                radius: 13,
+                backgroundColor: color,
+                child: Icon(icon, size: 15, color: AppColors.primaryGreenDark),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                name,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 8,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textDark,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
+        ),
+      );
 }

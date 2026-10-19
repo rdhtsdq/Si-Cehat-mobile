@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../consultation/consultation_screen.dart';
 import '../menu/menu_catalog_screen.dart';
@@ -15,11 +16,48 @@ class HomeScreen extends StatelessWidget {
 
   const HomeScreen({super.key, this.onNavigateTab});
 
+  String _greetingByHour() {
+    final hour = DateTime.now().hour;
+    if (hour >= 4 && hour < 11) return 'Selamat Pagi';
+    if (hour >= 11 && hour < 15) return 'Selamat Siang';
+    if (hour >= 15 && hour < 18) return 'Selamat Sore';
+    return 'Selamat Malam';
+  }
+
   @override
   Widget build(BuildContext context) {
     final profile = context.watch<ProfileProvider>();
-    final motherName = profile.mother?.name ?? 'Ibu Rina';
+    final auth = context.watch<AuthProvider>();
+    final motherName = (profile.mother?.name.isNotEmpty == true)
+        ? profile.mother!.name
+        : (auth.currentUserName ?? 'Ibu');
     final activeChild = profile.activeChild;
+
+    final riskCat = activeChild?.latestRiskCategory?.toUpperCase();
+    final String riskTitle;
+    final String riskSubtitle;
+    final Color riskColor;
+
+    if (riskCat == 'TINGGI') {
+      riskTitle = 'Risiko Tinggi';
+      riskSubtitle =
+          'Disarankan konsultasi gizi dan batasi konsumsi gula harian.';
+      riskColor = Colors.orange[800]!;
+    } else if (riskCat == 'SEDANG') {
+      riskTitle = 'Risiko Sedang';
+      riskSubtitle =
+          'Perhatikan porsi makan seimbang dan aktivitas fisik harian anak.';
+      riskColor = const Color(0xFFE6A23C);
+    } else if (riskCat == 'RENDAH') {
+      riskTitle = 'Risiko Rendah';
+      riskSubtitle = 'Pertahankan pola hidup sehat anak setiap hari!';
+      riskColor = AppColors.primaryGreen;
+    } else {
+      riskTitle = 'Belum Skrining';
+      riskSubtitle =
+          'Ketuk di sini untuk melakukan skrining risiko diabetes anak.';
+      riskColor = AppColors.primaryGreenDark;
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -44,7 +82,7 @@ class HomeScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Selamat Pagi',
+                          _greetingByHour(),
                           style: AppTypography.bodySecondary.copyWith(
                             fontSize: 16,
                             color: AppColors.textSecondary,
@@ -95,44 +133,48 @@ class HomeScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 20),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: AppColors.paleGreenBg,
-                  borderRadius: BorderRadius.circular(14),
-                ),
+              InkWell(
+                onTap: () => _push(context, const ScreeningStep1Screen()),
+                borderRadius: BorderRadius.circular(14),
                 child: Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Diabetes Risk Meter',
-                        style: AppTypography.titleCard.copyWith(
-                          color: AppColors.textDark,
-                          fontWeight: FontWeight.w600,
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: AppColors.paleGreenBg,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Container(
+                    color: Colors.white,
+                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Diabetes Risk Meter',
+                          style: AppTypography.titleCard.copyWith(
+                            color: AppColors.textDark,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Risiko Rendah',
-                        style: AppTypography.headingScreen.copyWith(
-                          fontSize: 24,
-                          color: AppColors.primaryGreen,
-                          fontWeight: FontWeight.w700,
+                        const SizedBox(height: 10),
+                        Text(
+                          riskTitle,
+                          style: AppTypography.headingScreen.copyWith(
+                            fontSize: 24,
+                            color: riskColor,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Pertahankan pola hidup sehat anak setiap hari!',
-                        style: AppTypography.bodySecondary.copyWith(
-                          color: AppColors.textDark,
-                          fontSize: 13,
+                        const SizedBox(height: 6),
+                        Text(
+                          riskSubtitle,
+                          style: AppTypography.bodySecondary.copyWith(
+                            color: AppColors.textDark,
+                            fontSize: 13,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

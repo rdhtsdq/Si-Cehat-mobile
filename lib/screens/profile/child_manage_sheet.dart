@@ -6,6 +6,7 @@ import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../data/models/child_model.dart';
 import '../../providers/profile_provider.dart';
+import '../../providers/tracker_provider.dart';
 
 class ChildManageSheet extends StatefulWidget {
   const ChildManageSheet({super.key});
@@ -17,9 +18,36 @@ class ChildManageSheet extends StatefulWidget {
 class _ChildManageSheetState extends State<ChildManageSheet> {
   bool _isAdding = false;
   final _nameController = TextEditingController();
-  final _dobController = TextEditingController(text: '2018-05-14');
+  final _dobController = TextEditingController();
   String _selectedGender = 'Laki-laki';
   final _notesController = TextEditingController();
+  String? _nameError;
+  bool _isSaving = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _dobController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickBirthDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime(now.year - 6, now.month, now.day),
+      firstDate: DateTime(now.year - 18),
+      lastDate: now,
+    );
+    if (picked != null) {
+      final formatted =
+          '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      setState(() {
+        _dobController.text = formatted;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,38 +82,61 @@ class _ChildManageSheetState extends State<ChildManageSheet> {
           const SizedBox(height: 12),
 
           if (!_isAdding) ...[
+            if (children.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: Text(
+                  'Belum ada profil anak. Tambahkan data anak di bawah ini.',
+                  style: AppTypography.bodySecondary,
+                ),
+              ),
             ...children.map((child) {
               final isSelected = child.isActive;
               return Container(
                 margin: const EdgeInsets.only(bottom: 10),
                 decoration: BoxDecoration(
-                  color: isSelected ? AppColors.paleGreenBg : AppColors.fieldBackground,
+                  color: isSelected
+                      ? AppColors.paleGreenBg
+                      : AppColors.fieldBackground,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: isSelected ? AppColors.primaryGreen : Colors.transparent,
+                    color: isSelected
+                        ? AppColors.primaryGreen
+                        : Colors.transparent,
                     width: 1.5,
                   ),
                 ),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: isSelected ? AppColors.primaryGreen : Colors.grey[400],
+                    backgroundColor: isSelected
+                        ? AppColors.primaryGreen
+                        : Colors.grey[400],
                     child: const Icon(Icons.person, color: Colors.white),
                   ),
                   title: Text(
                     child.name,
                     style: AppTypography.titleCard.copyWith(
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w500,
                     ),
                   ),
                   subtitle: Text(
-                    '${child.gender} • Usia ${child.ageInYears} tahun',
+                    child.dateOfBirth.isNotEmpty
+                        ? '${child.gender} \u2022 Usia ${child.ageInYears} tahun'
+                        : child.gender,
                     style: AppTypography.bodySecondary,
                   ),
                   trailing: isSelected
-                      ? const Icon(Icons.check_circle, color: AppColors.primaryGreen)
+                      ? const Icon(
+                          Icons.check_circle,
+                          color: AppColors.primaryGreen,
+                        )
                       : null,
                   onTap: () async {
+                    final trackerProv = context.read<TrackerProvider>();
                     await profileProv.selectActiveChild(child.id);
+                    trackerProv.loadMeasurements(child.id);
                     if (context.mounted) Navigator.of(context).pop();
                   },
                 ),
@@ -104,12 +155,21 @@ class _ChildManageSheetState extends State<ChildManageSheet> {
               label: 'Nama Anak',
               hintText: 'Masukkan nama anak',
               controller: _nameController,
+              errorText: _nameError,
+              onChanged: (_) {
+                if (_nameError != null) setState(() => _nameError = null);
+              },
             ),
             const SizedBox(height: 12),
-            AppTextField(
-              label: 'Tanggal Lahir (YYYY-MM-DD)',
-              hintText: 'Contoh: 2018-05-14',
-              controller: _dobController,
+            GestureDetector(
+              onTap: _pickBirthDate,
+              child: AbsorbPointer(
+                child: AppTextField(
+                  label: 'Tanggal Lahir (YYYY-MM-DD)',
+                  hintText: 'Ketuk untuk memilih tanggal lahir',
+                  controller: _dobController,
+                ),
+              ),
             ),
             const SizedBox(height: 12),
             Text('Jenis Kelamin', style: AppTypography.labelInput),
@@ -136,8 +196,13 @@ class _ChildManageSheetState extends State<ChildManageSheet> {
             const SizedBox(height: 16),
             PrimaryButton(
               text: 'Simpan Anak',
+              isLoading: _isSaving,
               onPressed: () async {
-                if (_nameController.text.trim().isEmpty) return;
+                if (_nameController.text.trim().isEmpty) {
+                  setState(() => _nameError = 'Nama anak wajib diisi');
+                  return;
+                }
+                setState(() => _isSaving = true);
                 final newChild = ChildModel(
                   id: 0,
                   name: _nameController.text.trim(),

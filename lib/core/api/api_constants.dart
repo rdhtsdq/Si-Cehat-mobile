@@ -1,11 +1,52 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiConstants {
+  static const String _baseUrlPrefKey = 'custom_api_base_url';
+  static const String defaultLanUrl = 'http://192.168.1.3:3000';
+
   static String? _customBaseUrl;
 
-  /// Allows changing the API Base URL dynamically (e.g. from Settings or for LAN IP testing)
-  static void setCustomBaseUrl(String url) {
-    _customBaseUrl = url.endsWith('/') ? url.substring(0, url.length - 1) : url;
+  /// Loads any previously saved custom API Base URL from SharedPreferences.
+  static Future<void> init() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(_baseUrlPrefKey);
+      if (saved != null && saved.trim().isNotEmpty) {
+        _customBaseUrl = _normalizeUrl(saved.trim());
+      }
+    } catch (_) {}
+  }
+
+  static String _normalizeUrl(String url) {
+    var trimmed = url.trim();
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      trimmed = 'http://$trimmed';
+    }
+    return trimmed.endsWith('/')
+        ? trimmed.substring(0, trimmed.length - 1)
+        : trimmed;
+  }
+
+  /// Allows changing and persisting the API Base URL dynamically (e.g. from Settings or for LAN IP testing)
+  static Future<void> setCustomBaseUrl(String? url) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (url == null || url.trim().isEmpty) {
+        _customBaseUrl = null;
+        await prefs.remove(_baseUrlPrefKey);
+      } else {
+        final normalized = _normalizeUrl(url);
+        _customBaseUrl = normalized;
+        await prefs.setString(_baseUrlPrefKey, normalized);
+      }
+    } catch (_) {
+      if (url == null || url.trim().isEmpty) {
+        _customBaseUrl = null;
+      } else {
+        _customBaseUrl = _normalizeUrl(url);
+      }
+    }
   }
 
   static String get baseUrl {
@@ -16,8 +57,8 @@ class ApiConstants {
       return 'http://localhost:3000';
     }
     if (defaultTargetPlatform == TargetPlatform.android) {
-      // Android emulator loopback to host PC
-      return 'http://10.0.2.2:3000';
+      // LAN IP of this host machine on port 3000
+      return defaultLanUrl;
     }
     return 'http://localhost:3000';
   }
@@ -25,6 +66,8 @@ class ApiConstants {
   // Auth endpoints
   static const String authLogin = '/api/auth/login';
   static const String authRegister = '/api/auth/register';
+  static const String authLogout = '/api/auth/logout';
+  static const String authMe = '/api/auth/me';
 
   // Parent / Family endpoints
   static const String parentProfile = '/api/parent/profile';
@@ -39,8 +82,9 @@ class ApiConstants {
   static const String foodDiary = '/api/food-diary';
   static const String nutritionCalculate = '/api/nutrition/calculate';
 
-  // Catalog & Education
+  // Catalog, Meal Plan & Education
   static const String recipes = '/api/recipes';
+  static const String mealPlan = '/api/meal-plan';
   static const String educationArticles = '/api/education/articles';
   static const String content = '/api/content';
 

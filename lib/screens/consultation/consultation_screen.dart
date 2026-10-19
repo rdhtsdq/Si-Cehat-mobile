@@ -36,9 +36,19 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
     if (mounted) setState(() => _loading = false);
   }
 
-  void _showSpecialistDetail(BuildContext context, String role, String typeKey) {
-    final filtered = _specialists.where((s) => (s['type'] ?? '').toString().toUpperCase() == typeKey).toList();
+  void _showSpecialistDetail(
+    BuildContext context,
+    String role,
+    String typeKey,
+  ) {
+    final filtered = _specialists
+        .where((s) => (s['type'] ?? '').toString().toUpperCase() == typeKey)
+        .toList();
     final specialist = filtered.isNotEmpty ? filtered.first : null;
+    final specialistName = specialist != null
+        ? specialist['name'].toString()
+        : 'Tenaga Medis Mitra $role';
+    final topicController = TextEditingController();
 
     showModalBottomSheet(
       context: context,
@@ -47,7 +57,12 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) => Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: EdgeInsets.only(
+          left: 24.0,
+          right: 24.0,
+          top: 24.0,
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 24.0,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,8 +71,14 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
               children: [
                 CircleAvatar(
                   radius: 28,
-                  backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.15),
-                  child: const Icon(Icons.person, color: AppColors.primaryGreen, size: 30),
+                  backgroundColor: AppColors.primaryGreen.withValues(
+                    alpha: 0.15,
+                  ),
+                  child: const Icon(
+                    Icons.person,
+                    color: AppColors.primaryGreen,
+                    size: 30,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -65,22 +86,33 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        specialist != null ? specialist['name'] : 'Tenaga Medis Mitra $role',
+                        specialistName,
                         style: AppTypography.titleCard.copyWith(fontSize: 16),
                       ),
                       Text(
-                        specialist != null ? specialist['title'] : 'Mitra Terverifikasi',
-                        style: AppTypography.bodySecondary.copyWith(color: AppColors.textSecondary),
+                        specialist != null
+                            ? specialist['title'].toString()
+                            : 'Mitra Terverifikasi',
+                        style: AppTypography.bodySecondary.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                       if (specialist != null) ...[
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Icons.star, color: Colors.amber, size: 16),
+                            const Icon(
+                              Icons.star,
+                              color: Colors.amber,
+                              size: 16,
+                            ),
                             const SizedBox(width: 4),
                             Text(
-                              '${specialist['rating']} • Pengalaman ${specialist['experienceYears']} tahun',
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                              '${specialist['rating']} \u2022 Pengalaman ${specialist['experienceYears']} tahun',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ],
                         ),
@@ -99,30 +131,71 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
               Wrap(
                 spacing: 8,
                 runSpacing: 6,
-                children: (specialist['focus'] as List).map<Widget>((f) => Chip(
-                  label: Text(f.toString(), style: const TextStyle(fontSize: 11)),
-                  backgroundColor: AppColors.paleGreenBg,
-                  side: BorderSide.none,
-                )).toList(),
+                children: (specialist['focus'] as List)
+                    .map<Widget>(
+                      (f) => Chip(
+                        label: Text(
+                          f.toString(),
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                        backgroundColor: AppColors.paleGreenBg,
+                        side: BorderSide.none,
+                      ),
+                    )
+                    .toList(),
               ),
             ] else ...[
-              const Text('• Edukasi pencegahan diabetes anak\n• Pola makan dan gaya hidup sehat'),
+              const Text(
+                '\u2022 Edukasi pencegahan diabetes anak\n\u2022 Pola makan dan gaya hidup sehat',
+              ),
             ],
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+            TextField(
+              controller: topicController,
+              decoration: InputDecoration(
+                labelText: 'Keluhan / Topik Konsultasi',
+                hintText: 'Contoh: Konsultasi porsi makan & berat badan anak',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
+                  final topic = topicController.text.trim().isNotEmpty
+                      ? topicController.text.trim()
+                      : 'Konsultasi $role';
+                  try {
+                    await ApiClient.instance.post(
+                      ApiConstants.consultations,
+                      body: {
+                        'specialistType': typeKey,
+                        'specialistName': specialistName,
+                        'topic': topic,
+                      },
+                    );
+                  } catch (_) {}
+                  if (!ctx.mounted) return;
                   Navigator.of(ctx).pop();
+                  if (!context.mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Permintaan konsultasi telah dicatat di server.')),
+                    const SnackBar(
+                      content: Text(
+                        'Permintaan konsultasi telah dicatat di server.',
+                      ),
+                    ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryGreen,
                   foregroundColor: Colors.white,
                   minimumSize: const Size.fromHeight(48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
                 child: const Text('Ajukan Jadwal Konsultasi'),
               ),
@@ -142,7 +215,11 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
         elevation: 0,
         centerTitle: false,
         leading: IconButton(
-          icon: const Icon(Icons.chevron_left, size: 28, color: AppColors.textDark),
+          icon: const Icon(
+            Icons.chevron_left,
+            size: 28,
+            color: AppColors.textDark,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
@@ -157,15 +234,22 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SafetyBanner(
-                text: 'Direktori Tenaga Medis Mitra Si-Cehat: Pilih spesialis untuk konsultasi pencegahan & tumbuh kembang anak.',
+                text:
+                    'Direktori Tenaga Medis Mitra Si-Cehat: Pilih spesialis untuk konsultasi pencegahan & tumbuh kembang anak.',
                 type: BannerType.notice,
               ),
+              if (_loading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: LinearProgressIndicator(color: AppColors.primaryGreen),
+                ),
               const SizedBox(height: 16),
 
               _buildRoleCard(
                 context,
                 title: 'Bidan',
-                subtitle: 'Konsultasi pendampingan ibu dan tumbuh kembang balita/anak',
+                subtitle:
+                    'Konsultasi pendampingan ibu dan tumbuh kembang balita/anak',
                 onTap: () => _showSpecialistDetail(context, 'Bidan', 'BIDAN'),
               ),
               const SizedBox(height: 16),
@@ -173,8 +257,10 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
               _buildRoleCard(
                 context,
                 title: 'Ahli Gizi',
-                subtitle: 'Konsultasi pengaturan menu, porsi, dan batasan gula anak',
-                onTap: () => _showSpecialistDetail(context, 'Ahli Gizi', 'AHLI_GIZI'),
+                subtitle:
+                    'Konsultasi pengaturan menu, porsi, dan batasan gula anak',
+                onTap: () =>
+                    _showSpecialistDetail(context, 'Ahli Gizi', 'AHLI_GIZI'),
               ),
               const SizedBox(height: 16),
 

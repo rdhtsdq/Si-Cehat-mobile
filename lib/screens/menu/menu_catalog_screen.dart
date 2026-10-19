@@ -6,15 +6,38 @@ import '../../data/models/recipe_model.dart';
 import '../../providers/education_provider.dart';
 import 'menu_detail_screen.dart';
 
-class MenuCatalogScreen extends StatelessWidget {
+class MenuCatalogScreen extends StatefulWidget {
   const MenuCatalogScreen({super.key});
+
+  @override
+  State<MenuCatalogScreen> createState() => _MenuCatalogScreenState();
+}
+
+class _MenuCatalogScreenState extends State<MenuCatalogScreen> {
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final prov = context.read<EducationProvider>();
+      _searchController.text = prov.searchQuery;
+      prov.fetchRecipes();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final eduProv = context.watch<EducationProvider>();
     final recipes = eduProv.filteredRecipes;
     final selectedCategory = eduProv.selectedRecipeCategory;
-
     final categories = ['Semua', 'Makanan', 'Minuman', 'Cemilan'];
 
     return Scaffold(
@@ -24,19 +47,74 @@ class MenuCatalogScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: false,
         leading: IconButton(
-          icon: const Icon(Icons.chevron_left, size: 28, color: AppColors.textDark),
+          icon: const Icon(
+            Icons.chevron_left,
+            size: 28,
+            color: AppColors.textDark,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
           'Menu Tradisional Sehat',
           style: AppTypography.headingScreen.copyWith(fontSize: 20),
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Muat Ulang dari Server',
+            onPressed: eduProv.isLoading
+                ? null
+                : () => eduProv.fetchRecipes(showLoading: true),
+            icon: const Icon(Icons.refresh, color: AppColors.primaryGreenDark),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 12),
-            // Empat chip/tab satu baris sesuai PDF S12: Semua, Makanan, Minuman, Cemilan
+            // Search Bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 10),
+              child: TextField(
+                controller: _searchController,
+                onChanged: (value) => eduProv.setSearchQuery(value),
+                onSubmitted: (value) => eduProv.fetchRecipes(
+                  category: selectedCategory,
+                  search: value,
+                  showLoading: true,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Cari resep sehat tradisional...',
+                  hintStyle: AppTypography.bodySecondary.copyWith(fontSize: 13),
+                  prefixIcon: const Icon(
+                    Icons.search,
+                    size: 20,
+                    color: AppColors.textSecondary,
+                  ),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _searchController.clear();
+                            eduProv.setSearchQuery('');
+                            eduProv.fetchRecipes();
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: AppColors.fieldBackground,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+            ),
+
+            // Category Filter Chips
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -53,7 +131,9 @@ class MenuCatalogScreen extends StatelessWidget {
                       backgroundColor: AppColors.fieldBackground,
                       labelStyle: TextStyle(
                         color: isActive ? Colors.white : AppColors.textDark,
-                        fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                        fontWeight: isActive
+                            ? FontWeight.w700
+                            : FontWeight.w500,
                         fontSize: 13,
                       ),
                       shape: RoundedRectangleBorder(
@@ -68,26 +148,59 @@ class MenuCatalogScreen extends StatelessWidget {
                 }).toList(),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
-            // Daftar card horizontal sesuai PDF S12
+            if (eduProv.isLoading)
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24),
+                child: LinearProgressIndicator(
+                  minHeight: 2,
+                  color: AppColors.primaryGreen,
+                ),
+              ),
+
+            // Daftar card horizontal
             Expanded(
-              child: recipes.isEmpty
-                  ? Center(
-                      child: Text(
-                        'Belum ada menu pada kategori ini',
-                        style: AppTypography.bodySecondary,
+              child: RefreshIndicator(
+                color: AppColors.primaryGreen,
+                onRefresh: () => eduProv.fetchRecipes(showLoading: false),
+                child: recipes.isEmpty
+                    ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        children: [
+                          const SizedBox(height: 120),
+                          Center(
+                            child: Column(
+                              children: [
+                                const Icon(
+                                  Icons.restaurant_menu_outlined,
+                                  size: 48,
+                                  color: AppColors.textSecondary,
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'Belum ada menu pada kategori ini',
+                                  style: AppTypography.bodySecondary,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
+                    : ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 8,
+                        ),
+                        itemCount: recipes.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 14),
+                        itemBuilder: (context, index) {
+                          final item = recipes[index];
+                          return _buildMenuHorizontalCard(context, item);
+                        },
                       ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                      itemCount: recipes.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 16),
-                      itemBuilder: (context, index) {
-                        final item = recipes[index];
-                        return _buildMenuHorizontalCard(context, item);
-                      },
-                    ),
+              ),
             ),
           ],
         ),
@@ -96,6 +209,8 @@ class MenuCatalogScreen extends StatelessWidget {
   }
 
   Widget _buildMenuHorizontalCard(BuildContext context, RecipeModel item) {
+    final hasImage = item.imageUrl != null && item.imageUrl!.trim().isNotEmpty;
+
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(12),
@@ -104,9 +219,7 @@ class MenuCatalogScreen extends StatelessWidget {
       child: InkWell(
         onTap: () {
           Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => MenuDetailScreen(recipe: item),
-            ),
+            MaterialPageRoute(builder: (_) => MenuDetailScreen(recipe: item)),
           );
         },
         borderRadius: BorderRadius.circular(12),
@@ -118,18 +231,29 @@ class MenuCatalogScreen extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // Foto/ikon makanan persegi di kiri dengan radius sesuai PDF
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
+              // Foto/ikon makanan persegi di kiri dengan radius
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  width: 80,
+                  height: 80,
                   color: AppColors.paleGreenBg,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  item.iconEmoji,
-                  style: const TextStyle(fontSize: 38),
+                  alignment: Alignment.center,
+                  child: hasImage
+                      ? Image.network(
+                          item.imageUrl!,
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => Text(
+                            item.iconEmoji,
+                            style: const TextStyle(fontSize: 38),
+                          ),
+                        )
+                      : Text(
+                          item.iconEmoji,
+                          style: const TextStyle(fontSize: 38),
+                        ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -155,23 +279,47 @@ class MenuCatalogScreen extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 6),
-                    Row(
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        const Icon(Icons.local_fire_department, size: 14, color: AppColors.primaryGreenDark),
-                        const SizedBox(width: 4),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.local_fire_department,
+                              size: 14,
+                              color: AppColors.primaryGreenDark,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              item.calories,
+                              style: AppTypography.bodySecondary.copyWith(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primaryGreenDark,
+                              ),
+                            ),
+                          ],
+                        ),
                         Text(
-                          item.calories,
+                          'Protein: ${item.protein} \u00b7 Serat: ${item.fiber}',
                           style: AppTypography.bodySecondary.copyWith(
                             fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primaryGreenDark,
+                            color: AppColors.textSecondary,
                           ),
                         ),
                       ],
                     ),
                   ],
                 ),
+              ),
+              const Icon(
+                Icons.chevron_right,
+                size: 20,
+                color: AppColors.textSecondary,
               ),
             ],
           ),

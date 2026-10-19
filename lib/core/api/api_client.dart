@@ -20,14 +20,14 @@ class ApiResponse {
   });
 
   factory ApiResponse.success(dynamic data, {int statusCode = 200}) {
-    return ApiResponse(
-      isSuccess: true,
-      statusCode: statusCode,
-      data: data,
-    );
+    return ApiResponse(isSuccess: true, statusCode: statusCode, data: data);
   }
 
-  factory ApiResponse.failure(String message, {int statusCode = 400, bool isOffline = false}) {
+  factory ApiResponse.failure(
+    String message, {
+    int statusCode = 400,
+    bool isOffline = false,
+  }) {
     return ApiResponse(
       isSuccess: false,
       statusCode: statusCode,
@@ -42,16 +42,30 @@ class ApiClient {
   ApiClient._internal();
 
   static const String _tokenPrefKey = 'auth_jwt_token';
+  static const String _cookiePrefKey = 'auth_session_cookie';
   static const String _guardianPrefKey = 'auth_guardian_data';
 
   String? _cachedToken;
+  String? _cachedCookie;
 
   Future<String?> getToken() async {
-    if (_cachedToken != null) return _cachedToken;
+    if (_cachedToken != null && _cachedToken!.isNotEmpty) return _cachedToken;
     try {
       final prefs = await SharedPreferences.getInstance();
       _cachedToken = prefs.getString(_tokenPrefKey);
       return _cachedToken;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<String?> _getCookie() async {
+    if (_cachedCookie != null && _cachedCookie!.isNotEmpty)
+      return _cachedCookie;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _cachedCookie = prefs.getString(_cookiePrefKey);
+      return _cachedCookie;
     } catch (_) {
       return null;
     }
@@ -62,6 +76,14 @@ class ApiClient {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_tokenPrefKey, token);
+    } catch (_) {}
+  }
+
+  Future<void> _saveCookie(String cookie) async {
+    _cachedCookie = cookie;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_cookiePrefKey, cookie);
     } catch (_) {}
   }
 
@@ -85,10 +107,13 @@ class ApiClient {
 
   Future<void> clearAuth() async {
     _cachedToken = null;
+    _cachedCookie = null;
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_tokenPrefKey);
+      await prefs.remove(_cookiePrefKey);
       await prefs.remove(_guardianPrefKey);
+      await prefs.remove('active_child_id');
     } catch (_) {}
   }
 
@@ -104,6 +129,7 @@ class ApiClient {
 
   Future<Map<String, String>> _buildHeaders() async {
     final token = await getToken();
+    final cookie = await _getCookie();
     final headers = <String, String>{
       'Accept': 'application/json',
       'Content-Type': 'application/json; charset=utf-8',
@@ -111,18 +137,49 @@ class ApiClient {
     if (token != null && token.isNotEmpty) {
       headers['Authorization'] = 'Bearer $token';
     }
+    if (cookie != null && cookie.isNotEmpty) {
+      headers['Cookie'] = cookie;
+    } else if (token != null && token.isNotEmpty) {
+      headers['Cookie'] = 'sicehat_session=$token';
+    }
     return headers;
   }
 
-  Future<ApiResponse> get(String path, {Map<String, String>? queryParams}) async {
+  void _captureResponseCookies(http.Response response) {
+    final setCookie = response.headers['set-cookie'];
+    if (setCookie != null && setCookie.isNotEmpty) {
+      final cookiePair = setCookie.split(';').first.trim();
+      if (cookiePair.startsWith('sicehat_session=')) {
+        _saveCookie(cookiePair);
+        final tokenPart = cookiePair
+            .substring('sicehat_session='.length)
+            .trim();
+        if (tokenPart.isNotEmpty) {
+          saveToken(tokenPart);
+        }
+      }
+    }
+  }
+
+  Future<ApiResponse> get(
+    String path, {
+    Map<String, String>? queryParams,
+  }) async {
     try {
       final uri = _buildUri(path, queryParams);
       final headers = await _buildHeaders();
-      final response = await http.get(uri, headers: headers).timeout(const Duration(seconds: 10));
+      final response = await http
+          .get(uri, headers: headers)
+          .timeout(const Duration(seconds: 10));
+      _captureResponseCookies(response);
       return _processResponse(response);
     } catch (e) {
       debugPrint('[ApiClient] GET $path error: $e');
-      return ApiResponse.failure('Tidak dapat terhubung ke server backend.', statusCode: 0, isOffline: true);
+      return ApiResponse.failure(
+        'Tidak dapat terhubung ke server backend.',
+        statusCode: 0,
+        isOffline: true,
+      );
     }
   }
 
@@ -130,15 +187,22 @@ class ApiClient {
     try {
       final uri = _buildUri(path);
       final headers = await _buildHeaders();
-      final response = await http.post(
-        uri,
-        headers: headers,
-        body: body != null ? jsonEncode(body) : null,
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(
+            uri,
+            headers: headers,
+            body: body != null ? jsonEncode(body) : null,
+          )
+          .timeout(const Duration(seconds: 10));
+      _captureResponseCookies(response);
       return _processResponse(response);
     } catch (e) {
       debugPrint('[ApiClient] POST $path error: $e');
-      return ApiResponse.failure('Tidak dapat terhubung ke server backend.', statusCode: 0, isOffline: true);
+      return ApiResponse.failure(
+        'Tidak dapat terhubung ke server backend.',
+        statusCode: 0,
+        isOffline: true,
+      );
     }
   }
 
@@ -146,15 +210,22 @@ class ApiClient {
     try {
       final uri = _buildUri(path);
       final headers = await _buildHeaders();
-      final response = await http.put(
-        uri,
-        headers: headers,
-        body: body != null ? jsonEncode(body) : null,
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .put(
+            uri,
+            headers: headers,
+            body: body != null ? jsonEncode(body) : null,
+          )
+          .timeout(const Duration(seconds: 10));
+      _captureResponseCookies(response);
       return _processResponse(response);
     } catch (e) {
       debugPrint('[ApiClient] PUT $path error: $e');
-      return ApiResponse.failure('Tidak dapat terhubung ke server backend.', statusCode: 0, isOffline: true);
+      return ApiResponse.failure(
+        'Tidak dapat terhubung ke server backend.',
+        statusCode: 0,
+        isOffline: true,
+      );
     }
   }
 
@@ -162,15 +233,22 @@ class ApiClient {
     try {
       final uri = _buildUri(path);
       final headers = await _buildHeaders();
-      final response = await http.patch(
-        uri,
-        headers: headers,
-        body: body != null ? jsonEncode(body) : null,
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .patch(
+            uri,
+            headers: headers,
+            body: body != null ? jsonEncode(body) : null,
+          )
+          .timeout(const Duration(seconds: 10));
+      _captureResponseCookies(response);
       return _processResponse(response);
     } catch (e) {
       debugPrint('[ApiClient] PATCH $path error: $e');
-      return ApiResponse.failure('Tidak dapat terhubung ke server backend.', statusCode: 0, isOffline: true);
+      return ApiResponse.failure(
+        'Tidak dapat terhubung ke server backend.',
+        statusCode: 0,
+        isOffline: true,
+      );
     }
   }
 
@@ -178,11 +256,18 @@ class ApiClient {
     try {
       final uri = _buildUri(path);
       final headers = await _buildHeaders();
-      final response = await http.delete(uri, headers: headers).timeout(const Duration(seconds: 10));
+      final response = await http
+          .delete(uri, headers: headers)
+          .timeout(const Duration(seconds: 10));
+      _captureResponseCookies(response);
       return _processResponse(response);
     } catch (e) {
       debugPrint('[ApiClient] DELETE $path error: $e');
-      return ApiResponse.failure('Tidak dapat terhubung ke server backend.', statusCode: 0, isOffline: true);
+      return ApiResponse.failure(
+        'Tidak dapat terhubung ke server backend.',
+        statusCode: 0,
+        isOffline: true,
+      );
     }
   }
 
