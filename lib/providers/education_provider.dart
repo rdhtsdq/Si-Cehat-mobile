@@ -134,16 +134,45 @@ class EducationProvider extends ChangeNotifier {
     return null;
   }
 
+  String _activePlanRisk = 'RENDAH';
+  String _targetCalories = '1.500 - 1.700 kkal / hari';
+
+  String get activePlanRisk => _activePlanRisk;
+  String get targetCalories => _targetCalories;
+
   /// Fetches structured 7-day meal plan, recommended menus, and recipes from `GET /api/meal-plan`.
-  Future<void> loadMealPlan({bool silent = false}) async {
+  Future<void> loadMealPlan({
+    bool silent = false,
+    String? childId,
+    String? riskCategory,
+  }) async {
     if (!silent) {
       _isLoadingMealPlan = true;
       notifyListeners();
     }
 
     try {
-      final res = await _apiClient.get(ApiConstants.mealPlan);
+      final queryParams = <String, String>{};
+      if (childId != null && childId.isNotEmpty) {
+        queryParams['childId'] = childId;
+      }
+      if (riskCategory != null && riskCategory.isNotEmpty) {
+        queryParams['riskCategory'] = riskCategory;
+      }
+
+      final res = await _apiClient.get(
+        ApiConstants.mealPlan,
+        queryParams: queryParams.isNotEmpty ? queryParams : null,
+      );
+
       if (res.isSuccess && res.data != null) {
+        if (res.data['riskCategory'] != null) {
+          _activePlanRisk = res.data['riskCategory'].toString();
+        }
+        if (res.data['targetCalories'] != null) {
+          _targetCalories = res.data['targetCalories'].toString();
+        }
+
         final rawWeekly = res.data['weeklyPlan'] as List<dynamic>?;
         if (rawWeekly != null && rawWeekly.isNotEmpty) {
           _weeklyMealPlan = rawWeekly
@@ -178,6 +207,41 @@ class EducationProvider extends ChangeNotifier {
         _isLoadingMealPlan = false;
       }
       notifyListeners();
+    }
+  }
+
+  /// Allows swapping a meal in a specific day & meal slot
+  void swapMealSlot({
+    required int dayIndex,
+    required int mealIndex,
+    required MealPlanItemModel newItem,
+  }) {
+    if (dayIndex < 0 || dayIndex >= _weeklyMealPlan.length) return;
+    final targetDay = _weeklyMealPlan[dayIndex];
+    if (mealIndex < 0 || mealIndex >= targetDay.meals.length) return;
+
+    final updatedMeals = List<MealPlanItemModel>.from(targetDay.meals);
+    updatedMeals[mealIndex] = newItem;
+
+    _weeklyMealPlan[dayIndex] = MealPlanDayModel(
+      dayNumber: targetDay.dayNumber,
+      focusTitle: targetDay.focusTitle,
+      meals: updatedMeals,
+    );
+    notifyListeners();
+  }
+
+  /// Syncs standard meal plan hours to reminders table via `POST /api/meal-plan/sync-reminders`
+  Future<bool> syncMealReminders({String? childId}) async {
+    try {
+      final res = await _apiClient.post(
+        '${ApiConstants.mealPlan}/sync-reminders',
+        body: childId != null ? {'childId': childId} : {},
+      );
+      return res.isSuccess;
+    } catch (e) {
+      debugPrint('[EducationProvider] syncMealReminders error: $e');
+      return false;
     }
   }
 

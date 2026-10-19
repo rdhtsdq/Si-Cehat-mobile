@@ -7,6 +7,7 @@ import '../../core/constants/typography.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/tracker_provider.dart';
+import '../profile/child_profile_setup_screen.dart';
 import 'screening_result_screen.dart';
 
 class ScreeningStep1Screen extends StatefulWidget {
@@ -92,11 +93,6 @@ class _ScreeningStep1ScreenState extends State<ScreeningStep1Screen> {
   }
 
   void _handleCalculate() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
     final profileProv = context.read<ProfileProvider>();
     var child = profileProv.activeChild;
     if (child == null) {
@@ -104,15 +100,37 @@ class _ScreeningStep1ScreenState extends State<ScreeningStep1Screen> {
       child = profileProv.activeChild;
     }
 
-    if (child == null) {
+    if (child == null || !child.isProfileComplete) {
       if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-        _errorMessage =
-            'Data profil anak belum ditemukan. Silakan tambahkan data anak di menu Profil.';
-      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Harap lengkapi profil anak terlebih dahulu.'),
+          backgroundColor: AppColors.accentOrange,
+        ),
+      );
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ChildProfileSetupScreen(
+            isPostRegistration: widget.isPostRegistration,
+            initialChild: child,
+            onCompleted: () {
+              setState(() {
+                final updated = context.read<ProfileProvider>().activeChild;
+                if (updated != null && updated.dateOfBirth.isNotEmpty) {
+                  _selectedAge = updated.ageInYears.clamp(1, 18);
+                }
+              });
+            },
+          ),
+        ),
+      );
       return;
     }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
     try {
       final res = await ApiClient.instance.post(
@@ -228,6 +246,88 @@ class _ScreeningStep1ScreenState extends State<ScreeningStep1Screen> {
                             fontSize: 13,
                             color: AppColors.primaryGreenDark,
                             fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+              ],
+
+              if (activeChild == null || !activeChild.isProfileComplete) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF7ED),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFFFDBA74),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.info_outline,
+                            color: Color(0xFFC2410C),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Profil Anak Belum Lengkap',
+                              style: AppTypography.titleCard.copyWith(
+                                fontSize: 14,
+                                color: const Color(0xFF9A3412),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Lengkapi tanggal lahir dan jenis kelamin anak agar skrining dan kurva pertumbuhan akurat.',
+                        style: AppTypography.bodySecondary.copyWith(
+                          fontSize: 12,
+                          color: const Color(0xFF7C2D12),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 38,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => ChildProfileSetupScreen(
+                                  isPostRegistration: widget.isPostRegistration,
+                                  initialChild: activeChild,
+                                  onCompleted: () {
+                                    setState(() {
+                                      final updated = context.read<ProfileProvider>().activeChild;
+                                      if (updated != null && updated.dateOfBirth.isNotEmpty) {
+                                        _selectedAge = updated.ageInYears.clamp(1, 18);
+                                      }
+                                    });
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.edit_note, size: 18),
+                          label: const Text('Lengkapi Profil Sekarang'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFEA580C),
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                         ),
                       ),

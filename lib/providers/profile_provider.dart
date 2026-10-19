@@ -18,16 +18,18 @@ class ProfileProvider extends ChangeNotifier {
   MotherModel? get mother => _mother;
   List<ChildModel> get children => _children;
   ChildModel? get activeChild => _activeChild;
+  bool get hasCompleteActiveChild =>
+      _activeChild != null && _activeChild!.isProfileComplete;
   bool get isLoading => _isLoading;
 
   Future<void> loadProfiles() async {
     _isLoading = true;
     notifyListeners();
 
+    bool apiLoaded = false;
     final token = await _apiClient.getToken();
 
     if (token != null && token.isNotEmpty) {
-      bool apiLoaded = false;
       try {
         final profileRes = await _apiClient.get(ApiConstants.parentProfile);
         final childrenRes = await _apiClient.get(ApiConstants.children);
@@ -100,10 +102,8 @@ class ProfileProvider extends ChangeNotifier {
       }
     }
 
-    // Fallback to local SQLite database only when in Demo / Offline mode
-    final prefs = await SharedPreferences.getInstance();
-    final isDemo = prefs.getBool('is_demo_mode') ?? false;
-    if (isDemo) {
+    // Fallback to local SQLite database ONLY in Demo / unauthenticated mode
+    if (!apiLoaded && (token == null || token.isEmpty)) {
       try {
         _mother = await _dbHelper.getMotherProfile();
         _children = await _dbHelper.getChildren();
@@ -191,23 +191,40 @@ class ProfileProvider extends ChangeNotifier {
         if (res.isSuccess) {
           final created = res.data is Map ? res.data['child'] : null;
           if (created is Map && created['id'] != null) {
+            final serverChild =
+                ChildModel.fromJson(created as Map<String, dynamic>);
             final prefs = await SharedPreferences.getInstance();
-            await prefs.setString('active_child_id', created['id'].toString());
+            await prefs.setString('active_child_id', serverChild.id.toString());
+            _activeChild = serverChild.copyWith(isActive: true);
           }
           await loadProfiles();
           return;
+        } else {
+          throw Exception(res.errorMessage ?? 'Gagal menambahkan profil anak.');
         }
       } catch (e) {
         debugPrint('[ProfileProvider] Remote add child error: $e');
+        if (token.isNotEmpty) rethrow;
       }
     }
 
     // Fallback to local db
-    await _dbHelper.insertChild(newChild);
+    final localId = await _dbHelper.insertChild(newChild);
+    _activeChild = newChild.copyWith(id: localId, isActive: true);
     await loadProfiles();
   }
 
   Future<void> updateChild(ChildModel updated) async {
+    // Immediately reflect in state for smooth UX
+    _activeChild = updated.copyWith(isActive: true);
+    _children = _children
+        .map(
+          (c) =>
+              c.id.toString() == updated.id.toString() ? _activeChild! : c,
+        )
+        .toList();
+    notifyListeners();
+
     final token = await _apiClient.getToken();
     if (token != null && token.isNotEmpty) {
       try {
@@ -222,11 +239,22 @@ class ProfileProvider extends ChangeNotifier {
           },
         );
         if (res.isSuccess) {
+          final serverChild = (res.data is Map && res.data['child'] is Map)
+              ? ChildModel.fromJson(res.data['child'] as Map<String, dynamic>)
+              : updated;
+          _activeChild = serverChild.copyWith(isActive: true);
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('active_child_id', _activeChild!.id.toString());
           await loadProfiles();
           return;
+        } else {
+          throw Exception(
+            res.errorMessage ?? 'Gagal memperbarui profil anak di server.',
+          );
         }
       } catch (e) {
         debugPrint('[ProfileProvider] Remote update child error: $e');
+        if (token.isNotEmpty) rethrow;
       }
     }
 

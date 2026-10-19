@@ -146,7 +146,8 @@ class ApiClient {
   }
 
   void _captureResponseCookies(http.Response response) {
-    final setCookie = response.headers['set-cookie'];
+    final setCookie =
+        response.headers['set-cookie'] ?? response.headers['Set-Cookie'];
     if (setCookie != null && setCookie.isNotEmpty) {
       final cookiePair = setCookie.split(';').first.trim();
       if (cookiePair.startsWith('sicehat_session=')) {
@@ -158,6 +159,18 @@ class ApiClient {
           saveToken(tokenPart);
         }
       }
+    }
+
+    if (response.body.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(response.body);
+        if (decoded is Map && decoded['token'] is String) {
+          final t = (decoded['token'] as String).trim();
+          if (t.isNotEmpty) {
+            saveToken(t);
+          }
+        }
+      } catch (_) {}
     }
   }
 

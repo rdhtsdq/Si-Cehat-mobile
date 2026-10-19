@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/colors.dart';
@@ -56,6 +55,24 @@ class _FoodDiaryScreenState extends State<FoodDiaryScreen> {
       default:
         return 'camilan';
     }
+  }
+
+  String _formatDisplayDate(DateTime dt) {
+    const months = [
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
+    ];
+    return '${dt.day.toString().padLeft(2, '0')} ${months[dt.month - 1]} ${dt.year}';
   }
 
   @override
@@ -225,7 +242,7 @@ class _FoodDiaryScreenState extends State<FoodDiaryScreen> {
           const Icon(Icons.calendar_month, size: 16),
           const SizedBox(width: 8),
           Text(
-            DateFormat('dd MMMM yyyy', 'id_ID').format(_date),
+            _formatDisplayDate(_date),
             style: AppTypography.bodySecondary.copyWith(fontSize: 12),
           ),
           const Icon(Icons.keyboard_arrow_down, size: 18),
@@ -363,7 +380,7 @@ class _FoodDiaryScreenState extends State<FoodDiaryScreen> {
     }
     setState(() => _saving = true);
 
-    final dateStr = DateFormat('yyyy-MM-dd').format(_date);
+    final dateStr = _date.toIso8601String().substring(0, 10);
     final foodName = _foodController.text.trim();
     final notes = _notesController.text.trim();
     final activeChild = context.read<ProfileProvider>().activeChild;

@@ -144,7 +144,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (result['success'] == true) {
-      await context.read<ProfileProvider>().loadProfiles();
+      final profileProv = context.read<ProfileProvider>();
+      profileProv.clearSession();
+      await profileProv.loadProfiles();
       if (!mounted) return;
       await context.read<ReminderProvider>().loadReminders();
       if (!mounted) return;

@@ -1,9 +1,16 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/api/api_client.dart';
+import '../../core/api/api_constants.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
+import '../../data/models/child_model.dart';
 import '../../data/models/recipe_model.dart';
 import '../../providers/education_provider.dart';
+import '../../providers/profile_provider.dart';
+import '../../providers/reminder_provider.dart';
 import '../diary/food_diary_screen.dart';
 import 'menu_catalog_screen.dart';
 import 'menu_detail_screen.dart';
@@ -78,13 +85,23 @@ class MealPlanScreen extends StatefulWidget {
 class _MealPlanScreenState extends State<MealPlanScreen> {
   int _range = 0; // 0: Menu 1 Hari, 1: Menu 7 Hari, 2: Smart Traditional
   int _day = 0; // 0..6 for 7 days
+  bool _isSyncingReminders = false;
+
+  void _loadActiveChildPlan() {
+    final profileProv = context.read<ProfileProvider>();
+    final child = profileProv.activeChild;
+    context.read<EducationProvider>().loadMealPlan(
+      childId: child?.id?.toString(),
+      riskCategory: child?.latestRiskCategory,
+    );
+  }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context.read<EducationProvider>().loadMealPlan();
+      _loadActiveChildPlan();
     });
   }
 
@@ -675,7 +692,470 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     return '$dayName, ${dt.day} $monthName ${dt.year}';
   }
 
-  void _showMealDetailsModal(_MealItemData meal, EducationProvider eduProv) {
+  String _mapMealSlot(String meal) {
+    final lower = meal.toLowerCase();
+    if (lower.contains('sarapan')) return 'sarapan';
+    if (lower.contains('pagi')) return 'camilan_pagi';
+    if (lower.contains('siang')) return 'makan_siang';
+    if (lower.contains('sore')) return 'camilan_sore';
+    if (lower.contains('malam')) return 'makan_malam';
+    return 'makan_siang';
+  }
+
+  Future<void> _quickLogMealItem(_MealItemData meal) async {
+    final activeChild = context.read<ProfileProvider>().activeChild;
+    final nowStr = DateTime.now().toIso8601String().substring(0, 10);
+
+    int? calVal;
+    try {
+      calVal = int.tryParse(meal.calories.replaceAll(RegExp(r'[^0-9]'), ''));
+    } catch (_) {}
+
+    double? carbsVal;
+    try {
+      carbsVal = double.tryParse(meal.carbs.replaceAll(RegExp(r'[^0-9.]'), ''));
+    } catch (_) {}
+
+    double? proteinVal;
+    try {
+      proteinVal =
+          double.tryParse(meal.protein.replaceAll(RegExp(r'[^0-9.]'), ''));
+    } catch (_) {}
+
+    double? fiberVal;
+    try {
+      fiberVal = double.tryParse(meal.fiber.replaceAll(RegExp(r'[^0-9.]'), ''));
+    } catch (_) {}
+
+    try {
+      if (activeChild != null) {
+        await ApiClient.instance.post(
+          ApiConstants.foodDiary,
+          body: {
+            'childId': activeChild.id.toString(),
+            'date': nowStr,
+            'mealSlot': _mapMealSlot(meal.type),
+            'foodName': meal.title,
+            'portion': '1 porsi anak',
+            'caloriesKkal': ?calVal,
+            'carbsGram': ?carbsVal,
+            'proteinGram': ?proteinVal,
+            'fiberGram': ?fiberVal,
+            'notes': 'Dicatat otomatis dari Rencana Menu Sehat',
+          },
+        );
+      }
+    } catch (_) {}
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final entries = prefs.getStringList('food_diary_entries') ?? [];
+      entries.add(
+        jsonEncode({
+          'date': nowStr,
+          'meal': meal.type,
+          'type': 'Rencana Menu Sehat',
+          'portion': '1 porsi anak',
+          'food': meal.title,
+          'addedSugar': 'Rendah Gula Alami',
+          'notes': 'Dicatat dari Rencana Menu Sehat',
+        }),
+      );
+      await prefs.setStringList('food_diary_entries', entries);
+    } catch (_) {}
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '${meal.title} berhasil dicatat di Jurnal Makan (${meal.type})!',
+        ),
+        backgroundColor: AppColors.primaryGreen,
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'Buka Diary',
+          textColor: Colors.white,
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => FoodDiaryScreen(
+                  initialFood: meal.title,
+                  initialMeal: meal.type,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _syncAllReminders(EducationProvider eduProv) async {
+    setState(() => _isSyncingReminders = true);
+    final child = context.read<ProfileProvider>().activeChild;
+    try {
+      final success = await eduProv.syncMealReminders(
+        childId: child?.id?.toString(),
+      );
+      if (!mounted) return;
+      await context.read<ReminderProvider>().loadReminders();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            success
+                ? '5 Jadwal Makan Sehat berhasil disinkronkan ke Pengingat Si-Cehat!'
+                : 'Jadwal makan lokal disimpan ke pengingat harian.',
+          ),
+          backgroundColor: AppColors.primaryGreen,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Sinkronisasi pengingat: $e'),
+          backgroundColor: AppColors.accentRed,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSyncingReminders = false);
+      }
+    }
+  }
+
+  void _showSwapMealSheet({
+    required int dayIndex,
+    required int mealIndex,
+    required _MealItemData currentMeal,
+    required EducationProvider eduProv,
+  }) {
+    final recipes = eduProv.allRecipes;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.65,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (_, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Ganti Menu: ${currentMeal.type}',
+                    style: AppTypography.titleCard.copyWith(fontSize: 16),
+                  ),
+                  Text(
+                    'Pilih menu alternatif sehat ramah gula darah dari Katalog Resep Nusantara:',
+                    style: AppTypography.bodySecondary.copyWith(fontSize: 11),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: recipes.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'Katalog resep sedang dimuat...',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          )
+                        : ListView.separated(
+                            controller: scrollController,
+                            itemCount: recipes.length,
+                            separatorBuilder: (_, _) =>
+                                const Divider(height: 1),
+                            itemBuilder: (ctx2, i) {
+                              final r = recipes[i];
+                              return ListTile(
+                                contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 4,
+                                  horizontal: 4,
+                                ),
+                                leading: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    width: 44,
+                                    height: 44,
+                                    color: AppColors.veryLightGreen,
+                                    alignment: Alignment.center,
+                                    child: r.imageUrl != null &&
+                                            r.imageUrl!.isNotEmpty
+                                        ? Image.network(
+                                            r.imageUrl!,
+                                            width: 44,
+                                            height: 44,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, _, _) => Text(
+                                              r.iconEmoji,
+                                              style: const TextStyle(
+                                                  fontSize: 20),
+                                            ),
+                                          )
+                                        : Text(
+                                            r.iconEmoji,
+                                            style: const TextStyle(
+                                                fontSize: 20),
+                                          ),
+                                  ),
+                                ),
+                                title: Text(
+                                  r.name,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  '${r.calories} \u00b7 Prot: ${r.protein} \u00b7 Serat: ${r.fiber}',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                                trailing: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primaryGreen,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    final newItem = MealPlanItemModel(
+                                      type: currentMeal.type,
+                                      title: r.name,
+                                      time: currentMeal.time,
+                                      image: 'dish-1.png',
+                                      calories: r.calories,
+                                      protein: r.protein,
+                                      fiber: r.fiber,
+                                      carbs: r.carbs,
+                                      description: r.summary,
+                                      tips: r.note,
+                                      relatedRecipeId: r.id,
+                                      relatedRecipeTitle: r.name,
+                                    );
+                                    eduProv.swapMealSlot(
+                                      dayIndex: dayIndex,
+                                      mealIndex: mealIndex,
+                                      newItem: newItem,
+                                    );
+                                    Navigator.pop(ctx);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Menu ${currentMeal.type} diganti dengan ${r.name}!',
+                                        ),
+                                        backgroundColor: AppColors.primaryGreen,
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  },
+                                  child: const Text(
+                                    'Pilih',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _childRiskBanner(ChildModel? activeChild, EducationProvider eduProv) {
+    final risk = (activeChild?.latestRiskCategory ??
+            eduProv.activePlanRisk)
+        .toUpperCase();
+    Color badgeBg;
+    Color badgeText;
+    String badgeLabel;
+
+    if (risk == 'TINGGI') {
+      badgeBg = const Color(0xFFFFEBEE);
+      badgeText = const Color(0xFFC62828);
+      badgeLabel = 'Risiko Tinggi (Kontrol Gula & Serat Maksimal)';
+    } else if (risk == 'SEDANG') {
+      badgeBg = const Color(0xFFFFF8E1);
+      badgeText = const Color(0xFFF57F17);
+      badgeLabel = 'Risiko Sedang (Batasi Gula & Perbanyak Serat)';
+    } else {
+      badgeBg = const Color(0xFFE8F5E9);
+      badgeText = const Color(0xFF2E7D32);
+      badgeLabel = 'Risiko Rendah (Pertahankan Pola Seimbang)';
+    }
+
+    final childName = activeChild?.name ?? 'Anak';
+    final targetCalories = eduProv.targetCalories;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: AppColors.veryLightGreen,
+                child: const Icon(
+                  Icons.child_care,
+                  size: 20,
+                  color: AppColors.primaryGreenDark,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Rencana Menu: $childName',
+                      style: AppTypography.titleCard.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Target Kalori: $targetCalories',
+                      style: AppTypography.bodySecondary.copyWith(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primaryGreenDark,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: badgeBg,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.shield_outlined, size: 14, color: badgeText),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    badgeLabel,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: badgeText,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primaryGreenDark,
+                side: const BorderSide(color: AppColors.primaryGreen),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: _isSyncingReminders
+                  ? null
+                  : () => _syncAllReminders(eduProv),
+              icon: _isSyncingReminders
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.sync_outlined, size: 16),
+              label: Text(
+                _isSyncingReminders
+                    ? 'Menyinkronkan Pengingat...'
+                    : 'Sinkronkan 5 Jadwal Makan ke Pengingat',
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMealDetailsModal({
+    required int dayIndex,
+    required int mealIndex,
+    required _MealItemData meal,
+    required EducationProvider eduProv,
+  }) {
     final RecipeModel? relatedRecipe = eduProv.findMatchingRecipe(
       recipeId: meal.relatedRecipeId,
       recipeTitle: meal.relatedRecipeTitle,
@@ -818,6 +1298,31 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
             Row(
               children: [
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.textDark,
+                    side: const BorderSide(color: Color(0xFFCBD5E1)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _showSwapMealSheet(
+                      dayIndex: dayIndex,
+                      mealIndex: mealIndex,
+                      currentMeal: meal,
+                      eduProv: eduProv,
+                    );
+                  },
+                  icon: const Icon(Icons.swap_horiz, size: 16),
+                  label: const Text('Ganti', style: TextStyle(fontSize: 12)),
+                ),
+                const SizedBox(width: 8),
                 if (relatedRecipe != null) ...[
                   Expanded(
                     child: OutlinedButton.icon(
@@ -839,14 +1344,14 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                           ),
                         );
                       },
-                      icon: const Icon(Icons.menu_book, size: 18),
+                      icon: const Icon(Icons.menu_book, size: 16),
                       label: const Text(
-                        'Lihat Resep',
+                        'Resep',
                         style: TextStyle(fontSize: 12),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                 ],
                 Expanded(
                   child: ElevatedButton.icon(
@@ -860,19 +1365,11 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                     ),
                     onPressed: () {
                       Navigator.pop(ctx);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => FoodDiaryScreen(
-                            initialFood: meal.title,
-                            initialMeal: meal.type,
-                          ),
-                        ),
-                      );
+                      _quickLogMealItem(meal);
                     },
-                    icon: const Icon(Icons.bookmark_add_outlined, size: 18),
+                    icon: const Icon(Icons.bookmark_add_outlined, size: 16),
                     label: const Text(
-                      'Catat di Diary',
+                      'Catat Diary',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -934,6 +1431,8 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
   @override
   Widget build(BuildContext context) {
     final eduProv = context.watch<EducationProvider>();
+    final profileProv = context.watch<ProfileProvider>();
+    final activeChild = profileProv.activeChild;
     final allRecipes = eduProv.allRecipes;
     final recommendedMenus = eduProv.recommendedMenus;
     final weeklyMeals = _resolveWeeklyMeals(eduProv);
@@ -991,7 +1490,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
             tooltip: 'Muat Ulang Rencana Menu',
             onPressed: eduProv.isLoadingMealPlan
                 ? null
-                : () => eduProv.loadMealPlan(),
+                : () => _loadActiveChildPlan(),
             icon: const Icon(Icons.refresh, color: AppColors.primaryGreenDark),
           ),
         ],
@@ -999,7 +1498,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
       body: SafeArea(
         child: RefreshIndicator(
           color: AppColors.primaryGreen,
-          onRefresh: () => eduProv.loadMealPlan(),
+          onRefresh: () async => _loadActiveChildPlan(),
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
@@ -1012,6 +1511,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                     color: AppColors.primaryGreen,
                   ),
                 ),
+              _childRiskBanner(activeChild, eduProv),
               _introCard(),
               const SizedBox(height: 12),
               _focusCard(activeDayFocus),
@@ -1102,8 +1602,16 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                 ),
                 const SizedBox(height: 8),
 
-                // Meal cards
-                ...activeMeals.map((meal) => _mealCard(meal, eduProv)),
+                // Meal cards with swap & quick log actions
+                ...List.generate(
+                  activeMeals.length,
+                  (mealIdx) => _mealCard(
+                    dayIndex: _range == 1 ? safeDayIndex : 0,
+                    mealIndex: mealIdx,
+                    meal: activeMeals[mealIdx],
+                    eduProv: eduProv,
+                  ),
+                ),
 
                 // Recommended Menus from Backend CMS (/api/meal-plan)
                 if (recommendedMenus.isNotEmpty) ...[
@@ -1288,7 +1796,12 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
     ),
   );
 
-  Widget _mealCard(_MealItemData meal, EducationProvider eduProv) {
+  Widget _mealCard({
+    required int dayIndex,
+    required int mealIndex,
+    required _MealItemData meal,
+    required EducationProvider eduProv,
+  }) {
     final matchedRecipe = eduProv.findMatchingRecipe(
       recipeId: meal.relatedRecipeId,
       recipeTitle: meal.relatedRecipeTitle,
@@ -1314,127 +1827,202 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
         borderRadius: BorderRadius.circular(12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => _showMealDetailsModal(meal, eduProv),
+          onTap: () => _showMealDetailsModal(
+            dayIndex: dayIndex,
+            mealIndex: mealIndex,
+            meal: meal,
+            eduProv: eduProv,
+          ),
           child: Padding(
             padding: const EdgeInsets.all(10),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.asset(
-                    'assets/figma_features/${meal.image}',
-                    width: 68,
-                    height: 68,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => Container(
-                      width: 68,
-                      height: 68,
-                      color: AppColors.paleGreenBg,
-                      alignment: Alignment.center,
-                      child: Icon(meal.icon, color: AppColors.primaryGreenDark),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset(
+                        'assets/figma_features/${meal.image}',
+                        width: 68,
+                        height: 68,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Container(
+                          width: 68,
+                          height: 68,
+                          color: AppColors.paleGreenBg,
+                          alignment: Alignment.center,
+                          child: Icon(
                             meal.icon,
-                            size: 14,
-                            color: AppColors.primaryGreen,
+                            color: AppColors.primaryGreenDark,
                           ),
-                          const SizedBox(width: 4),
-                          Text(
-                            meal.type,
-                            style: AppTypography.titleCard.copyWith(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primaryGreenDark,
-                            ),
-                          ),
-                          if (matchedRecipe != null) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 5,
-                                vertical: 1,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                meal.icon,
+                                size: 14,
+                                color: AppColors.primaryGreen,
                               ),
-                              decoration: BoxDecoration(
-                                color: AppColors.veryLightGreen,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Text(
-                                'Ada Resep',
-                                style: TextStyle(
-                                  fontSize: 9,
+                              const SizedBox(width: 4),
+                              Text(
+                                meal.type,
+                                style: AppTypography.titleCard.copyWith(
+                                  fontSize: 11,
                                   fontWeight: FontWeight.w700,
                                   color: AppColors.primaryGreenDark,
                                 ),
                               ),
-                            ),
-                          ],
-                          const Spacer(),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              meal.time,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                              if (matchedRecipe != null) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 5,
+                                    vertical: 1,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.veryLightGreen,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    'Ada Resep',
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.primaryGreenDark,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              const Spacer(),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  meal.time,
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            meal.title,
+                            style: AppTypography.bodyRegular.copyWith(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
                             ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Text(
+                                meal.calories,
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryGreenDark,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Prot: ${meal.protein} \u00b7 Serat: ${meal.fiber}',
+                                  style: AppTypography.bodySecondary.copyWith(
+                                    fontSize: 9,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        meal.title,
-                        style: AppTypography.bodyRegular.copyWith(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Text(
-                            meal.calories,
-                            style: const TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primaryGreenDark,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Prot: ${meal.protein} \u00b7 Serat: ${meal.fiber}',
-                            style: AppTypography.bodySecondary.copyWith(
-                              fontSize: 9,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.chevron_right,
+                      size: 20,
+                      color: AppColors.textSecondary,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 4),
-                const Icon(
-                  Icons.chevron_right,
-                  size: 20,
-                  color: AppColors.textSecondary,
+                const SizedBox(height: 8),
+                const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.textDark,
+                        side: const BorderSide(color: Color(0xFFCBD5E1)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                      onPressed: () => _showSwapMealSheet(
+                        dayIndex: dayIndex,
+                        mealIndex: mealIndex,
+                        currentMeal: meal,
+                        eduProv: eduProv,
+                      ),
+                      icon: const Icon(Icons.swap_horiz, size: 14),
+                      label: const Text('Ganti', style: TextStyle(fontSize: 11)),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE2F3E7),
+                        foregroundColor: AppColors.primaryGreenDark,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                      onPressed: () => _quickLogMealItem(meal),
+                      icon: const Icon(Icons.bookmark_add_outlined, size: 14),
+                      label: const Text(
+                        'Catat',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

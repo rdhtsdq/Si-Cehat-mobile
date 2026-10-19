@@ -7,7 +7,7 @@ import '../../core/widgets/primary_button.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/reminder_provider.dart';
-import '../screening/screening_step1_screen.dart';
+import '../profile/child_profile_setup_screen.dart';
 import '../shell/main_shell_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -105,7 +105,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
       navigator.push(
         MaterialPageRoute(
-          builder: (_) => const ScreeningStep1Screen(isPostRegistration: true),
+          builder: (_) =>
+              const ChildProfileSetupScreen(isPostRegistration: true),
         ),
       );
     } else {

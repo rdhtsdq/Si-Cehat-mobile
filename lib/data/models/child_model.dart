@@ -108,6 +108,12 @@ class ChildModel {
     );
   }
 
+  bool get isProfileComplete {
+    return name.trim().isNotEmpty &&
+        dateOfBirth.trim().isNotEmpty &&
+        gender.trim().isNotEmpty;
+  }
+
   int get ageInYears {
     if (dateOfBirth.isEmpty) return 7;
     try {

@@ -1,9 +1,15 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/api/api_client.dart';
+import '../../core/api/api_constants.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../data/models/recipe_model.dart';
 import '../../providers/education_provider.dart';
+import '../../providers/profile_provider.dart';
+import '../../providers/reminder_provider.dart';
 import '../diary/food_diary_screen.dart';
 
 class MenuDetailScreen extends StatefulWidget {
@@ -18,6 +24,7 @@ class MenuDetailScreen extends StatefulWidget {
 class _MenuDetailScreenState extends State<MenuDetailScreen> {
   late RecipeModel _recipe;
   bool _isLoadingDetail = false;
+  bool _isLoggingDiary = false;
 
   @override
   void initState() {
@@ -52,6 +59,169 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
       return 'Camilan Pagi';
     }
     return 'Makan Siang';
+  }
+
+  String _mapMealSlot(String meal) {
+    final lower = meal.toLowerCase();
+    if (lower.contains('sarapan')) return 'sarapan';
+    if (lower.contains('pagi')) return 'camilan_pagi';
+    if (lower.contains('siang')) return 'makan_siang';
+    if (lower.contains('sore')) return 'camilan_sore';
+    if (lower.contains('malam')) return 'makan_malam';
+    return 'makan_siang';
+  }
+
+  Future<void> _quickLogFoodDiary(String mealSlot) async {
+    setState(() => _isLoggingDiary = true);
+    final activeChild = context.read<ProfileProvider>().activeChild;
+    final nowStr = DateTime.now().toIso8601String().substring(0, 10);
+
+    int? calVal;
+    try {
+      calVal = int.tryParse(_recipe.calories.replaceAll(RegExp(r'[^0-9]'), ''));
+    } catch (_) {}
+
+    double? carbsVal;
+    try {
+      carbsVal = double.tryParse(_recipe.carbs.replaceAll(RegExp(r'[^0-9.]'), ''));
+    } catch (_) {}
+
+    double? proteinVal;
+    try {
+      proteinVal = double.tryParse(_recipe.protein.replaceAll(RegExp(r'[^0-9.]'), ''));
+    } catch (_) {}
+
+    double? fatVal;
+    try {
+      fatVal = double.tryParse(_recipe.fat.replaceAll(RegExp(r'[^0-9.]'), ''));
+    } catch (_) {}
+
+    try {
+      if (activeChild != null) {
+        await ApiClient.instance.post(
+          ApiConstants.foodDiary,
+          body: {
+            'childId': activeChild.id.toString(),
+            'date': nowStr,
+            'mealSlot': _mapMealSlot(mealSlot),
+            'foodName': _recipe.name,
+            'portion': _recipe.portion,
+            'caloriesKkal': ?calVal,
+            'carbsGram': ?carbsVal,
+            'proteinGram': ?proteinVal,
+            'fatGram': ?fatVal,
+            'imageUrl': ?_recipe.imageUrl,
+          },
+        );
+      }
+    } catch (_) {}
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final entries = prefs.getStringList('food_diary_entries') ?? [];
+      entries.add(
+        jsonEncode({
+          'date': nowStr,
+          'meal': mealSlot,
+          'type': _recipe.category,
+          'portion': _recipe.portion,
+          'food': _recipe.name,
+          'addedSugar': 'Rendah Gula Alami',
+          'notes': 'Dicatat dari Katalog Menu Sehat',
+        }),
+      );
+      await prefs.setStringList('food_diary_entries', entries);
+    } catch (_) {}
+
+    if (!mounted) return;
+    setState(() => _isLoggingDiary = false);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('"${_recipe.name}" berhasil dicatat ke Jurnal Makan ($mealSlot)!'),
+        backgroundColor: AppColors.primaryGreenDark,
+        duration: const Duration(seconds: 3),
+        action: SnackBarAction(
+          label: 'Lihat Diary',
+          textColor: Colors.white,
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FoodDiaryScreen()),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showSlotSelectorSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        final slots = ['Sarapan', 'Camilan Pagi', 'Makan Siang', 'Camilan Sore', 'Makan Malam'];
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Catat ke Waktu Makan Apa?',
+                  style: AppTypography.titleCard.copyWith(fontSize: 16),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Pilih sesi makan untuk menu "${_recipe.name}"',
+                  style: AppTypography.bodySecondary.copyWith(fontSize: 12),
+                ),
+                const SizedBox(height: 14),
+                ...slots.map(
+                  (slot) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const CircleAvatar(
+                      backgroundColor: AppColors.veryLightGreen,
+                      child: Icon(Icons.check, color: AppColors.primaryGreen, size: 18),
+                    ),
+                    title: Text(slot, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    trailing: const Icon(Icons.chevron_right, size: 20),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _quickLogFoodDiary(slot);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _addCookingReminder() async {
+    final defaultTime = _recipe.category.toLowerCase().contains('minuman') ||
+            _recipe.category.toLowerCase().contains('camilan')
+        ? '15:30'
+        : '06:30';
+
+    await context.read<ReminderProvider>().addReminder(
+          'Masak ${_recipe.name}',
+          defaultTime,
+          category: 'makan',
+        );
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Pengingat masak "${_recipe.name}" jam $defaultTime berhasil dipasang!'),
+        backgroundColor: AppColors.primaryGreenDark,
+      ),
+    );
   }
 
   @override
@@ -339,7 +509,7 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Action Button: Catat di Food Diary
+                // Action Buttons: 1-Tap Diary, Reminder & Food Diary
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
@@ -351,27 +521,78 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => FoodDiaryScreen(
-                            initialFood: _recipe.name,
-                            initialMeal: _mapCategoryToMealType(
-                              _recipe.category,
+                    onPressed: _isLoggingDiary ? null : _showSlotSelectorSheet,
+                    icon: _isLoggingDiary
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
                             ),
-                          ),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.bookmark_add_outlined, size: 20),
+                          )
+                        : const Icon(Icons.bookmark_add, size: 20),
                     label: const Text(
-                      'Catat Menu Ini di Food Diary',
+                      'Catat ke Jurnal Makan (1-Tap)',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primaryGreenDark,
+                          side: const BorderSide(color: AppColors.primaryGreen),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: _addCookingReminder,
+                        icon: const Icon(Icons.alarm_add_outlined, size: 18),
+                        label: const Text(
+                          'Pengingat Masak',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.textDark,
+                          side: const BorderSide(color: AppColors.border),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => FoodDiaryScreen(
+                                initialFood: _recipe.name,
+                                initialMeal: _mapCategoryToMealType(
+                                  _recipe.category,
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.edit_note_outlined, size: 18),
+                        label: const Text(
+                          'Form Lengkap',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 24),
               ],

@@ -8,6 +8,7 @@ import '../consultation/consultation_screen.dart';
 import '../menu/menu_catalog_screen.dart';
 import '../menu/meal_plan_screen.dart';
 import '../nutrition/nutrition_calculator_screen.dart';
+import '../profile/child_profile_setup_screen.dart';
 import '../reminder/reminder_screen.dart';
 import '../screening/screening_step1_screen.dart';
 
@@ -134,7 +135,7 @@ class HomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               InkWell(
-                onTap: () => _push(context, const ScreeningStep1Screen()),
+                onTap: () => _openScreeningFlow(context),
                 borderRadius: BorderRadius.circular(14),
                 child: Container(
                   width: double.infinity,
@@ -192,7 +193,7 @@ class HomeScreen extends StatelessWidget {
                   _buildMenuCard(
                     'screening.png',
                     'Skrining',
-                    () => _push(context, const ScreeningStep1Screen()),
+                    () => _openScreeningFlow(context),
                   ),
                   const SizedBox(width: 14),
                   _buildMenuCard(
@@ -280,6 +281,31 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
       );
+
+  void _openScreeningFlow(BuildContext context) {
+    final profile = context.read<ProfileProvider>();
+    final activeChild = profile.activeChild;
+
+    // Before screening, ensure child profile is fulfilled
+    if (activeChild == null || !activeChild.isProfileComplete) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => ChildProfileSetupScreen(
+            initialChild: activeChild,
+            onCompleted: () {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (_) => const ScreeningStep1Screen(),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+    } else {
+      _push(context, const ScreeningStep1Screen());
+    }
+  }
 
   void _push(BuildContext context, Widget page) =>
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
