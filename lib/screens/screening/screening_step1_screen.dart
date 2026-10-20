@@ -338,6 +338,15 @@ class _ScreeningStep1ScreenState extends State<ScreeningStep1Screen> {
               ],
 
               Text(
+                'Langkah 1 dari 3',
+                style: AppTypography.badgeText.copyWith(
+                  color: AppColors.primaryGreenDark,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
                 activeChild != null
                     ? 'Data Awal Anak (${activeChild.name})'
                     : 'Data Awal Anak',

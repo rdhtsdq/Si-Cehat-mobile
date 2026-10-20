@@ -8,12 +8,15 @@ import 'providers/profile_provider.dart';
 import 'providers/tracker_provider.dart';
 import 'providers/reminder_provider.dart';
 import 'providers/education_provider.dart';
+import 'providers/notification_provider.dart';
+import 'core/services/reminder_service.dart';
 import 'screens/splash/splash_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('id_ID', null);
   await ApiConstants.init();
+  ReminderService.instance.start();
   runApp(const SiCehatApp());
 }
 
@@ -29,6 +32,7 @@ class SiCehatApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => TrackerProvider()),
         ChangeNotifierProvider(create: (_) => ReminderProvider()),
         ChangeNotifierProvider(create: (_) => EducationProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
       ],
       child: MaterialApp(
         title: 'Si Cehat Mobile',

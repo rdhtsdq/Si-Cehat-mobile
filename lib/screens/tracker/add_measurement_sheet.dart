@@ -107,8 +107,9 @@ class _AddMeasurementSheetState extends State<AddMeasurementSheet> {
                     decimal: true,
                   ),
                   onChanged: (_) {
-                    if (_weightError != null)
+                    if (_weightError != null) {
                       setState(() => _weightError = null);
+                    }
                   },
                 ),
               ),
@@ -123,8 +124,9 @@ class _AddMeasurementSheetState extends State<AddMeasurementSheet> {
                     decimal: true,
                   ),
                   onChanged: (_) {
-                    if (_heightError != null)
+                    if (_heightError != null) {
                       setState(() => _heightError = null);
+                    }
                   },
                 ),
               ),

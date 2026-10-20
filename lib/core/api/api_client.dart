@@ -60,8 +60,9 @@ class ApiClient {
   }
 
   Future<String?> _getCookie() async {
-    if (_cachedCookie != null && _cachedCookie!.isNotEmpty)
+    if (_cachedCookie != null && _cachedCookie!.isNotEmpty) {
       return _cachedCookie;
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
       _cachedCookie = prefs.getString(_cookiePrefKey);

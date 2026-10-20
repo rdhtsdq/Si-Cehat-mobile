@@ -248,8 +248,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 keyboardType: TextInputType.emailAddress,
                 errorText: _identifierError,
                 onChanged: (_) {
-                  if (_identifierError != null)
+                  if (_identifierError != null) {
                     setState(() => _identifierError = null);
+                  }
                 },
               ),
               const SizedBox(height: 16),
@@ -261,8 +262,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 isPassword: true,
                 errorText: _passwordError,
                 onChanged: (_) {
-                  if (_passwordError != null)
+                  if (_passwordError != null) {
                     setState(() => _passwordError = null);
+                  }
                 },
               ),
               const SizedBox(height: 12),

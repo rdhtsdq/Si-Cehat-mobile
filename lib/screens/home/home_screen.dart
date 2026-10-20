@@ -2,13 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
+import '../../core/api/api_constants.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
+import '../../providers/notification_provider.dart';
 import '../consultation/consultation_screen.dart';
+import '../consultation/notification_center_screen.dart';
+import '../community/community_screen.dart';
+import '../education/pustaka_edukasi_screen.dart';
 import '../menu/menu_catalog_screen.dart';
 import '../menu/meal_plan_screen.dart';
 import '../nutrition/nutrition_calculator_screen.dart';
 import '../profile/child_profile_setup_screen.dart';
+import '../profile/mother_profile_screen.dart';
 import '../reminder/reminder_screen.dart';
 import '../screening/screening_step1_screen.dart';
 
@@ -29,10 +35,12 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final profile = context.watch<ProfileProvider>();
     final auth = context.watch<AuthProvider>();
+    final notificationProv = context.watch<NotificationProvider>();
     final motherName = (profile.mother?.name.isNotEmpty == true)
         ? profile.mother!.name
-        : (auth.currentUserName ?? 'Ibu');
+        : (auth.currentUserName ?? 'Ibu Rina');
     final activeChild = profile.activeChild;
+    final unreadCount = notificationProv.unreadCount;
 
     final riskCat = activeChild?.latestRiskCategory?.toUpperCase();
     final String riskTitle;
@@ -54,10 +62,10 @@ class HomeScreen extends StatelessWidget {
       riskSubtitle = 'Pertahankan pola hidup sehat anak setiap hari!';
       riskColor = AppColors.primaryGreen;
     } else {
-      riskTitle = 'Belum Skrining';
+      riskTitle = 'Skrining belum tersedia';
       riskSubtitle =
           'Ketuk di sini untuk melakukan skrining risiko diabetes anak.';
-      riskColor = AppColors.primaryGreenDark;
+      riskColor = AppColors.primaryGreen;
     }
 
     return Scaffold(
@@ -69,8 +77,25 @@ class HomeScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  // Avatar thumbnail
+                  GestureDetector(
+                    onTap: () => _push(context, const MotherProfileScreen()),
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD6D6D6),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.primaryGreen, width: 2),
+                      ),
+                      child: ClipOval(
+                        child: _buildAvatarThumbnail(profile.mother?.avatarUrl),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,62 +103,86 @@ class HomeScreen extends StatelessWidget {
                         Text(
                           'Halo, $motherName!',
                           style: AppTypography.headingScreen.copyWith(
-                            fontSize: 24,
+                            fontSize: 22,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           _greetingByHour(),
                           style: AppTypography.bodySecondary.copyWith(
-                            fontSize: 16,
+                            fontSize: 14,
                             color: AppColors.textSecondary,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                  // Notification bell with unread badge
+                  Stack(
                     children: [
-                      Image.asset(
-                        'assets/dashboard/hello.png',
-                        width: 72,
-                        height: 72,
-                        fit: BoxFit.contain,
+                      IconButton(
+                        icon: const Icon(Icons.notifications_outlined, size: 28, color: AppColors.textDark),
+                        onPressed: () => _push(context, const NotificationCenterScreen()),
+                        tooltip: 'Notifikasi',
                       ),
-                      if (activeChild != null)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.veryLightGreen,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.child_care,
-                                size: 16,
-                                color: AppColors.primaryGreenDark,
+                      if (unreadCount > 0)
+                        Positioned(
+                          right: 8,
+                          top: 8,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.redAccent,
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                            child: Text(
+                              unreadCount > 9 ? '9+' : '$unreadCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                activeChild.name,
-                                style: AppTypography.badgeText.copyWith(
-                                  color: AppColors.primaryGreenDark,
-                                ),
-                              ),
-                            ],
+                              textAlign: TextAlign.center,
+                            ),
                           ),
                         ),
                     ],
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              if (activeChild != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.veryLightGreen,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.child_care,
+                        size: 16,
+                        color: AppColors.primaryGreenDark,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Anak Aktif: ${activeChild.name}',
+                        style: AppTypography.badgeText.copyWith(
+                          color: AppColors.primaryGreenDark,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 18),
               InkWell(
                 onTap: () => _openScreeningFlow(context),
                 borderRadius: BorderRadius.circular(14),
@@ -179,7 +228,7 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 24),
               Text(
                 'Menu Utama',
                 style: AppTypography.titleCard.copyWith(
@@ -187,7 +236,7 @@ class HomeScreen extends StatelessWidget {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               Row(
                 children: [
                   _buildMenuCard(
@@ -195,21 +244,21 @@ class HomeScreen extends StatelessWidget {
                     'Skrining',
                     () => _openScreeningFlow(context),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 12),
                   _buildMenuCard(
                     'menu.png',
                     'Menu',
                     () => _push(context, const MenuCatalogScreen()),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 12),
                   _buildMenuCard(
                     'reminder.png',
-                    'Pengingat',
+                    'Reminder',
                     () => _push(context, const ReminderScreen()),
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   _buildMenuCard(
@@ -217,24 +266,66 @@ class HomeScreen extends StatelessWidget {
                     'Konsultasi',
                     () => _push(context, const ConsultationScreen()),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 12),
+                  _buildMenuCard(
+                    'activity.png',
+                    'Komunitas',
+                    () => _push(context, const CommunityScreen()),
+                  ),
+                  const SizedBox(width: 12),
                   _buildMenuCard(
                     'meal-plan.png',
                     'Rencana Menu',
                     () => _push(context, const MealPlanScreen()),
                   ),
-                  const SizedBox(width: 14),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
                   _buildMenuCard(
                     'calculator.png',
                     'Kalkulator Nutrisi',
                     () => _push(context, const NutritionCalculatorScreen()),
                   ),
+                  const SizedBox(width: 12),
+                  _buildMenuCard(
+                    'hello.png',
+                    'Pustaka Edukasi',
+                    () => _push(context, const PustakaEdukasiScreen()),
+                  ),
+                  const SizedBox(width: 12),
+                  const Spacer(),
                 ],
               ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildAvatarThumbnail(String? url) {
+    if (url != null && url.isNotEmpty) {
+      if (url.startsWith('assets/')) {
+        return Image.asset(url, fit: BoxFit.cover);
+      }
+      final fullUrl = url.startsWith('http') ? url : '${ApiConstants.baseUrl}$url';
+      return Image.network(
+        fullUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (ctx, err, stack) => const Icon(
+          Icons.person,
+          size: 28,
+          color: Color(0xFF424242),
+        ),
+      );
+    }
+    return const Icon(
+      Icons.person,
+      size: 28,
+      color: Color(0xFF424242),
     );
   }
 
@@ -248,8 +339,8 @@ class HomeScreen extends StatelessWidget {
             onTap: onTap,
             borderRadius: BorderRadius.circular(12),
             child: Container(
-              constraints: const BoxConstraints(minHeight: 90),
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+              constraints: const BoxConstraints(minHeight: 92),
+              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFFEEEEEE)),
@@ -258,7 +349,7 @@ class HomeScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   SizedBox(
-                    height: 44,
+                    height: 42,
                     child: Image.asset(
                       'assets/dashboard/$asset',
                       fit: BoxFit.contain,

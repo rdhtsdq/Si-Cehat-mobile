@@ -1573,6 +1573,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                 ),
               ],
 
+
               const SizedBox(height: 10),
 
               // Date indicator (for 1-day or 7-day schedules)
@@ -1585,17 +1586,20 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
                       color: AppColors.primaryGreenDark,
                     ),
                     const SizedBox(width: 6),
-                    Text(
-                      _formatIndonesianDate(targetDate),
-                      style: AppTypography.bodySecondary.copyWith(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primaryGreenDark,
+                    Expanded(
+                      child: Text(
+                        _formatIndonesianDate(targetDate),
+                        style: AppTypography.bodySecondary.copyWith(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryGreenDark,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const Spacer(),
+                    const SizedBox(width: 8),
                     Text(
-                      '${activeMeals.length} Jadwal Makan Seimbang',
+                      '${activeMeals.length} Jadwal Makan',
                       style: AppTypography.bodySecondary.copyWith(fontSize: 11),
                     ),
                   ],

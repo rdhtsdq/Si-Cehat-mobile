@@ -15,6 +15,8 @@ class ReminderScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final reminderProv = context.watch<ReminderProvider>();
     final reminders = reminderProv.reminders;
+    final completedCount = reminderProv.completedTodayCount;
+    final totalCount = reminders.length;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -41,51 +43,84 @@ class ReminderScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Teks aksi hijau "+ Tambah Reminder" di bawah app bar sesuai PDF S14
-              InkWell(
-                onTap: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.vertical(
-                        top: Radius.circular(16),
+              // Header aksi "+ Tambah Reminder"
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  InkWell(
+                    onTap: () {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                        ),
+                        builder: (_) => const ReminderEditorSheet(),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.add,
+                            color: AppColors.primaryGreen,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Tambah Reminder',
+                            style: AppTypography.buttonText.copyWith(
+                              color: AppColors.primaryGreen,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    builder: (_) => const ReminderEditorSheet(),
-                  );
-                },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.add,
-                        color: AppColors.primaryGreen,
-                        size: 20,
+                  ),
+                  if (totalCount > 0)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.veryLightGreen,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Tambah Reminder',
-                        style: AppTypography.buttonText.copyWith(
-                          color: AppColors.primaryGreen,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
+                      child: Text(
+                        '$completedCount/$totalCount Selesai',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryGreenDark,
                         ),
                       ),
-                    ],
-                  ),
-                ),
+                    ),
+                ],
               ),
               const SizedBox(height: 12),
 
+              // Progress tracking bar
+              if (totalCount > 0) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: totalCount > 0 ? (completedCount / totalCount) : 0,
+                    backgroundColor: const Color(0xFFE2E8F0),
+                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
+                    minHeight: 6,
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+
               const SafetyBanner(
-                text:
-                    'Jadwal tersimpan di perangkat. Pengingat ini berfungsi sebagai alarm kebiasaan keluarga.',
+                text: 'Jadwal tersimpan di perangkat dan disinkronkan ke akun keluarga. Pengingat ini memandu rutinitas hidup sehat anak.',
                 type: BannerType.offline,
               ),
+              const SizedBox(height: 12),
 
-              // Empat card putih dengan shadow tipis dan radius sesuai PDF S14
               if (reminders.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 32.0),
@@ -99,21 +134,23 @@ class ReminderScreen extends StatelessWidget {
               else
                 ...reminders.map((r) => _buildReminderCard(context, r)),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               SizedBox(
                 width: 190,
-                child: ElevatedButton(
+                child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryGreen,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(5),
+                      borderRadius: BorderRadius.circular(8),
                     ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                   onPressed: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const FoodDiaryScreen()),
                   ),
-                  child: const Text('Food Diary'),
+                  icon: const Icon(Icons.book_outlined, size: 18),
+                  label: const Text('Food Diary'),
                 ),
               ),
               const SizedBox(height: 24),
@@ -125,13 +162,17 @@ class ReminderScreen extends StatelessWidget {
   }
 
   Widget _buildReminderCard(BuildContext context, ReminderModel item) {
+    final isDone = item.isCompleted;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDone ? const Color(0xFFF9FBF9) : Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
+        border: Border.all(
+          color: isDone ? AppColors.lightGreen : const Color(0xFFEEEEEE),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.04),
@@ -142,23 +183,39 @@ class ReminderScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Jam di kiri sesuai PDF S14
+          // Checkbox complete button
+          IconButton(
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+            icon: Icon(
+              isDone ? Icons.check_circle : Icons.radio_button_unchecked,
+              color: isDone ? AppColors.primaryGreen : AppColors.textMuted,
+              size: 24,
+            ),
+            onPressed: () {
+              if (item.id != null) {
+                context.read<ReminderProvider>().toggleCompleteReminder(item.id);
+              }
+            },
+          ),
+          const SizedBox(width: 8),
+
+          // Jam
           SizedBox(
-            width: 60,
+            width: 55,
             child: Text(
               item.time,
               style: AppTypography.titleCard.copyWith(
-                fontSize: 17,
+                fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: item.isEnabled
-                    ? AppColors.textDark
-                    : AppColors.textMuted,
+                color: item.isEnabled ? AppColors.textDark : AppColors.textMuted,
+                decoration: isDone ? TextDecoration.lineThrough : null,
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
 
-          // Nama kegiatan di tengah
+          // Judul & Kategori
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -167,23 +224,59 @@ class ReminderScreen extends StatelessWidget {
                   item.title,
                   style: AppTypography.bodyRegular.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: item.isEnabled
-                        ? AppColors.textDark
-                        : AppColors.textMuted,
+                    fontSize: 14,
+                    color: item.isEnabled ? AppColors.textDark : AppColors.textMuted,
+                    decoration: isDone ? TextDecoration.lineThrough : null,
                   ),
                 ),
-                Text(
-                  item.repeatDays,
-                  style: AppTypography.bodySecondary.copyWith(
-                    fontSize: 11,
-                    color: AppColors.textSecondary,
-                  ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.fieldBackground,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        item.category.toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      item.repeatDays,
+                      style: AppTypography.bodySecondary.copyWith(
+                        fontSize: 11,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
 
-          // Switch hijau di kanan
+          // Tombol Edit
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, size: 20, color: AppColors.textSecondary),
+            onPressed: () {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                builder: (_) => ReminderEditorSheet(reminder: item),
+              );
+            },
+          ),
+
+          // Switch on/off
           Switch(
             value: item.isEnabled,
             activeThumbColor: AppColors.primaryGreen,

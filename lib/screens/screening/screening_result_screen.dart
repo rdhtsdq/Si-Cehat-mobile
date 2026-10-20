@@ -148,7 +148,7 @@ class ScreeningResultScreen extends StatelessWidget {
               const SizedBox(height: 32),
 
               PrimaryButton(
-                text: 'Lihat Contoh Menu Tradisional',
+                text: 'Selanjutnya',
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(

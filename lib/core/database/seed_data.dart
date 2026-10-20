@@ -1,5 +1,7 @@
 import '../../data/models/recipe_model.dart';
 import '../../data/models/education_model.dart';
+import '../../data/models/reminder_model.dart';
+import '../../data/models/notification_model.dart';
 
 class SeedData {
   static final List<RecipeModel> initialRecipes = [
@@ -164,6 +166,43 @@ class SeedData {
       contentBody:
           'Audio podcast membahas peran orang tua sebagai role-model. Anak meniru apa yang dimakan orang tuanya di meja makan. Menjadikan makan bersama sebagai momen menyenangkan tanpa gawai sangat efektif membangun hubungan sehat anak dengan makanan.',
     ),
+    EducationModel(
+      id: 'edu_art_1',
+      title: 'Mengenal Bahaya Obesitas dan Risiko Diabetes Anak',
+      type: 'artikel',
+      duration: '4 Menit Baca',
+      summary: 'Faktor pemicu obesitas usia sekolah dan cara deteksi dini resistensi insulin.',
+      contentBody:
+          'Kelebihan berat badan pada anak usia 6-12 tahun sering kali dipicu oleh ketidakseimbangan antara asupan energi makanan olahan dan aktivitas fisik harian. Memahami tanda awal seperti lipatan leher menghitam (akantosis nigrikans) dan cepat lelah sangat penting untuk pencegahan komplikasi jangka panjang.',
+      speakerOrSource: 'Kemenkes RI & IDAI',
+    ),
+    EducationModel(
+      id: 'edu_art_2',
+      title: 'Panduan Praktis "Isi Piringku" untuk Keluarga',
+      type: 'artikel',
+      duration: '3 Menit Baca',
+      summary: 'Proporsi ideal karbohidrat, protein, sayur, dan buah dalam setiap sajian anak.',
+      contentBody:
+          'Panduan Isi Piringku dari Kementerian Kesehatan RI membagi piring makan menjadi: 1/3 makanan pokok (nasi/jagung/ubi), 1/3 sayuran hijau berserat, 1/6 lauk pauk sumber protein hewani/nabati, dan 1/6 buah-buahan segar lokal. Pola ini memastikan gula darah anak tidak melonjak tajam setelah makan.',
+      speakerOrSource: 'Kemenkes RI & Persagi',
+    ),
+    EducationModel(
+      id: 'edu_art_3',
+      title: 'Membatasi Minuman Berpemanis Dalam Kemasan (MBDK)',
+      type: 'artikel',
+      duration: '5 Menit Baca',
+      summary: 'Strategi cerdas mengganti teh manis, boba, dan sirup dengan alternatif segar menyehatkan.',
+      contentBody:
+          'Minuman kemasan rata-rata mengandung 20-35 gram gula per botol, melebihi rekomendasi harian anak. Terapkan aturan "Air Putih Utama": sediakan infused water buah segar (lemon/timun), air kelapa murni, atau wedang rempah hangat tanpa gula pasir berlebih.',
+      speakerOrSource: 'IDAI (Ikatan Dokter Anak Indonesia)',
+    ),
+  ];
+
+  static final List<ReminderModel> initialReminders = [
+    ReminderModel(id: 1, title: 'Sarapan Pagi', time: '07:00', isEnabled: true, category: 'makan', repeatDays: 'Setiap Hari'),
+    ReminderModel(id: 2, title: 'Minum air putih', time: '10:00', isEnabled: true, category: 'minum', repeatDays: 'Setiap Hari'),
+    ReminderModel(id: 3, title: 'Aktivitas Fisik', time: '16:00', isEnabled: true, category: 'aktivitas', repeatDays: 'Setiap Hari'),
+    ReminderModel(id: 4, title: 'Waktu tidur', time: '20:00', isEnabled: true, category: 'tidur', repeatDays: 'Setiap Hari'),
   ];
 
   static final List<QuizQuestion> sampleQuizQuestions = [
@@ -199,6 +238,25 @@ class SeedData {
       ],
       correctIndex: 1,
       explanation: 'Anak dianjurkan bergerak aktif minimal 60 menit per hari, seperti bermain di luar, bersepeda, berjalan kaki, atau berolahraga ringan.',
+    ),
+  ];
+
+  static final List<NotificationModel> initialNotifications = [
+    NotificationModel(
+      id: 'notif-1',
+      title: 'Selamat Datang di Si Cehat!',
+      message: 'Mulai pantau kesehatan anak Anda dan jelajahi rekomendasi gizi sehat tradisional.',
+      type: 'SYSTEM',
+      isRead: false,
+      createdAt: DateTime(2026, 1, 15, 10, 0),
+    ),
+    NotificationModel(
+      id: 'notif-2',
+      title: 'Layanan Konsultasi Tenaga Medis Mitra',
+      message: 'Konsultasi dengan Bidan, Ahli Gizi, dan Dokter spesialis anak telah tersedia.',
+      type: 'CONSULTATION',
+      isRead: false,
+      createdAt: DateTime(2026, 1, 15, 9, 30),
     ),
   ];
 }

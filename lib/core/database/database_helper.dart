@@ -5,6 +5,7 @@ import '../../data/models/mother_model.dart';
 import '../../data/models/child_model.dart';
 import '../../data/models/measurement_model.dart';
 import '../../data/models/reminder_model.dart';
+import '../../data/models/notification_model.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -16,6 +17,7 @@ class DatabaseHelper {
   final List<ChildModel> _fallbackChildren = [];
   final List<MeasurementModel> _fallbackMeasurements = [];
   final List<ReminderModel> _fallbackReminders = [];
+  final List<NotificationModel> _fallbackNotifications = [];
 
   DatabaseHelper._init();
 
@@ -47,6 +49,7 @@ class DatabaseHelper {
       education: 'S1 / Sarjana',
       occupation: 'Ibu Rumah Tangga',
       address: 'Bandung, Jawa Barat',
+      avatarUrl: null,
     );
     _fallbackChildren.clear();
     _fallbackChildren.add(ChildModel(
@@ -67,10 +70,29 @@ class DatabaseHelper {
     ]);
     _fallbackReminders.clear();
     _fallbackReminders.addAll([
-      ReminderModel(id: 1, title: 'Sarapan Pagi', time: '07:00', isEnabled: true),
-      ReminderModel(id: 2, title: 'Minum air putih', time: '10:00', isEnabled: true),
-      ReminderModel(id: 3, title: 'Aktivitas Fisik', time: '16:00', isEnabled: true),
-      ReminderModel(id: 4, title: 'Waktu tidur', time: '20:00', isEnabled: true),
+      ReminderModel(id: 1, title: 'Sarapan Pagi', time: '07:00', isEnabled: true, category: 'makan', repeatDays: 'Setiap Hari'),
+      ReminderModel(id: 2, title: 'Minum air putih', time: '10:00', isEnabled: true, category: 'minum', repeatDays: 'Setiap Hari'),
+      ReminderModel(id: 3, title: 'Aktivitas Fisik', time: '16:00', isEnabled: true, category: 'aktivitas', repeatDays: 'Setiap Hari'),
+      ReminderModel(id: 4, title: 'Waktu tidur', time: '20:00', isEnabled: true, category: 'tidur', repeatDays: 'Setiap Hari'),
+    ]);
+    _fallbackNotifications.clear();
+    _fallbackNotifications.addAll([
+      NotificationModel(
+        id: 'notif-1',
+        title: 'Selamat Datang di Si Cehat!',
+        message: 'Mulai pantau kesehatan anak Anda dan jelajahi rekomendasi gizi sehat tradisional.',
+        type: 'SYSTEM',
+        isRead: false,
+        createdAt: DateTime.now().subtract(const Duration(hours: 1)),
+      ),
+      NotificationModel(
+        id: 'notif-2',
+        title: 'Layanan Konsultasi Tenaga Medis Mitra',
+        message: 'Konsultasi dengan Bidan, Ahli Gizi, dan Dokter spesialis anak telah tersedia.',
+        type: 'CONSULTATION',
+        isRead: false,
+        createdAt: DateTime.now().subtract(const Duration(minutes: 30)),
+      ),
     ]);
   }
 
@@ -80,8 +102,9 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _createDB,
+      onUpgrade: _onUpgradeDB,
     );
   }
 
@@ -93,7 +116,8 @@ class DatabaseHelper {
         name TEXT NOT NULL,
         education TEXT,
         occupation TEXT,
-        address TEXT
+        address TEXT,
+        avatar_url TEXT
       )
     ''');
 
@@ -130,12 +154,58 @@ class DatabaseHelper {
         title TEXT NOT NULL,
         time TEXT NOT NULL,
         is_enabled INTEGER NOT NULL DEFAULT 1,
-        repeat_days TEXT
+        repeat_days TEXT,
+        category TEXT DEFAULT 'umum',
+        is_completed INTEGER NOT NULL DEFAULT 0,
+        last_completed_at TEXT
+      )
+    ''');
+
+    // 5. Notifications
+    await db.execute('''
+      CREATE TABLE notifications (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        message TEXT NOT NULL,
+        type TEXT NOT NULL,
+        reference_id TEXT,
+        is_read INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL
       )
     ''');
 
     // Insert Initial Seeds
     await _seedDatabase(db);
+  }
+
+  Future<void> _onUpgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      try {
+        await db.execute('ALTER TABLE mother_profile ADD COLUMN avatar_url TEXT');
+      } catch (_) {}
+      try {
+        await db.execute("ALTER TABLE reminders ADD COLUMN category TEXT DEFAULT 'umum'");
+      } catch (_) {}
+      try {
+        await db.execute("ALTER TABLE reminders ADD COLUMN is_completed INTEGER NOT NULL DEFAULT 0");
+      } catch (_) {}
+      try {
+        await db.execute("ALTER TABLE reminders ADD COLUMN last_completed_at TEXT");
+      } catch (_) {}
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS notifications (
+            id TEXT PRIMARY KEY,
+            title TEXT NOT NULL,
+            message TEXT NOT NULL,
+            type TEXT NOT NULL,
+            reference_id TEXT,
+            is_read INTEGER NOT NULL DEFAULT 0,
+            created_at TEXT NOT NULL
+          )
+        ''');
+      } catch (_) {}
+    }
   }
 
   Future<void> _seedDatabase(Database db) async {
@@ -146,6 +216,7 @@ class DatabaseHelper {
       'education': 'S1 / Sarjana',
       'occupation': 'Ibu Rumah Tangga',
       'address': 'Bandung, Jawa Barat',
+      'avatar_url': null,
     });
 
     // Default Child
@@ -169,33 +240,52 @@ class DatabaseHelper {
       await db.insert('growth_measurements', m);
     }
 
-    // Default Reminders matching S14
+    // Default Reminders corresponding to S14
     final reminders = [
-      {'title': 'Sarapan Pagi', 'time': '07:00', 'is_enabled': 1, 'repeat_days': 'Setiap Hari'},
-      {'title': 'Minum air putih', 'time': '10:00', 'is_enabled': 1, 'repeat_days': 'Setiap Hari'},
-      {'title': 'Aktivitas Fisik', 'time': '16:00', 'is_enabled': 1, 'repeat_days': 'Setiap Hari'},
-      {'title': 'Waktu tidur', 'time': '20:00', 'is_enabled': 1, 'repeat_days': 'Setiap Hari'},
+      {'title': 'Sarapan Pagi', 'time': '07:00', 'is_enabled': 1, 'repeat_days': 'Setiap Hari', 'category': 'makan', 'is_completed': 0},
+      {'title': 'Minum air putih', 'time': '10:00', 'is_enabled': 1, 'repeat_days': 'Setiap Hari', 'category': 'minum', 'is_completed': 0},
+      {'title': 'Aktivitas Fisik', 'time': '16:00', 'is_enabled': 1, 'repeat_days': 'Setiap Hari', 'category': 'aktivitas', 'is_completed': 0},
+      {'title': 'Waktu tidur', 'time': '20:00', 'is_enabled': 1, 'repeat_days': 'Setiap Hari', 'category': 'tidur', 'is_completed': 0},
     ];
     for (final r in reminders) {
       await db.insert('reminders', r);
     }
+
+    // Default Notifications
+    final notifs = [
+      {
+        'id': 'notif-1',
+        'title': 'Selamat Datang di Si Cehat!',
+        'message': 'Mulai pantau kesehatan anak Anda dan jelajahi rekomendasi gizi sehat tradisional.',
+        'type': 'SYSTEM',
+        'reference_id': null,
+        'is_read': 0,
+        'created_at': DateTime.now().toIso8601String(),
+      },
+      {
+        'id': 'notif-2',
+        'title': 'Layanan Konsultasi Tenaga Medis Mitra',
+        'message': 'Konsultasi dengan Bidan, Ahli Gizi, dan Dokter spesialis anak telah tersedia.',
+        'type': 'CONSULTATION',
+        'reference_id': null,
+        'is_read': 0,
+        'created_at': DateTime.now().toIso8601String(),
+      },
+    ];
+    for (final n in notifs) {
+      await db.insert('notifications', n);
+    }
   }
 
   // --- MOTHER PROFILE OPERATIONS ---
-  Future<MotherModel> getMotherProfile() async {
+  Future<MotherModel?> getMotherProfile() async {
     final db = await database;
-    if (db == null) return _fallbackMother!;
-    final result = await db.query('mother_profile', where: 'id = 1');
+    if (db == null) return _fallbackMother;
+    final result = await db.query('mother_profile', limit: 1);
     if (result.isNotEmpty) {
       return MotherModel.fromMap(result.first);
     }
-    return MotherModel(
-      id: 1,
-      name: 'Ibu Rina',
-      education: 'S1 / Sarjana',
-      occupation: 'Ibu Rumah Tangga',
-      address: 'Bandung, Jawa Barat',
-    );
+    return null;
   }
 
   Future<void> updateMotherProfile(MotherModel mother) async {
@@ -204,42 +294,36 @@ class DatabaseHelper {
       _fallbackMother = mother;
       return;
     }
-    await db.update(
-      'mother_profile',
-      mother.toMap(),
-      where: 'id = ?',
-      whereArgs: [mother.id],
-    );
+    await db.update('mother_profile', mother.toMap(), where: 'id = ?', whereArgs: [mother.id]);
   }
 
   // --- CHILD PROFILE OPERATIONS ---
   Future<List<ChildModel>> getChildren() async {
     final db = await database;
     if (db == null) return List.from(_fallbackChildren);
-    final result = await db.query('child_profile', orderBy: 'id ASC');
-    return result.map((m) => ChildModel.fromMap(m)).toList();
+    final result = await db.query('child_profile');
+    return result.map((c) => ChildModel.fromMap(c)).toList();
   }
 
   Future<ChildModel?> getActiveChild() async {
     final db = await database;
     if (db == null) {
-      return _fallbackChildren.firstWhere((c) => c.isActive,
-          orElse: () => _fallbackChildren.first);
+      final active = _fallbackChildren.where((c) => c.isActive);
+      return active.isNotEmpty ? active.first : (_fallbackChildren.isNotEmpty ? _fallbackChildren.first : null);
     }
-    final result = await db.query('child_profile', where: 'is_active = 1');
+    final result = await db.query('child_profile', where: 'is_active = 1', limit: 1);
     if (result.isNotEmpty) {
       return ChildModel.fromMap(result.first);
     }
-    final all = await getChildren();
-    return all.isNotEmpty ? all.first : null;
+    return null;
   }
 
   Future<int> insertChild(ChildModel child) async {
     final db = await database;
     if (db == null) {
-      final newId = (_fallbackChildren.isEmpty ? 1 : _fallbackChildren.last.id + 1);
-      final newChild = child.copyWith(id: newId);
-      _fallbackChildren.add(newChild);
+      final newId = (_fallbackChildren.isEmpty ? 1 : (_fallbackChildren.last.id ?? 0) + 1);
+      final item = child.copyWith(id: newId);
+      _fallbackChildren.add(item);
       return newId;
     }
     return await db.insert('child_profile', child.toMap());
@@ -302,6 +386,15 @@ class DatabaseHelper {
     return await db.insert('growth_measurements', measurement.toMap());
   }
 
+  Future<void> deleteMeasurement(dynamic id) async {
+    final db = await database;
+    if (db == null) {
+      _fallbackMeasurements.removeWhere((m) => m.id.toString() == id.toString());
+      return;
+    }
+    await db.delete('growth_measurements', where: 'id = ?', whereArgs: [id]);
+  }
+
   // --- REMINDERS OPERATIONS ---
   Future<List<ReminderModel>> getReminders() async {
     final db = await database;
@@ -340,6 +433,56 @@ class DatabaseHelper {
     await db.delete('reminders', where: 'id = ?', whereArgs: [id]);
   }
 
+  // --- NOTIFICATIONS OPERATIONS ---
+  Future<List<NotificationModel>> getNotifications() async {
+    final db = await database;
+    if (db == null) return List.from(_fallbackNotifications);
+    final result = await db.query('notifications', orderBy: 'created_at DESC');
+    return result.map((n) => NotificationModel.fromJson(n)).toList();
+  }
+
+  Future<void> insertNotification(NotificationModel notif) async {
+    final db = await database;
+    if (db == null) {
+      _fallbackNotifications.removeWhere((n) => n.id == notif.id);
+      _fallbackNotifications.insert(0, notif);
+      return;
+    }
+    await db.insert('notifications', notif.toMap(), conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  Future<void> markNotificationRead(String id) async {
+    final db = await database;
+    if (db == null) {
+      final index = _fallbackNotifications.indexWhere((n) => n.id == id);
+      if (index != -1) {
+        _fallbackNotifications[index] = _fallbackNotifications[index].copyWith(isRead: true);
+      }
+      return;
+    }
+    await db.update('notifications', {'is_read': 1}, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> markAllNotificationsRead() async {
+    final db = await database;
+    if (db == null) {
+      for (int i = 0; i < _fallbackNotifications.length; i++) {
+        _fallbackNotifications[i] = _fallbackNotifications[i].copyWith(isRead: true);
+      }
+      return;
+    }
+    await db.update('notifications', {'is_read': 1});
+  }
+
+  Future<void> deleteNotification(String id) async {
+    final db = await database;
+    if (db == null) {
+      _fallbackNotifications.removeWhere((n) => n.id == id);
+      return;
+    }
+    await db.delete('notifications', where: 'id = ?', whereArgs: [id]);
+  }
+
   // --- RESET DEMO DATA ---
   Future<void> resetDemoData() async {
     final db = await database;
@@ -347,6 +490,7 @@ class DatabaseHelper {
       _initFallbackData();
       return;
     }
+    await db.delete('notifications');
     await db.delete('reminders');
     await db.delete('growth_measurements');
     await db.delete('child_profile');

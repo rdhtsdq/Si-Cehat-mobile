@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/api/api_client.dart';
 import '../core/api/api_constants.dart';
 import '../core/database/database_helper.dart';
+import '../core/database/seed_data.dart';
 import '../data/models/reminder_model.dart';
 
 class ReminderProvider extends ChangeNotifier {
@@ -9,12 +10,16 @@ class ReminderProvider extends ChangeNotifier {
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
 
   List<ReminderModel> _reminders = [];
-  bool _isLoading = true;
+  bool _isLoading = false;
 
   List<ReminderModel> get reminders => _reminders;
   bool get isLoading => _isLoading;
 
+  int get completedTodayCount => _reminders.where((r) => r.isCompleted).length;
+  int get activeRemindersCount => _reminders.where((r) => r.isEnabled).length;
+
   ReminderProvider() {
+    _reminders = List.from(SeedData.initialReminders);
     loadReminders();
   }
 
@@ -28,7 +33,7 @@ class ReminderProvider extends ChangeNotifier {
         final res = await _apiClient.get(ApiConstants.reminders);
         if (res.isSuccess && res.data != null) {
           final rawList = res.data['reminders'] as List<dynamic>?;
-          if (rawList != null) {
+          if (rawList != null && rawList.isNotEmpty) {
             _reminders = rawList
                 .map((r) => ReminderModel.fromJson(r as Map<String, dynamic>))
                 .toList();
@@ -45,7 +50,10 @@ class ReminderProvider extends ChangeNotifier {
 
     // Fallback to local SQLite db
     try {
-      _reminders = await _dbHelper.getReminders();
+      final local = await _dbHelper.getReminders();
+      if (local.isNotEmpty) {
+        _reminders = local;
+      }
     } catch (e) {
       debugPrint('[ReminderProvider] Local load reminders error: $e');
     } finally {
@@ -70,6 +78,37 @@ class ReminderProvider extends ChangeNotifier {
           );
         } catch (e) {
           debugPrint('[ReminderProvider] Remote toggle reminder error: $e');
+        }
+      }
+
+      await _dbHelper.updateReminder(updated);
+    }
+  }
+
+  Future<void> toggleCompleteReminder(dynamic id) async {
+    final index = _reminders.indexWhere((r) => r.id.toString() == id.toString());
+    if (index != -1) {
+      final current = _reminders[index];
+      final newStatus = !current.isCompleted;
+      final nowStr = DateTime.now().toIso8601String();
+      final updated = current.copyWith(
+        isCompleted: newStatus,
+        lastCompletedAt: newStatus ? nowStr : null,
+      );
+      _reminders[index] = updated;
+      notifyListeners();
+
+      final token = await _apiClient.getToken();
+      if (token != null && token.isNotEmpty) {
+        try {
+          await _apiClient.patch(
+            '${ApiConstants.reminders}/$id',
+            body: {
+              'isCompleted': newStatus,
+            },
+          );
+        } catch (e) {
+          debugPrint('[ReminderProvider] Remote complete reminder error: $e');
         }
       }
 
@@ -109,12 +148,57 @@ class ReminderProvider extends ChangeNotifier {
       isEnabled: true,
       repeatDays: repeatDays,
       category: category,
+      isCompleted: false,
     );
     await _dbHelper.insertReminder(item);
     await loadReminders();
   }
 
+  Future<void> updateReminder(
+    dynamic id, {
+    required String title,
+    required String time,
+    String repeatDays = 'Setiap Hari',
+    String category = 'umum',
+    bool isEnabled = true,
+  }) async {
+    final index = _reminders.indexWhere((r) => r.id.toString() == id.toString());
+    if (index != -1) {
+      final updated = _reminders[index].copyWith(
+        title: title,
+        time: time,
+        repeatDays: repeatDays,
+        category: category,
+        isEnabled: isEnabled,
+      );
+      _reminders[index] = updated;
+      notifyListeners();
+
+      final token = await _apiClient.getToken();
+      if (token != null && token.isNotEmpty) {
+        try {
+          await _apiClient.patch(
+            '${ApiConstants.reminders}/$id',
+            body: {
+              'title': title,
+              'time': time,
+              'category': category,
+              'isEnabled': isEnabled,
+            },
+          );
+        } catch (e) {
+          debugPrint('[ReminderProvider] Remote update reminder error: $e');
+        }
+      }
+
+      await _dbHelper.updateReminder(updated);
+    }
+  }
+
   Future<void> deleteReminder(dynamic id) async {
+    _reminders.removeWhere((r) => r.id.toString() == id.toString());
+    notifyListeners();
+
     final token = await _apiClient.getToken();
     if (token != null && token.isNotEmpty) {
       try {

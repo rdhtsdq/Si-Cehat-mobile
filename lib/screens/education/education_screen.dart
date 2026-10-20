@@ -6,6 +6,7 @@ import '../../data/models/education_model.dart';
 import '../../providers/education_provider.dart';
 import 'education_detail_screen.dart';
 import 'quiz_screen.dart';
+import 'pustaka_edukasi_screen.dart';
 
 class EducationScreen extends StatefulWidget {
   final bool showBackButton;
@@ -40,6 +41,17 @@ class _EducationScreenState extends State<EducationScreen> {
           'Edukasi',
           style: AppTypography.headingScreen.copyWith(fontSize: 24),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.menu_book, color: AppColors.primaryGreenDark),
+            tooltip: 'Pustaka Edukasi',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const PustakaEdukasiScreen()),
+              );
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         child: Padding(
@@ -47,7 +59,7 @@ class _EducationScreenState extends State<EducationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Tiga tab: Video aktif hijau, Podcast, Quiz abu muda sesuai PDF S15
+              // Empat tab: Video, Podcast, Quiz, Pustaka Edukasi
               Row(
                 children: [
                   Expanded(
@@ -57,7 +69,7 @@ class _EducationScreenState extends State<EducationScreen> {
                       onTap: () => setState(() => _selectedTab = 0),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: _buildTabButton(
                       title: 'Podcast',
@@ -65,12 +77,20 @@ class _EducationScreenState extends State<EducationScreen> {
                       onTap: () => setState(() => _selectedTab = 1),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: _buildTabButton(
                       title: 'Quiz',
                       isActive: _selectedTab == 2,
                       onTap: () => setState(() => _selectedTab = 2),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: _buildTabButton(
+                      title: 'Pustaka',
+                      isActive: _selectedTab == 3,
+                      onTap: () => setState(() => _selectedTab = 3),
                     ),
                   ),
                 ],
@@ -79,12 +99,14 @@ class _EducationScreenState extends State<EducationScreen> {
 
               // Daftar konten edukasi
               Expanded(
-                child: _selectedTab == 2
-                    ? _buildQuizPromptCard(context)
-                    : _buildMediaList(
-                        context,
-                        _selectedTab == 0 ? eduProv.getVideos() : eduProv.getPodcasts(),
-                      ),
+                child: _selectedTab == 3
+                    ? const PustakaEdukasiScreen(showAppBar: false)
+                    : (_selectedTab == 2
+                        ? _buildQuizPromptCard(context)
+                        : _buildMediaList(
+                            context,
+                            _selectedTab == 0 ? eduProv.getVideos() : eduProv.getPodcasts(),
+                          )),
               ),
             ],
           ),

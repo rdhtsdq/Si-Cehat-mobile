@@ -258,13 +258,157 @@ class _TrackerScreenState extends State<TrackerScreen> {
                     );
                   },
                 ),
-              ] else ...[
-                const HabitLogView(),
+                const SizedBox(height: 24),
+
+                // Riwayat Pengukuran
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Riwayat Pengukuran',
+                      style: AppTypography.titleCard.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      '${measurements.length} Catatan',
+                      style: AppTypography.bodySecondary.copyWith(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (measurements.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFEEEEEE)),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Belum ada data pengukuran.',
+                        style: AppTypography.bodySecondary,
+                      ),
+                    ),
+                  )
+                else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: measurements.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final m = measurements[measurements.length - 1 - index];
+                        return _buildMeasurementHistoryTile(context, m);
+                      },
+                    ),
+                ] else ...[
+                  // Tab Aktivitas (E07)
+                  const HabitLogView(),
+                ],
+                const SizedBox(height: 20),
               ],
-              const SizedBox(height: 20),
-            ],
+            ),
           ),
         ),
+      );
+    }
+
+    Widget _buildMeasurementHistoryTile(BuildContext context, MeasurementModel m) {
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFEEEEEE)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.veryLightGreen,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.calendar_today, size: 20, color: AppColors.primaryGreenDark),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        m.date,
+                        style: AppTypography.titleCard.copyWith(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (m.source.isNotEmpty) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8F5E9),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            m.source,
+                            style: const TextStyle(fontSize: 10, color: Color(0xFF2E7D32), fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'BB: ${m.formattedWeight}  •  TB: ${m.formattedHeight}',
+                  style: AppTypography.bodySecondary.copyWith(
+                    fontSize: 13,
+                    color: AppColors.textDark,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
+            tooltip: 'Hapus Pengukuran',
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (dialogCtx) => AlertDialog(
+                  title: const Text('Hapus Pengukuran?'),
+                  content: Text('Hapus catatan pengukuran tanggal ${m.date}? Tindakan ini tidak dapat dibatalkan.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogCtx).pop(),
+                      child: const Text('Batal'),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        Navigator.of(dialogCtx).pop();
+                        if (m.id != null) {
+                          await context.read<TrackerProvider>().deleteMeasurement(m.id);
+                        }
+                      },
+                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                      child: const Text('Hapus'),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -330,33 +474,43 @@ class _GrowthChartPainter extends CustomPainter {
       ..color = Colors.white
       ..style = PaintingStyle.fill;
 
-    final recent = measurements.length > 5
-        ? measurements.sublist(measurements.length - 5)
-        : measurements;
+    List<Offset> points = [];
 
-    final weights = recent.map((m) => m.weight).toList();
-    double minW = weights.reduce((a, b) => a < b ? a : b);
-    double maxW = weights.reduce((a, b) => a > b ? a : b);
-    if ((maxW - minW).abs() < 1.0) {
-      minW -= 2.0;
-      maxW += 2.0;
+    if (measurements.length >= 2) {
+      final weights = measurements.map((m) => m.weight).toList();
+      double minW = weights.reduce((a, b) => a < b ? a : b);
+      double maxW = weights.reduce((a, b) => a > b ? a : b);
+      if ((maxW - minW).abs() < 0.1) {
+        maxW += 1.0;
+        minW = (minW - 1.0).clamp(0.0, double.infinity);
+      }
+      final padding = (maxW - minW) * 0.2;
+      final graphMin = (minW - padding).clamp(0.0, double.infinity);
+      final graphMax = maxW + padding;
+      final range = graphMax - graphMin;
+
+      for (int i = 0; i < measurements.length; i++) {
+        final double x = size.width * (0.06 + (0.88 * (i / (measurements.length - 1))));
+        final double normalizedY = 1.0 - ((measurements[i].weight - graphMin) / range).clamp(0.08, 0.92);
+        final double y = size.height * normalizedY;
+        points.add(Offset(x, y));
+      }
+    } else if (measurements.length == 1) {
+      points = [Offset(size.width * 0.5, size.height * 0.5)];
     } else {
-      minW -= 1.0;
-      maxW += 1.0;
+      // Nilai fallback BB (19.0 sampai 20.5 kg)
+      points = <Offset>[
+        Offset(size.width * 0.05, size.height * 0.85),
+        Offset(size.width * 0.28, size.height * 0.65),
+        Offset(size.width * 0.50, size.height * 0.50),
+        Offset(size.width * 0.73, size.height * 0.35),
+        Offset(size.width * 0.95, size.height * 0.15),
+      ];
     }
 
-    final points = <Offset>[];
-    for (int i = 0; i < recent.length; i++) {
-      final double x = recent.length == 1
-          ? size.width * 0.5
-          : size.width * (0.06 + (0.88 * i / (recent.length - 1)));
-      final double normY = (recent[i].weight - minW) / (maxW - minW);
-      final double y = size.height * (0.85 - (normY * 0.70));
-      points.add(Offset(x, y));
-    }
-
-    if (points.length > 1) {
-      final path = Path()..moveTo(points.first.dx, points.first.dy);
+    if (points.length >= 2) {
+      final path = Path();
+      path.moveTo(points[0].dx, points[0].dy);
       for (int i = 1; i < points.length; i++) {
         path.lineTo(points[i].dx, points[i].dy);
       }

@@ -7,6 +7,7 @@ class MotherModel {
   final String occupation;
   final String address;
   final String role;
+  final String? avatarUrl;
 
   MotherModel({
     required this.id,
@@ -17,6 +18,7 @@ class MotherModel {
     required this.occupation,
     required this.address,
     this.role = 'GUARDIAN',
+    this.avatarUrl,
   });
 
   factory MotherModel.fromMap(Map<String, dynamic> map) {
@@ -29,6 +31,7 @@ class MotherModel {
       occupation: map['occupation'] as String? ?? '',
       address: map['address'] as String? ?? '',
       role: map['role'] as String? ?? 'GUARDIAN',
+      avatarUrl: (map['avatarUrl'] ?? map['avatar_url']) as String?,
     );
   }
 
@@ -42,6 +45,7 @@ class MotherModel {
       'education': education,
       'occupation': occupation,
       'address': address,
+      'avatar_url': avatarUrl,
     };
   }
 
@@ -55,6 +59,7 @@ class MotherModel {
       'occupation': occupation,
       'address': address,
       'role': role,
+      'avatarUrl': avatarUrl,
     };
   }
 
@@ -67,6 +72,7 @@ class MotherModel {
     String? occupation,
     String? address,
     String? role,
+    String? avatarUrl,
   }) {
     return MotherModel(
       id: id ?? this.id,
@@ -77,6 +83,7 @@ class MotherModel {
       occupation: occupation ?? this.occupation,
       address: address ?? this.address,
       role: role ?? this.role,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
     );
   }
 }

@@ -71,11 +71,11 @@ class RecipeModel {
     }
 
     final cat = (json['category'] as String? ?? 'makanan').toLowerCase();
-    String emoji = '\ud83c\udf72';
+    String emoji = '🍲';
     if (cat.contains('minuman')) {
-      emoji = '\ud83e\udd64';
+      emoji = '🥤';
     } else if (cat.contains('cemilan') || cat.contains('camilan')) {
-      emoji = '\ud83c\udf4c';
+      emoji = '🍌';
     }
 
     final carbsVal = json['carbsGram'] != null

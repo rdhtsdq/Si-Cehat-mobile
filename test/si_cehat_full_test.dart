@@ -7,6 +7,7 @@ import 'package:si_cehat_mobile/providers/profile_provider.dart';
 import 'package:si_cehat_mobile/providers/tracker_provider.dart';
 import 'package:si_cehat_mobile/providers/reminder_provider.dart';
 import 'package:si_cehat_mobile/providers/education_provider.dart';
+import 'package:si_cehat_mobile/providers/notification_provider.dart';
 import 'package:si_cehat_mobile/screens/shell/main_shell_screen.dart';
 import 'package:si_cehat_mobile/screens/screening/screening_step1_screen.dart';
 import 'package:si_cehat_mobile/screens/screening/screening_result_screen.dart';
@@ -21,6 +22,7 @@ Widget createTestApp(Widget child) {
       ChangeNotifierProvider(create: (_) => TrackerProvider()),
       ChangeNotifierProvider(create: (_) => ReminderProvider()),
       ChangeNotifierProvider(create: (_) => EducationProvider()),
+      ChangeNotifierProvider(create: (_) => NotificationProvider()),
     ],
     child: MaterialApp(
       theme: AppTheme.lightTheme,
@@ -69,7 +71,8 @@ void main() {
 
   testWidgets('S12 Menu Tradisional lists traditional dishes', (tester) async {
     await tester.pumpWidget(createTestApp(const MenuCatalogScreen()));
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
 
     expect(find.text('Menu Tradisional Sehat'), findsOneWidget);
     expect(find.text('Semua'), findsOneWidget);

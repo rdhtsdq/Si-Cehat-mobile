@@ -95,4 +95,20 @@ class TrackerProvider extends ChangeNotifier {
     }
     return remoteSaved;
   }
+
+  Future<void> deleteMeasurement(dynamic id) async {
+    final token = await _apiClient.getToken();
+    if (token != null && token.isNotEmpty) {
+      try {
+        await _apiClient.delete('${ApiConstants.trackerGrowth}/$id');
+      } catch (e) {
+        debugPrint('[TrackerProvider] Remote delete measurement error: $e');
+      }
+    }
+
+    await _dbHelper.deleteMeasurement(id);
+    if (_currentChildId != null) {
+      await loadMeasurements(_currentChildId);
+    }
+  }
 }

@@ -88,7 +88,12 @@ class ApiConstants {
   static const String educationArticles = '/api/education/articles';
   static const String content = '/api/content';
 
-  // Consultations
+  // Consultations & Notifications
   static const String specialists = '/api/consultations/specialists';
   static const String consultations = '/api/consultations';
+  static const String notifications = '/api/notifications';
+  static const String notificationsReadAll = '/api/notifications/read-all';
+
+  // Profile Avatar
+  static const String parentProfileAvatar = '/api/parent/profile/avatar';
 }

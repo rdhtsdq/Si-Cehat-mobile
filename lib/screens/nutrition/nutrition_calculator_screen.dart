@@ -538,14 +538,24 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
           search.isEmpty || food.name.toLowerCase().contains(search);
       if (!matchesSearch) return false;
 
-      if (_selectedCategory == 'Semua') return true;
-      if (_selectedCategory == 'Makanan Pokok')
+      if (_selectedCategory == 'Semua') {
+        return true;
+      }
+      if (_selectedCategory == 'Makanan Pokok') {
         return food.category == 'makanan_pokok';
-      if (_selectedCategory == 'Lauk Pauk') return food.category == 'lauk_pauk';
-      if (_selectedCategory == 'Sayuran') return food.category == 'sayuran';
-      if (_selectedCategory == 'Buah') return food.category == 'buah';
-      if (_selectedCategory == 'Camilan & Minuman')
+      }
+      if (_selectedCategory == 'Lauk Pauk') {
+        return food.category == 'lauk_pauk';
+      }
+      if (_selectedCategory == 'Sayuran') {
+        return food.category == 'sayuran';
+      }
+      if (_selectedCategory == 'Buah') {
+        return food.category == 'buah';
+      }
+      if (_selectedCategory == 'Camilan & Minuman') {
         return food.category == 'minuman_camilan';
+      }
       return true;
     }).toList();
   }
@@ -703,6 +713,7 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
         const SizedBox(height: 6),
         DropdownButtonFormField<String>(
           initialValue: _preparation,
+          isExpanded: true,
           decoration: _decoration('Pilih cara pengolahan'),
           items:
               [
@@ -952,11 +963,14 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
     children: [
       Icon(icon, size: 16, color: AppColors.textDark),
       const SizedBox(width: 6),
-      Text(
-        text,
-        style: AppTypography.titleCard.copyWith(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
+      Expanded(
+        child: Text(
+          text,
+          style: AppTypography.titleCard.copyWith(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
+          overflow: TextOverflow.ellipsis,
         ),
       ),
     ],
@@ -998,14 +1012,17 @@ class _NutritionCalculatorScreenState extends State<NutritionCalculatorScreen> {
                 color: AppColors.primaryGreenDark,
               ),
               const SizedBox(width: 8),
-              Text(
-                'Hasil Kandungan Gizi',
-                style: AppTypography.titleCard.copyWith(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+              Expanded(
+                child: Text(
+                  'Hasil Kandungan Gizi',
+                  style: AppTypography.titleCard.copyWith(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(

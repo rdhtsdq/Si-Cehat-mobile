@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/api/api_client.dart';
 import '../../core/api/api_constants.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/safety_banner.dart';
+import '../../providers/notification_provider.dart';
+import 'notification_center_screen.dart';
 
 class ConsultationScreen extends StatefulWidget {
   const ConsultationScreen({super.key});
@@ -14,12 +17,14 @@ class ConsultationScreen extends StatefulWidget {
 
 class _ConsultationScreenState extends State<ConsultationScreen> {
   List<dynamic> _specialists = [];
+  List<dynamic> _myConsultations = [];
   bool _loading = false;
 
   @override
   void initState() {
     super.initState();
     _fetchSpecialists();
+    _fetchMyConsultations();
   }
 
   Future<void> _fetchSpecialists() async {
@@ -36,14 +41,71 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
     if (mounted) setState(() => _loading = false);
   }
 
-  void _showSpecialistDetail(
-    BuildContext context,
+  Future<void> _fetchMyConsultations() async {
+    try {
+      final res = await ApiClient.instance.get(ApiConstants.consultations);
+      if (res.isSuccess && res.data != null) {
+        final list = res.data['consultations'] as List<dynamic>?;
+        if (list != null) {
+          setState(() => _myConsultations = list);
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _requestConsultation(
+    BuildContext sheetCtx,
     String role,
     String typeKey,
-  ) {
-    final filtered = _specialists
-        .where((s) => (s['type'] ?? '').toString().toUpperCase() == typeKey)
-        .toList();
+    dynamic specialist, [
+    String? customTopic,
+  ]) async {
+    final name = specialist != null ? specialist['name'].toString() : 'Tenaga Medis Mitra $role';
+    final topic = (customTopic != null && customTopic.isNotEmpty)
+        ? customTopic
+        : 'Konsultasi Pola Hidup & Nutrisi Sehat Anak ($role)';
+
+    Navigator.of(sheetCtx).pop();
+
+    final res = await ApiClient.instance.post(
+      ApiConstants.consultations,
+      body: {
+        'specialistType': typeKey,
+        'specialistName': name,
+        'topic': topic,
+        'notes': 'Permintaan diajukan melalui aplikasi Si-Cehat Mobile.',
+      },
+    );
+
+    if (!mounted) return;
+
+    if (res.isSuccess) {
+      context.read<NotificationProvider>().loadNotifications();
+      _fetchMyConsultations();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Permintaan konsultasi dengan $name berhasil dikirim! Notifikasi telah dibuat.'),
+          backgroundColor: AppColors.primaryGreen,
+        ),
+      );
+    } else {
+      // Local fallback
+      await context.read<NotificationProvider>().addLocalNotification(
+        title: 'Permintaan Konsultasi Terkirim',
+        message: 'Konsultasi dengan $name mengenai "$topic" telah diajukan.',
+        type: 'CONSULTATION',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Jadwal konsultasi dengan $name telah dicatat.'),
+        ),
+      );
+    }
+  }
+
+  void _showSpecialistDetail(BuildContext context, String role, String typeKey) {
+    final filtered = _specialists.where((s) => (s['type'] ?? '').toString().toUpperCase() == typeKey).toList();
     final specialist = filtered.isNotEmpty ? filtered.first : null;
     final specialistName = specialist != null
         ? specialist['name'].toString()
@@ -89,11 +151,13 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
                         specialistName,
                         style: AppTypography.titleCard.copyWith(fontSize: 16),
                       ),
+                      const SizedBox(height: 2),
                       Text(
                         specialist != null
-                            ? specialist['title'].toString()
-                            : 'Mitra Terverifikasi',
+                            ? (specialist['hospital'] ?? specialist['title'] ?? 'Fasilitas Kesehatan Mitra Si-Cehat').toString()
+                            : 'Fasilitas Kesehatan Mitra Si-Cehat',
                         style: AppTypography.bodySecondary.copyWith(
+                          fontSize: 12,
                           color: AppColors.textSecondary,
                         ),
                       ),
@@ -101,11 +165,7 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(
-                              Icons.star,
-                              color: Colors.amber,
-                              size: 16,
-                            ),
+                            const Icon(Icons.star, color: Colors.amber, size: 14),
                             const SizedBox(width: 4),
                             Text(
                               '${specialist['rating']} \u2022 Pengalaman ${specialist['experienceYears']} tahun',
@@ -164,31 +224,7 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () async {
-                  final topic = topicController.text.trim().isNotEmpty
-                      ? topicController.text.trim()
-                      : 'Konsultasi $role';
-                  try {
-                    await ApiClient.instance.post(
-                      ApiConstants.consultations,
-                      body: {
-                        'specialistType': typeKey,
-                        'specialistName': specialistName,
-                        'topic': topic,
-                      },
-                    );
-                  } catch (_) {}
-                  if (!ctx.mounted) return;
-                  Navigator.of(ctx).pop();
-                  if (!context.mounted) return;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Permintaan konsultasi telah dicatat di server.',
-                      ),
-                    ),
-                  );
-                },
+                onPressed: () => _requestConsultation(ctx, role, typeKey, specialist, topicController.text.trim()),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryGreen,
                   foregroundColor: Colors.white,
@@ -208,6 +244,8 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final unreadNotifs = context.watch<NotificationProvider>().unreadCount;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -226,9 +264,42 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
           'Konsultasi',
           style: AppTypography.headingScreen.copyWith(fontSize: 20),
         ),
+        actions: [
+          IconButton(
+            icon: Stack(
+              children: [
+                const Icon(Icons.notifications_outlined, size: 26, color: AppColors.textDark),
+                if (unreadNotifs > 0)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+                      child: Text(
+                        '$unreadNotifs',
+                        style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const NotificationCenterScreen()),
+              );
+            },
+          ),
+        ],
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,6 +315,14 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
                   child: LinearProgressIndicator(color: AppColors.primaryGreen),
                 ),
               const SizedBox(height: 16),
+
+              if (_loading)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: CircularProgressIndicator(color: AppColors.primaryGreen),
+                  ),
+                ),
 
               _buildRoleCard(
                 context,
@@ -267,9 +346,20 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
               _buildRoleCard(
                 context,
                 title: 'Dokter',
-                subtitle: 'Pemeriksaan lanjutan dan rekomendasi klinis anak',
+                subtitle: 'Pemeriksaan lanjutan faktor risiko dan rujukan klinis',
                 onTap: () => _showSpecialistDetail(context, 'Dokter', 'DOKTER'),
               ),
+              const SizedBox(height: 24),
+
+              // Riwayat Konsultasi Saya
+              if (_myConsultations.isNotEmpty) ...[
+                Text(
+                  'Riwayat Konsultasi Saya',
+                  style: AppTypography.titleCard.copyWith(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 10),
+                ..._myConsultations.map((c) => _buildConsultationHistoryCard(c)),
+              ],
             ],
           ),
         ),
@@ -283,48 +373,131 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
     required String subtitle,
     required VoidCallback onTap,
   }) {
-    return Material(
-      color: AppColors.fieldBackground,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        child: Container(
-          width: double.infinity,
-          constraints: const BoxConstraints(minHeight: 80),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.chat_bubble_outline,
-                size: 32,
-                color: Color(0xFF212121),
-              ),
-              const SizedBox(width: 18),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: AppTypography.headingScreen.copyWith(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textDark,
+        border: Border.all(color: const Color(0xFFEEEEEE)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: AppTypography.titleCard.copyWith(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: AppTypography.bodySecondary.copyWith(fontSize: 12),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: AppTypography.bodySecondary.copyWith(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const Icon(Icons.chevron_right, color: AppColors.textSecondary),
-            ],
+                const Icon(
+                  Icons.chevron_right,
+                  color: AppColors.primaryGreen,
+                  size: 24,
+                ),
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildConsultationHistoryCard(dynamic consultation) {
+    final status = (consultation['status'] ?? 'PENDING').toString().toUpperCase();
+    Color statusBg = Colors.amber.shade50;
+    Color statusText = Colors.amber.shade800;
+    String statusLabel = 'Menunggu';
+
+    if (status == 'ACTIVE') {
+      statusBg = const Color(0xFFF0FDF4);
+      statusText = AppColors.primaryGreenDark;
+      statusLabel = 'Aktif';
+    } else if (status == 'COMPLETED') {
+      statusBg = const Color(0xFFEFF6FF);
+      statusText = const Color(0xFF1D4ED8);
+      statusLabel = 'Selesai';
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                consultation['specialistName'] ?? 'Konsultasi Mitra',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: statusBg,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  statusLabel,
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: statusText),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            consultation['topic'] ?? 'Konsultasi',
+            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          ),
+          if (consultation['notes'] != null && consultation['notes'].toString().isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                'Catatan: ${consultation['notes']}',
+                style: const TextStyle(fontSize: 11, color: AppColors.textDark),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

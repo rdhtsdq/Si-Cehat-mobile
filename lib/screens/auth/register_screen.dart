@@ -188,8 +188,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 controller: _childNameController,
                 errorText: _childNameError,
                 onChanged: (_) {
-                  if (_childNameError != null)
+                  if (_childNameError != null) {
                     setState(() => _childNameError = null);
+                  }
                 },
               ),
               const SizedBox(height: 16),
@@ -209,7 +210,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 errorText: _emailError,
                 keyboardType: TextInputType.emailAddress,
                 onChanged: (_) {
-                  if (_emailError != null) setState(() => _emailError = null);
+                  if (_emailError != null) {
+                    setState(() => _emailError = null);
+                  }
                 },
               ),
               const SizedBox(height: 16),
@@ -221,8 +224,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 errorText: _passwordError,
                 isPassword: true,
                 onChanged: (_) {
-                  if (_passwordError != null)
+                  if (_passwordError != null) {
                     setState(() => _passwordError = null);
+                  }
                 },
               ),
               const SizedBox(height: 24),

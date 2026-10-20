@@ -354,4 +354,7 @@ class EducationProvider extends ChangeNotifier {
 
   List<EducationModel> getPodcasts() =>
       _educationItems.where((e) => e.type == 'podcast').toList();
+
+  List<EducationModel> getArticles() =>
+      _educationItems.where((e) => e.type == 'artikel' || e.type == 'makanan' || e.type == 'umum').toList();
 }

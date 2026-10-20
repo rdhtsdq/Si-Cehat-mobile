@@ -22,6 +22,28 @@ class ProfileProvider extends ChangeNotifier {
       _activeChild != null && _activeChild!.isProfileComplete;
   bool get isLoading => _isLoading;
 
+  ProfileProvider() {
+    _mother = MotherModel(
+      id: 1,
+      name: 'Ibu Rina',
+      education: 'S1 / Sarjana',
+      occupation: 'Ibu Rumah Tangga',
+      address: 'Bandung, Jawa Barat',
+    );
+    _children = [
+      ChildModel(
+        id: 1,
+        name: 'Ahmad',
+        dateOfBirth: '2018-05-14',
+        gender: 'Laki-laki',
+        healthNotes: 'Belum ada catatan khusus',
+        isActive: true,
+      ),
+    ];
+    _activeChild = _children.first;
+    _isLoading = false;
+    loadProfiles();
+  }
   Future<void> loadProfiles() async {
     _isLoading = true;
     notifyListeners();
@@ -171,6 +193,31 @@ class ProfileProvider extends ChangeNotifier {
     }
 
     await _dbHelper.updateMotherProfile(updated);
+  }
+
+  Future<bool> updateAvatar(String avatarUrlOrBase64, {bool isBase64 = false}) async {
+    final token = await _apiClient.getToken();
+    String newUrl = avatarUrlOrBase64;
+    if (token != null && token.isNotEmpty) {
+      try {
+        final body = isBase64
+            ? {'imageBase64': avatarUrlOrBase64}
+            : {'avatarUrl': avatarUrlOrBase64};
+        final res = await _apiClient.post(ApiConstants.parentProfileAvatar, body: body);
+        if (res.isSuccess && res.data != null && res.data['avatarUrl'] != null) {
+          newUrl = res.data['avatarUrl'];
+        }
+      } catch (e) {
+        debugPrint('[ProfileProvider] Remote update avatar error: $e');
+      }
+    }
+
+    if (_mother != null) {
+      _mother = _mother!.copyWith(avatarUrl: newUrl);
+      notifyListeners();
+      await _dbHelper.updateMotherProfile(_mother!);
+    }
+    return true;
   }
 
   Future<void> addChild(ChildModel newChild) async {
