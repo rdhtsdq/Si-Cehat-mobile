@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/primary_button.dart';
+import '../../core/widgets/avatar_image.dart';
+import '../../core/widgets/photo_picker_sheet.dart';
+import '../../data/models/child_model.dart';
 import '../../providers/profile_provider.dart';
 import '../tracker/tracker_screen.dart';
 import 'edit_profile_screen.dart';
@@ -58,17 +61,58 @@ class ChildProfileScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 10),
-              Container(
-                width: 90,
-                height: 90,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFD6D6D6),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.face,
-                  size: 56,
-                  color: Color(0xFF424242),
+
+              // Interactive Avatar with camera edit badge for Child
+              Center(
+                child: Stack(
+                  children: [
+                    Container(
+                      width: 96,
+                      height: 96,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFD6D6D6),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.08),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ClipOval(
+                        child: AvatarImage(
+                          avatarUrl: child?.avatarUrl,
+                          size: 96,
+                          fallbackIcon: Icons.face,
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Material(
+                        color: AppColors.primaryGreen,
+                        shape: const CircleBorder(),
+                        elevation: 2,
+                        child: InkWell(
+                          customBorder: const CircleBorder(),
+                          onTap: child != null
+                              ? () => _showAvatarPicker(context, child)
+                              : null,
+                          child: const Padding(
+                            padding: EdgeInsets.all(8),
+                            child: Icon(
+                              Icons.camera_alt,
+                              size: 16,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 24),
@@ -202,6 +246,52 @@ class ChildProfileScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _showAvatarPicker(BuildContext context, ChildModel child) {
+    PhotoPickerSheet.show(
+      context: context,
+      title: 'Pilih Foto Profil Anak',
+      presets: const [
+        PhotoPickerPreset(
+          assetPath: 'assets/dashboard/hello.png',
+          label: 'Anak Si Cehat',
+        ),
+        PhotoPickerPreset(
+          assetPath: 'assets/dashboard/activity.png',
+          label: 'Aktivitas Anak',
+        ),
+        PhotoPickerPreset(
+          assetPath: 'assets/dashboard/calculator.png',
+          label: 'Gizi Cilik',
+        ),
+      ],
+      onSelected: (assetOrBase64) async {
+        final isBase64 = assetOrBase64.startsWith('data:');
+        await context.read<ProfileProvider>().updateChildAvatar(
+              child.id,
+              assetOrBase64,
+              isBase64: isBase64,
+            );
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Foto profil anak berhasil diperbarui'),
+            ),
+          );
+        }
+      },
+      onReset: () async {
+        await context.read<ProfileProvider>().updateChildAvatar(child.id, '');
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Foto profil anak dikembalikan ke default'),
+            ),
+          );
+        }
+      },
     );
   }
 }

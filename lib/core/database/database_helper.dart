@@ -102,7 +102,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _createDB,
       onUpgrade: _onUpgradeDB,
     );
@@ -129,7 +129,8 @@ class DatabaseHelper {
         date_of_birth TEXT NOT NULL,
         gender TEXT NOT NULL,
         health_notes TEXT,
-        is_active INTEGER NOT NULL DEFAULT 0
+        is_active INTEGER NOT NULL DEFAULT 0,
+        avatar_url TEXT
       )
     ''');
 
@@ -204,6 +205,11 @@ class DatabaseHelper {
             created_at TEXT NOT NULL
           )
         ''');
+      } catch (_) {}
+    }
+    if (oldVersion < 3) {
+      try {
+        await db.execute('ALTER TABLE child_profile ADD COLUMN avatar_url TEXT');
       } catch (_) {}
     }
   }

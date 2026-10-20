@@ -12,6 +12,7 @@ import 'package:si_cehat_mobile/providers/notification_provider.dart';
 import 'package:si_cehat_mobile/screens/consultation/notification_center_screen.dart';
 import 'package:si_cehat_mobile/screens/education/pustaka_edukasi_screen.dart';
 import 'package:si_cehat_mobile/screens/profile/mother_profile_screen.dart';
+import 'package:si_cehat_mobile/screens/profile/child_profile_screen.dart';
 import 'package:si_cehat_mobile/screens/reminder/reminder_screen.dart';
 import 'package:si_cehat_mobile/screens/tracker/tracker_screen.dart';
 
@@ -137,6 +138,41 @@ void main() {
 
       expect(prov.mother?.avatarUrl, 'assets/dashboard/hello.png');
       expect(find.text('Foto profil berhasil diperbarui'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 4));
+    });
+
+    testWidgets('Child Profile: renders avatar and allows opening avatar picker', (tester) async {
+      await tester.pumpWidget(createTestApp(const ChildProfileScreen()));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Profil Anak'), findsOneWidget);
+      expect(find.text('Nama Anak'), findsOneWidget);
+      expect(find.text('Edit Data Anak'), findsOneWidget);
+
+      // Tap avatar camera edit button
+      final cameraBtn = find.byIcon(Icons.camera_alt);
+      expect(cameraBtn, findsOneWidget);
+      await tester.tap(cameraBtn);
+      await tester.pumpAndSettle();
+
+      // Verify bottom sheet options
+      expect(find.text('Pilih Foto Profil Anak'), findsOneWidget);
+      expect(find.text('Unggah Media / Foto:'), findsOneWidget);
+      expect(find.text('Kamera'), findsOneWidget);
+      expect(find.text('Galeri'), findsOneWidget);
+      expect(find.text('Pilih dari Karakter Si-Cehat:'), findsOneWidget);
+      expect(find.text('Anak Si Cehat'), findsOneWidget);
+      expect(find.text('Hapus / Reset Foto'), findsOneWidget);
+
+      // Select preset
+      final prov = tester.element(find.byType(ChildProfileScreen)).read<ProfileProvider>();
+      await tester.tap(find.byKey(const Key('preset_Anak Si Cehat')));
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(prov.activeChild?.avatarUrl, 'assets/dashboard/hello.png');
+      expect(find.text('Foto profil anak berhasil diperbarui'), findsOneWidget);
       await tester.pump(const Duration(seconds: 4));
     });
 

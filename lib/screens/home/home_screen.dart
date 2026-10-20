@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
-import '../../core/api/api_constants.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/notification_provider.dart';
@@ -17,6 +16,7 @@ import '../profile/child_profile_setup_screen.dart';
 import '../profile/mother_profile_screen.dart';
 import '../reminder/reminder_screen.dart';
 import '../screening/screening_step1_screen.dart';
+import '../../core/widgets/avatar_image.dart';
 
 class HomeScreen extends StatelessWidget {
   final Function(int)? onNavigateTab;
@@ -91,7 +91,11 @@ class HomeScreen extends StatelessWidget {
                         border: Border.all(color: AppColors.primaryGreen, width: 2),
                       ),
                       child: ClipOval(
-                        child: _buildAvatarThumbnail(profile.mother?.avatarUrl),
+                        child: AvatarImage(
+                          avatarUrl: profile.mother?.avatarUrl,
+                          size: 48,
+                          fallbackIcon: Icons.person,
+                        ),
                       ),
                     ),
                   ),
@@ -303,29 +307,6 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildAvatarThumbnail(String? url) {
-    if (url != null && url.isNotEmpty) {
-      if (url.startsWith('assets/')) {
-        return Image.asset(url, fit: BoxFit.cover);
-      }
-      final fullUrl = url.startsWith('http') ? url : '${ApiConstants.baseUrl}$url';
-      return Image.network(
-        fullUrl,
-        fit: BoxFit.cover,
-        errorBuilder: (ctx, err, stack) => const Icon(
-          Icons.person,
-          size: 28,
-          color: Color(0xFF424242),
-        ),
-      );
-    }
-    return const Icon(
-      Icons.person,
-      size: 28,
-      color: Color(0xFF424242),
     );
   }
 

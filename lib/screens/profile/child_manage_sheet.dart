@@ -4,6 +4,7 @@ import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/primary_button.dart';
+import '../../core/widgets/avatar_image.dart';
 import '../../data/models/child_model.dart';
 import '../../providers/profile_provider.dart';
 import '../../providers/tracker_provider.dart';
@@ -107,11 +108,13 @@ class _ChildManageSheetState extends State<ChildManageSheet> {
                   ),
                 ),
                 child: ListTile(
-                  leading: CircleAvatar(
+                  leading: AvatarImage(
+                    avatarUrl: child.avatarUrl,
+                    size: 40,
+                    fallbackIcon: Icons.face,
                     backgroundColor: isSelected
                         ? AppColors.primaryGreen
-                        : Colors.grey[400],
-                    child: const Icon(Icons.person, color: Colors.white),
+                        : Colors.grey[400]!,
                   ),
                   title: Text(
                     child.name,

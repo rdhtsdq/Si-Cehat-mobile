@@ -102,4 +102,5 @@ class ApiConstants {
 
   // Profile Avatar
   static const String parentProfileAvatar = '/api/parent/profile/avatar';
+  static String childAvatar(dynamic id) => '/api/children/$id/avatar';
 }

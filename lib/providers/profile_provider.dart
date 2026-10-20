@@ -220,6 +220,43 @@ class ProfileProvider extends ChangeNotifier {
     return true;
   }
 
+  Future<bool> updateChildAvatar(dynamic childId, String avatarUrlOrBase64, {bool isBase64 = false}) async {
+    final token = await _apiClient.getToken();
+    String newUrl = avatarUrlOrBase64;
+    if (token != null && token.isNotEmpty) {
+      try {
+        final body = isBase64
+            ? {'imageBase64': avatarUrlOrBase64}
+            : {'avatarUrl': avatarUrlOrBase64};
+        final res = await _apiClient.post(ApiConstants.childAvatar(childId), body: body);
+        if (res.isSuccess && res.data != null && res.data['avatarUrl'] != null) {
+          newUrl = res.data['avatarUrl'];
+        }
+      } catch (e) {
+        debugPrint('[ProfileProvider] Remote update child avatar error: $e');
+      }
+    }
+
+    _children = _children.map((c) {
+      if (c.id.toString() == childId.toString()) {
+        final updated = c.copyWith(avatarUrl: newUrl);
+        if (_activeChild?.id.toString() == childId.toString()) {
+          _activeChild = updated;
+        }
+        return updated;
+      }
+      return c;
+    }).toList();
+
+    notifyListeners();
+
+    final matched = _children.where((c) => c.id.toString() == childId.toString());
+    if (matched.isNotEmpty) {
+      await _dbHelper.updateChild(matched.first);
+    }
+    return true;
+  }
+
   Future<void> addChild(ChildModel newChild) async {
     final token = await _apiClient.getToken();
     if (token != null && token.isNotEmpty) {
@@ -283,6 +320,7 @@ class ProfileProvider extends ChangeNotifier {
               'birthDate': updated.dateOfBirth,
             'gender': updated.gender == 'Perempuan' ? 'FEMALE' : 'MALE',
             'healthHistory': updated.healthNotes,
+            if (updated.avatarUrl != null) 'avatarUrl': updated.avatarUrl,
           },
         );
         if (res.isSuccess) {

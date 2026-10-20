@@ -7,6 +7,7 @@ class ChildModel {
   final bool isActive;
   final String? latestRiskCategory;
   final int? latestRiskScore;
+  final String? avatarUrl;
 
   ChildModel({
     required this.id,
@@ -17,6 +18,7 @@ class ChildModel {
     this.isActive = false,
     this.latestRiskCategory,
     this.latestRiskScore,
+    this.avatarUrl,
   });
 
   static String _formatGender(dynamic val) {
@@ -56,6 +58,7 @@ class ChildModel {
       isActive: (map['is_active'] == 1 || map['isActive'] == true),
       latestRiskCategory: riskCat ?? (map['latestRiskCategory'] as String?),
       latestRiskScore: riskScore ?? (map['latestRiskScore'] as num?)?.toInt(),
+      avatarUrl: (map['avatarUrl'] ?? map['avatar_url']) as String?,
     );
   }
 
@@ -70,6 +73,7 @@ class ChildModel {
       'gender': gender,
       'health_notes': healthNotes,
       'is_active': isActive ? 1 : 0,
+      'avatar_url': avatarUrl,
     };
   }
 
@@ -83,6 +87,7 @@ class ChildModel {
       'isActive': isActive,
       if (latestRiskCategory != null) 'latestRiskCategory': latestRiskCategory,
       if (latestRiskScore != null) 'latestRiskScore': latestRiskScore,
+      if (avatarUrl != null) 'avatarUrl': avatarUrl,
     };
   }
 
@@ -95,6 +100,7 @@ class ChildModel {
     bool? isActive,
     String? latestRiskCategory,
     int? latestRiskScore,
+    String? avatarUrl,
   }) {
     return ChildModel(
       id: id ?? this.id,
@@ -105,6 +111,7 @@ class ChildModel {
       isActive: isActive ?? this.isActive,
       latestRiskCategory: latestRiskCategory ?? this.latestRiskCategory,
       latestRiskScore: latestRiskScore ?? this.latestRiskScore,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
     );
   }
 
