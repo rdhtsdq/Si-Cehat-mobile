@@ -6,6 +6,7 @@ import '../../data/models/child_model.dart';
 import '../../data/models/measurement_model.dart';
 import '../../data/models/reminder_model.dart';
 import '../../data/models/notification_model.dart';
+import '../../data/models/activity_log_model.dart';
 
 class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
@@ -18,6 +19,8 @@ class DatabaseHelper {
   final List<MeasurementModel> _fallbackMeasurements = [];
   final List<ReminderModel> _fallbackReminders = [];
   final List<NotificationModel> _fallbackNotifications = [];
+  final List<ActivityLogModel> _fallbackActivities = [];
+  final Map<String, int> _fallbackWater = {};
 
   DatabaseHelper._init();
 
@@ -102,7 +105,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _onUpgradeDB,
     );
@@ -175,6 +178,33 @@ class DatabaseHelper {
       )
     ''');
 
+    // 6. Activity Logs
+    await db.execute('''
+      CREATE TABLE activity_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        remote_id TEXT,
+        child_id INTEGER NOT NULL,
+        date TEXT NOT NULL,
+        title TEXT NOT NULL,
+        category TEXT NOT NULL,
+        duration_minutes INTEGER NOT NULL DEFAULT 0,
+        intensity TEXT,
+        notes TEXT,
+        created_at TEXT NOT NULL
+      )
+    ''');
+
+    // 7. Daily Water Logs
+    await db.execute('''
+      CREATE TABLE daily_water_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        child_id INTEGER NOT NULL,
+        date TEXT NOT NULL,
+        glasses INTEGER NOT NULL DEFAULT 0,
+        UNIQUE(child_id, date)
+      )
+    ''');
+
     // Insert Initial Seeds
     await _seedDatabase(db);
   }
@@ -210,6 +240,35 @@ class DatabaseHelper {
     if (oldVersion < 3) {
       try {
         await db.execute('ALTER TABLE child_profile ADD COLUMN avatar_url TEXT');
+      } catch (_) {}
+    }
+    if (oldVersion < 4) {
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS activity_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            remote_id TEXT,
+            child_id INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            title TEXT NOT NULL,
+            category TEXT NOT NULL,
+            duration_minutes INTEGER NOT NULL DEFAULT 0,
+            intensity TEXT,
+            notes TEXT,
+            created_at TEXT NOT NULL
+          )
+        ''');
+      } catch (_) {}
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS daily_water_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            child_id INTEGER NOT NULL,
+            date TEXT NOT NULL,
+            glasses INTEGER NOT NULL DEFAULT 0,
+            UNIQUE(child_id, date)
+          )
+        ''');
       } catch (_) {}
     }
   }
@@ -487,6 +546,76 @@ class DatabaseHelper {
       return;
     }
     await db.delete('notifications', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // --- ACTIVITY LOGS OPERATIONS ---
+  Future<List<ActivityLogModel>> getActivities(dynamic childId, String date) async {
+    final db = await database;
+    if (db == null) {
+      return _fallbackActivities
+          .where((a) => a.childId.toString() == childId.toString() && a.date == date)
+          .toList();
+    }
+    final result = await db.query(
+      'activity_logs',
+      where: 'child_id = ? AND date = ?',
+      whereArgs: [childId, date],
+      orderBy: 'id DESC',
+    );
+    return result.map((m) => ActivityLogModel.fromMap(m)).toList();
+  }
+
+  Future<int> insertActivity(ActivityLogModel activity) async {
+    final db = await database;
+    if (db == null) {
+      final newId = _fallbackActivities.length + 1;
+      _fallbackActivities.insert(0, activity.copyWith(id: newId));
+      return newId;
+    }
+    return await db.insert('activity_logs', activity.toMap());
+  }
+
+  Future<void> deleteActivity(dynamic id) async {
+    final db = await database;
+    if (db == null) {
+      _fallbackActivities.removeWhere((a) => a.id.toString() == id.toString());
+      return;
+    }
+    await db.delete('activity_logs', where: 'id = ?', whereArgs: [id]);
+  }
+
+  // --- DAILY WATER LOGS OPERATIONS ---
+  Future<int> getWaterGlasses(dynamic childId, String date) async {
+    final key = '${childId}_$date';
+    final db = await database;
+    if (db == null) {
+      return _fallbackWater[key] ?? 0;
+    }
+    final result = await db.query(
+      'daily_water_logs',
+      columns: ['glasses'],
+      where: 'child_id = ? AND date = ?',
+      whereArgs: [childId, date],
+      limit: 1,
+    );
+    if (result.isNotEmpty) {
+      return (result.first['glasses'] as num?)?.toInt() ?? 0;
+    }
+    return 0;
+  }
+
+  Future<void> setWaterGlasses(dynamic childId, String date, int glasses) async {
+    final key = '${childId}_$date';
+    final db = await database;
+    if (db == null) {
+      _fallbackWater[key] = glasses;
+      return;
+    }
+    await db.insert(
+      'daily_water_logs',
+      {'child_id': childId, 'date': date, 'glasses': glasses},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   // --- RESET DEMO DATA ---

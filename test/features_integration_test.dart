@@ -193,8 +193,44 @@ void main() {
       await tester.tap(find.text('Aktivitas'));
       await tester.pumpAndSettle();
 
+      expect(find.text('Target Aktivitas Fisik'), findsOneWidget);
+      expect(find.text('Konsumsi Air Putih'), findsOneWidget);
+      expect(find.text('+ Catat Aktivitas Baru'), findsOneWidget);
+
+      // Increment water glasses
+      final addWaterBtn = find.byTooltip('Tambah 1 Gelas');
+      expect(addWaterBtn, findsOneWidget);
+      await tester.tap(addWaterBtn);
+      await tester.pumpAndSettle();
+      expect(find.text('1 dari 8 Gelas (~250 ml)'), findsOneWidget);
+
+      // Open Add Activity Sheet
+      final addBtn = find.text('+ Catat Aktivitas Baru');
+      await tester.ensureVisible(addBtn);
+      await tester.tap(addBtn);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Catat Aktivitas Baru'), findsOneWidget);
+      expect(find.text('Bermain Sepeda'), findsOneWidget);
+
+      // Tap preset
+      await tester.tap(find.text('Bermain Sepeda'));
+      await tester.pumpAndSettle();
+
+      // Submit activity
+      final submitBtn = find.text('Simpan Aktivitas');
+      await tester.ensureVisible(submitBtn);
+      await tester.tap(submitBtn);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Aktivitas "Bermain Sepeda" berhasil dicatat!'), findsOneWidget);
+      expect(find.text('Bermain Sepeda'), findsOneWidget);
+      expect(find.text('30 menit'), findsOneWidget);
+
       // Return to Tumbuh Kembang tab
-      await tester.tap(find.text('Tumbuh Kembang'));
+      final tumbuhTab = find.text('Tumbuh Kembang');
+      await tester.ensureVisible(tumbuhTab);
+      await tester.tap(tumbuhTab);
       await tester.pumpAndSettle();
     });
   });

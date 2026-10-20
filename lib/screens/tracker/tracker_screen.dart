@@ -30,7 +30,9 @@ class _TrackerScreenState extends State<TrackerScreen> {
       _loadedChildId = child.id;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          context.read<TrackerProvider>().loadMeasurements(child.id);
+          final prov = context.read<TrackerProvider>();
+          prov.loadMeasurements(child.id);
+          prov.loadActivities(child.id);
         }
       });
     }

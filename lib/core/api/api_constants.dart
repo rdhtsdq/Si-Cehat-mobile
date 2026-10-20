@@ -81,6 +81,8 @@ class ApiConstants {
 
   // Health tracker & screening
   static const String trackerGrowth = '/api/tracker/growth';
+  static const String trackerActivities = '/api/tracker/activities';
+  static const String progress = '/api/progress';
   static const String screening = '/api/screening';
   static const String reminders = '/api/reminders';
 
