@@ -246,7 +246,10 @@ class EducationProvider extends ChangeNotifier {
   }
 
   Future<void> _fetchEducationArticles() async {
-    final eduRes = await _apiClient.get(ApiConstants.educationArticles);
+    final eduRes = await _apiClient.get(
+      ApiConstants.educationArticles,
+      queryParams: {'limit': '50'},
+    );
     if (eduRes.isSuccess && eduRes.data != null) {
       final rawArticles =
           (eduRes.data['data'] ?? eduRes.data['articles']) as List<dynamic>?;

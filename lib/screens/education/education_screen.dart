@@ -7,6 +7,7 @@ import '../../providers/education_provider.dart';
 import 'education_detail_screen.dart';
 import 'quiz_screen.dart';
 import 'pustaka_edukasi_screen.dart';
+import 'playlab_game_screen.dart';
 
 class EducationScreen extends StatefulWidget {
   final bool showBackButton;
@@ -59,7 +60,10 @@ class _EducationScreenState extends State<EducationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Empat tab: Video, Podcast, Quiz, Pustaka Edukasi
+              // 1. PlayLab Mini-Game Banner
+              _buildPlayLabBanner(context),
+
+              // 2. Empat tab: Video, Podcast, Quiz, Pustaka Edukasi
               Row(
                 children: [
                   Expanded(
@@ -95,7 +99,7 @@ class _EducationScreenState extends State<EducationScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
               // Daftar konten edukasi
               Expanded(
@@ -111,6 +115,96 @@ class _EducationScreenState extends State<EducationScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildPlayLabBanner(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            const Color(0xFFFFF7D6),
+            const Color(0xFFDCFCE7),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.primaryGreen.withAlpha(90), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(12),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.primaryGreen, width: 2),
+            ),
+            child: const Center(
+              child: Text('🥗', style: TextStyle(fontSize: 24)),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryGreen,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'PlayLab Game',
+                        style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Piring Sehat Nimbo',
+                  style: AppTypography.titleCard.copyWith(fontSize: 14, fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  'Susun variasi makanan seimbang & kuis!',
+                  style: AppTypography.bodySecondary.copyWith(fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const PlayLabGameScreen()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryGreenDark,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text(
+              'Main 🎮',
+              style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -143,18 +237,38 @@ class _EducationScreenState extends State<EducationScreen> {
   }
 
   Widget _buildMediaList(BuildContext context, List<EducationModel> items) {
+    if (items.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.video_library_outlined, size: 48, color: Colors.grey.shade400),
+              const SizedBox(height: 12),
+              Text(
+                'Belum ada materi pada kategori ini.',
+                style: AppTypography.bodySecondary,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return ListView.separated(
       itemCount: items.length,
       separatorBuilder: (_, _) => const SizedBox(height: 14),
       itemBuilder: (context, index) {
         final item = items[index];
         final isVideo = item.type == 'video';
+        final ytThumb = item.youtubeThumbnailUrl;
 
         return Material(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           elevation: 1,
-          shadowColor: Colors.black.withValues(alpha: 0.06),
+          shadowColor: Colors.black.withValues(alpha: 0.05),
           child: InkWell(
             onTap: () {
               Navigator.of(context).push(
@@ -163,34 +277,89 @@ class _EducationScreenState extends State<EducationScreen> {
                 ),
               );
             },
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: const Color(0xFFEEEEEE)),
               ),
               child: Row(
                 children: [
-                  // Thumbnail kiri sesuai PDF
-                  Container(
-                    width: 76,
-                    height: 76,
-                    decoration: BoxDecoration(
-                      color: AppColors.paleGreenBg,
+                  // Thumbnail Preview
+                  if (isVideo && ytThumb != null && ytThumb.isNotEmpty)
+                    ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        isVideo ? Icons.play_circle_outline : Icons.headphones_outlined,
-                        size: 36,
-                        color: AppColors.primaryGreenDark,
+                      child: SizedBox(
+                        width: 88,
+                        height: 66,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Image.network(
+                              ytThumb,
+                              width: 88,
+                              height: 66,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => Container(
+                                color: AppColors.paleGreenBg,
+                                child: const Icon(Icons.play_circle_outline, color: AppColors.primaryGreenDark, size: 32),
+                              ),
+                            ),
+                            Container(color: Colors.black.withAlpha(50)),
+                            Container(
+                              width: 28,
+                              height: 28,
+                              decoration: BoxDecoration(
+                                color: Colors.red.shade600,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(color: Colors.black.withAlpha(60), blurRadius: 4),
+                                ],
+                              ),
+                              child: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
+                            ),
+                            Positioned(
+                              bottom: 3,
+                              right: 3,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withAlpha(190),
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                                child: const Text(
+                                  'YOUTUBE',
+                                  style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      width: 80,
+                      height: 66,
+                      decoration: BoxDecoration(
+                        color: isVideo ? Colors.purple.shade50 : Colors.amber.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isVideo ? Colors.purple.shade200 : Colors.amber.shade200,
+                        ),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          isVideo ? Icons.play_circle_outline : Icons.headphones_outlined,
+                          size: 32,
+                          color: isVideo ? Colors.purple.shade700 : Colors.amber.shade800,
+                        ),
                       ),
                     ),
-                  ),
                   const SizedBox(width: 14),
 
-                  // Judul bold kanan, durasi abu di bawah
+                  // Title bold, duration & badge
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -198,7 +367,7 @@ class _EducationScreenState extends State<EducationScreen> {
                         Text(
                           item.title,
                           style: AppTypography.titleCard.copyWith(
-                            fontSize: 15,
+                            fontSize: 14,
                             fontWeight: FontWeight.w700,
                           ),
                           maxLines: 2,
@@ -214,6 +383,22 @@ class _EducationScreenState extends State<EducationScreen> {
                               style: AppTypography.bodySecondary.copyWith(
                                 fontSize: 12,
                                 color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: isVideo ? Colors.red.shade50 : Colors.amber.shade50,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                isVideo ? 'Preview Video' : 'Audio',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: isVideo ? Colors.red.shade700 : Colors.amber.shade800,
+                                ),
                               ),
                             ),
                           ],

@@ -144,9 +144,13 @@ class AuthProvider extends ChangeNotifier {
         _isLoggedIn = true;
         _isDemoMode = false;
 
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('is_logged_in', true);
-        await prefs.setBool('is_demo_mode', false);
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('is_logged_in', true);
+          await prefs.setBool('is_demo_mode', false);
+        } catch (err) {
+          debugPrint('[AuthProvider] SharedPreferences persistence error: $err');
+        }
 
         _isLoading = false;
         notifyListeners();
@@ -211,9 +215,13 @@ class AuthProvider extends ChangeNotifier {
         _isLoggedIn = true;
         _isDemoMode = false;
 
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('is_logged_in', true);
-        await prefs.setBool('is_demo_mode', false);
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('is_logged_in', true);
+          await prefs.setBool('is_demo_mode', false);
+        } catch (err) {
+          debugPrint('[AuthProvider] SharedPreferences persistence error: $err');
+        }
 
         _isLoading = false;
         notifyListeners();

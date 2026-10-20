@@ -53,6 +53,55 @@ class EducationModel {
       imageUrl: json['imageUrl'] as String?,
     );
   }
+
+  static String? extractYouTubeId(String? url) {
+    if (url == null || url.trim().isEmpty) return null;
+    final clean = url.trim();
+
+    // If pure 11-char ID
+    if (RegExp(r'^[a-zA-Z0-9_-]{11}$').hasMatch(clean)) {
+      return clean;
+    }
+
+    final regExp = RegExp(
+      r'(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/|live\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})',
+      caseSensitive: false,
+    );
+    final match = regExp.firstMatch(clean);
+    if (match != null && match.groupCount >= 1) {
+      return match.group(1);
+    }
+
+    try {
+      final uri = Uri.tryParse(clean);
+      if (uri != null && uri.queryParameters.containsKey('v')) {
+        final v = uri.queryParameters['v'];
+        if (v != null && v.length == 11) return v;
+      }
+    } catch (_) {}
+
+    return null;
+  }
+
+  String? get youtubeId => extractYouTubeId(videoUrl);
+
+  String? get youtubeThumbnailUrl {
+    final yId = youtubeId;
+    if (yId != null) {
+      return 'https://img.youtube.com/vi/$yId/hqdefault.jpg';
+    }
+    return imageUrl;
+  }
+
+  String? get youtubeMaxResThumbnailUrl {
+    final yId = youtubeId;
+    if (yId != null) {
+      return 'https://img.youtube.com/vi/$yId/maxresdefault.jpg';
+    }
+    return imageUrl;
+  }
+
+  bool get isYoutube => type == 'video' && youtubeId != null;
 }
 
 class QuizQuestion {

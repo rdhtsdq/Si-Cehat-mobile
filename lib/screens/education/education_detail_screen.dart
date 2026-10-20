@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../data/models/education_model.dart';
+import '../../core/widgets/youtube_embedded_player.dart';
 
 class EducationDetailScreen extends StatefulWidget {
   final EducationModel item;
@@ -68,13 +69,7 @@ class _EducationDetailScreenState extends State<EducationDetailScreen> {
   }
 
   String? _extractYouTubeId(String? url) {
-    if (url == null || url.isEmpty) return null;
-    final regExp = RegExp(
-      r'(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})',
-      caseSensitive: false,
-    );
-    final match = regExp.firstMatch(url);
-    return match?.group(1);
+    return EducationModel.extractYouTubeId(url);
   }
 
   Future<void> _launchMediaUrl(String url) async {
@@ -305,129 +300,14 @@ class _EducationDetailScreenState extends State<EducationDetailScreen> {
   // ==========================================
   Widget _buildVideoPlayerSection(EducationModel item, String? ytId) {
     final videoUrl = item.videoUrl ?? 'https://www.youtube.com/watch?v=kXYiU_JCYtU';
-    final thumbnailUrl = ytId != null
-        ? 'https://img.youtube.com/vi/$ytId/hqdefault.jpg'
-        : (item.imageUrl ?? '');
+    final resolvedYtId = ytId ?? item.youtubeId;
 
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(30),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: AspectRatio(
-        aspectRatio: 16 / 9,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Thumbnail Image
-            if (thumbnailUrl.isNotEmpty)
-              Image.network(
-                thumbnailUrl,
-                width: double.infinity,
-                height: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: Colors.black87,
-                  child: const Center(
-                    child: Icon(Icons.movie_outlined, size: 48, color: Colors.white54),
-                  ),
-                ),
-              )
-            else
-              Container(
-                color: Colors.black87,
-                child: const Center(
-                  child: Icon(Icons.movie_outlined, size: 48, color: Colors.white54),
-                ),
-              ),
-
-            // Semi-transparent overlay
-            Container(color: Colors.black.withAlpha(90)),
-
-            // Big Play Button
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => _launchMediaUrl(videoUrl),
-                borderRadius: BorderRadius.circular(50),
-                child: Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: Colors.red.shade600,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.red.withAlpha(100),
-                        blurRadius: 12,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.play_arrow_rounded,
-                    size: 40,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-
-            // Bottom banner with action
-            Positioned(
-              left: 12,
-              right: 12,
-              bottom: 10,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withAlpha(180),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.play_circle, color: Colors.redAccent, size: 14),
-                        const SizedBox(width: 4),
-                        Text(
-                          ytId != null ? 'YouTube Video' : 'Video Tutorial',
-                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => _launchMediaUrl(videoUrl),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryGreen,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Text(
-                        'Putar Video',
-                        style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+    return YouTubeEmbeddedPlayer(
+      videoUrl: videoUrl,
+      videoId: resolvedYtId,
+      title: item.title,
+      fallbackThumbnail: item.imageUrl,
+      startPlaying: false,
     );
   }
 

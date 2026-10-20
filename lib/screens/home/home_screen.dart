@@ -9,6 +9,7 @@ import '../consultation/consultation_screen.dart';
 import '../consultation/notification_center_screen.dart';
 import '../community/community_screen.dart';
 import '../education/pustaka_edukasi_screen.dart';
+import '../education/playlab_game_screen.dart';
 import '../menu/menu_catalog_screen.dart';
 import '../menu/meal_plan_screen.dart';
 import '../nutrition/nutrition_calculator_screen.dart';
@@ -299,7 +300,11 @@ class HomeScreen extends StatelessWidget {
                     () => _push(context, const PustakaEdukasiScreen()),
                   ),
                   const SizedBox(width: 12),
-                  const Spacer(),
+                  _buildMenuCard(
+                    'activity.png',
+                    'PlayLab Game',
+                    () => _push(context, const PlayLabGameScreen()),
+                  ),
                 ],
               ),
               const SizedBox(height: 20),
