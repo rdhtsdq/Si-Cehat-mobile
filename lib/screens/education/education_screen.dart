@@ -3,11 +3,15 @@ import 'package:provider/provider.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../data/models/education_model.dart';
+import '../../data/models/playlab_score_model.dart';
+import '../../core/services/playlab_storage_service.dart';
 import '../../providers/education_provider.dart';
+import '../../providers/profile_provider.dart';
 import 'education_detail_screen.dart';
 import 'quiz_screen.dart';
 import 'pustaka_edukasi_screen.dart';
 import 'playlab_game_screen.dart';
+import 'widgets/playlab_score_dialog.dart';
 
 class EducationScreen extends StatefulWidget {
   final bool showBackButton;
@@ -20,6 +24,27 @@ class EducationScreen extends StatefulWidget {
 
 class _EducationScreenState extends State<EducationScreen> {
   int _selectedTab = 0; // 0: Video, 1: Podcast, 2: Quiz
+  PlayLabScoreResult? _latestPlayLabScore;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadPlayLabScore();
+    });
+  }
+
+  Future<void> _loadPlayLabScore() async {
+    try {
+      final activeChild = context.read<ProfileProvider>().activeChild;
+      final score = await PlayLabStorageService.instance.getLatestScore(
+        childId: activeChild?.id?.toString(),
+      );
+      if (mounted) {
+        setState(() => _latestPlayLabScore = score);
+      }
+    } catch (_) {}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -120,6 +145,8 @@ class _EducationScreenState extends State<EducationScreen> {
   }
 
   Widget _buildPlayLabBanner(BuildContext context) {
+    final hasScore = _latestPlayLabScore != null;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -132,7 +159,7 @@ class _EducationScreenState extends State<EducationScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.primaryGreen.withAlpha(90), width: 1.5),
         boxShadow: [
           BoxShadow(
@@ -142,67 +169,129 @@ class _EducationScreenState extends State<EducationScreen> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.primaryGreen, width: 2),
-            ),
-            child: const Center(
-              child: Text('🥗', style: TextStyle(fontSize: 24)),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.primaryGreen, width: 2),
+                ),
+                child: const Center(
+                  child: Icon(Icons.restaurant_menu_rounded, color: AppColors.primaryGreen, size: 24),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryGreen,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Text(
-                        'PlayLab Game',
-                        style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryGreen,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text(
+                            'PlayLab Game',
+                            style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        if (hasScore) ...[
+                          const SizedBox(width: 6),
+                          Row(
+                            children: List.generate(3, (idx) {
+                              final isEarned = idx < _latestPlayLabScore!.starsEarned;
+                              return Icon(
+                                isEarned ? Icons.star_rounded : Icons.star_outline_rounded,
+                                size: 16,
+                                color: isEarned ? const Color(0xFFF59E0B) : Colors.grey.shade400,
+                              );
+                            }),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Piring Sehat Nimbo',
+                      style: AppTypography.titleCard.copyWith(fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      hasScore
+                          ? 'Skor Terakhir: ${_latestPlayLabScore!.totalScore}/100 • +${_latestPlayLabScore!.xpAwarded} XP'
+                          : 'Susun variasi makanan seimbang & kuis!',
+                      style: AppTypography.bodySecondary.copyWith(
+                        fontSize: 11,
+                        fontWeight: hasScore ? FontWeight.bold : FontWeight.normal,
+                        color: hasScore ? const Color(0xFF166534) : AppColors.textSecondary,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  'Piring Sehat Nimbo',
-                  style: AppTypography.titleCard.copyWith(fontSize: 14, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  'Susun variasi makanan seimbang & kuis!',
-                  style: AppTypography.bodySecondary.copyWith(fontSize: 11),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const PlayLabGameScreen()),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreenDark,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text(
-              'Main 🎮',
-              style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-            ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              if (hasScore) ...[
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      PlayLabScoreDialog.show(
+                        context,
+                        result: _latestPlayLabScore!,
+                        onPlayAgain: () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const PlayLabGameScreen()),
+                          );
+                          _loadPlayLabScore();
+                        },
+                      );
+                    },
+                    icon: const Icon(Icons.analytics_outlined, size: 16, color: Color(0xFF173D31)),
+                    label: const Text(
+                      'Lihat Nilai',
+                      style: TextStyle(color: Color(0xFF173D31), fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFF173D31), width: 1.2),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    await Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const PlayLabGameScreen()),
+                    );
+                    _loadPlayLabScore();
+                  },
+                  icon: const Icon(Icons.sports_esports_rounded, size: 16, color: Colors.white),
+                  label: Text(
+                    hasScore ? 'Main Lagi' : 'Main Sekarang',
+                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryGreenDark,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

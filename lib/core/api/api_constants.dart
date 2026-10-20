@@ -112,4 +112,15 @@ class ApiConstants {
   static String gameSessionEvents(String sessionId) => '/api/game-sessions/$sessionId/events';
   static String gameSessionComplete(String sessionId) => '/api/game-sessions/$sessionId/complete';
   static String gameSessionResult(String sessionId) => '/api/game-sessions/$sessionId/result';
+
+  /// Returns the base URL hosting the standalone web game
+  static String get gameWebUrl {
+    if (kIsWeb) {
+      return 'http://localhost:5173';
+    }
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:5173';
+    }
+    return 'http://localhost:5173';
+  }
 }

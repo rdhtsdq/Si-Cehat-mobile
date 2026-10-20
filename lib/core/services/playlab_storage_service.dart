@@ -1,0 +1,92 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../../data/models/playlab_score_model.dart';
+import '../../data/models/activity_log_model.dart';
+import '../database/database_helper.dart';
+
+class PlayLabStorageService {
+  PlayLabStorageService._();
+  static final PlayLabStorageService instance = PlayLabStorageService._();
+
+  static const String _globalKey = 'playlab_latest_score_global';
+  static const String _historyKeyPrefix = 'playlab_score_history_';
+
+  String _childKey(String? childId) => 'playlab_latest_score_${childId ?? 'default'}';
+  String _childHistoryKey(String? childId) => '$_historyKeyPrefix${childId ?? 'default'}';
+
+  Future<void> saveScoreResult(PlayLabScoreResult result) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = jsonEncode(result.toJson());
+
+      // 1. Save as latest score for this child & globally
+      await prefs.setString(_childKey(result.childId), jsonStr);
+      await prefs.setString(_globalKey, jsonStr);
+
+      // 2. Append to history list
+      final historyKey = _childHistoryKey(result.childId);
+      final rawList = prefs.getStringList(historyKey) ?? [];
+      final updatedList = [jsonStr, ...rawList.take(9)];
+      await prefs.setStringList(historyKey, updatedList);
+
+      // 3. Log into local SQLite activity logs so it reflects in diary
+      if (result.childId != null) {
+        final parsedChildId = int.tryParse(result.childId!) ?? result.childId;
+        final dateStr = result.completedAt.toIso8601String().substring(0, 10);
+
+        final log = ActivityLogModel(
+          childId: parsedChildId,
+          date: dateStr,
+          title: 'Edukasi PlayLab: Piring Sehat Nimbo (${result.totalScore} Poin)',
+          category: 'Gizi Seimbang',
+          durationMinutes: 10,
+          intensity: 'Ringan',
+          notes: 'Meraih ${result.starsEarned} Bintang & +${result.xpAwarded} XP. ${result.feedbackSummary}',
+          createdAt: result.completedAt.toIso8601String(),
+        );
+
+        await DatabaseHelper.instance.insertActivity(log);
+      }
+    } catch (e) {
+      debugPrint('[PlayLabStorageService] Error saving score: $e');
+    }
+  }
+
+  Future<PlayLabScoreResult?> getLatestScore({String? childId}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      String? jsonStr;
+
+      if (childId != null) {
+        jsonStr = prefs.getString(_childKey(childId));
+      }
+      // Fallback to global latest if child-specific not found
+      jsonStr ??= prefs.getString(_globalKey);
+
+      if (jsonStr != null && jsonStr.isNotEmpty) {
+        final data = jsonDecode(jsonStr) as Map<String, dynamic>;
+        return PlayLabScoreResult.fromJson(data);
+      }
+    } catch (e) {
+      debugPrint('[PlayLabStorageService] Error reading score: $e');
+    }
+    return null;
+  }
+
+  Future<List<PlayLabScoreResult>> getScoreHistory({String? childId}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final historyKey = _childHistoryKey(childId);
+      final rawList = prefs.getStringList(historyKey) ?? [];
+
+      return rawList.map((item) {
+        final data = jsonDecode(item) as Map<String, dynamic>;
+        return PlayLabScoreResult.fromJson(data);
+      }).toList();
+    } catch (e) {
+      debugPrint('[PlayLabStorageService] Error reading history: $e');
+      return [];
+    }
+  }
+}

@@ -1,12 +1,17 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../core/api/api_client.dart';
 import '../../core/api/api_constants.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
+import '../../core/services/playlab_storage_service.dart';
+import '../../data/models/playlab_score_model.dart';
 import '../../providers/profile_provider.dart';
+import 'widgets/playlab_score_dialog.dart';
 
 class PlayLabGameScreen extends StatefulWidget {
   final String gameSlug;
@@ -27,6 +32,7 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen> {
   bool _isInitializingSession = true;
   bool _isLoadingWeb = true;
   bool _hasError = false;
+  bool _isDesktopMode = false;
   String? _errorMessage;
   String? _sessionId;
   String? _gameUrl;
@@ -60,24 +66,44 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen> {
       );
 
       String? sId;
+      String? bToken;
       if (res.isSuccess && res.data != null && res.data['session'] != null) {
         sId = res.data['session']['id']?.toString();
+        bToken = res.data['bootstrapToken']?.toString();
       }
 
       _sessionId = sId;
 
-      // 2. Build target Web Game URL
-      final base = ApiConstants.baseUrl;
+      // 2. Build target Web Game URL (prefer standalone gameWebUrl, fallback to baseUrl/playlab/piring-sehat)
+      final standaloneBase = ApiConstants.gameWebUrl;
       final queryParams = <String, String>{};
+      if (bToken != null && bToken.isNotEmpty) queryParams['bootstrap'] = bToken;
       if (sId != null) queryParams['sessionId'] = sId;
       if (childId != null) queryParams['childId'] = childId;
 
-      final uri = Uri.parse('$base/playlab/piring-sehat').replace(
+      final uri = Uri.parse(standaloneBase).replace(
         queryParameters: queryParams.isNotEmpty ? queryParams : null,
       );
       _gameUrl = uri.toString();
 
-      // 3. Initialize WebView Controller
+      // Check if native mobile WebView platform is supported (Android/iOS)
+      final isMobilePlatform = !kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.android ||
+              defaultTargetPlatform == TargetPlatform.iOS);
+
+      if (!isMobilePlatform || WebViewPlatform.instance == null) {
+        // Desktop (Windows/macOS/Linux) or Web: bypass WebViewController assertion
+        if (mounted) {
+          setState(() {
+            _isDesktopMode = true;
+            _isInitializingSession = false;
+            _isLoadingWeb = false;
+          });
+        }
+        return;
+      }
+
+      // 3. Initialize WebView Controller (Mobile Android/iOS only)
       final controller = WebViewController()
         ..setJavaScriptMode(JavaScriptMode.unrestricted)
         ..setBackgroundColor(const Color(0xFFFFF9E9))
@@ -90,9 +116,16 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen> {
         ..setNavigationDelegate(
           NavigationDelegate(
             onNavigationRequest: (NavigationRequest request) {
-              // Security: only allow allowed origin
-              if (request.url.startsWith(base)) {
-                return NavigationDecision.navigate;
+              // Security: only allow allowed game or API host origins
+              final reqUri = Uri.tryParse(request.url);
+              final gameUri = Uri.tryParse(standaloneBase);
+              final apiUri = Uri.tryParse(ApiConstants.baseUrl);
+              if (reqUri != null) {
+                if (reqUri.host == gameUri?.host ||
+                    reqUri.host == apiUri?.host ||
+                    request.url.startsWith('about:blank')) {
+                  return NavigationDecision.navigate;
+                }
               }
               debugPrint('[PlayLabWebView] Blocked navigation to: ${request.url}');
               return NavigationDecision.prevent;
@@ -147,7 +180,8 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen> {
           break;
 
         case 'GAME_COMPLETED':
-          _onGameCompleted(data['sessionId']?.toString() ?? _sessionId);
+          final scores = data['scores'] as Map<String, dynamic>?;
+          _onGameCompleted(data['sessionId']?.toString() ?? _sessionId, scores);
           break;
 
         case 'EXIT_GAME':
@@ -168,180 +202,77 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen> {
     }
   }
 
-  Future<void> _onGameCompleted(String? completedSessionId) async {
-    if (completedSessionId == null) {
-      Navigator.of(context).maybePop();
-      return;
-    }
+  Future<void> _onGameCompleted(
+    String? completedSessionId, [
+    Map<String, dynamic>? bridgeScores,
+  ]) async {
+    final activeChild = context.read<ProfileProvider>().activeChild;
 
-    // Refresh child progress in profile provider
-    try {
-      context.read<ProfileProvider>().loadProfiles();
-    } catch (_) {}
-
-    // Fetch verified result from server
+    // 1. Fetch verified result from server if available
     Map<String, dynamic>? verifiedResult;
-    try {
-      final res = await _apiClient.get(ApiConstants.gameSessionResult(completedSessionId));
-      if (res.isSuccess && res.data != null && res.data['result'] != null) {
-        verifiedResult = res.data['result'] as Map<String, dynamic>;
+    if (completedSessionId != null && completedSessionId != 'local-simulation') {
+      try {
+        final res = await _apiClient.get(ApiConstants.gameSessionResult(completedSessionId));
+        if (res.isSuccess && res.data != null && res.data['result'] != null) {
+          verifiedResult = res.data['result'] as Map<String, dynamic>;
+        }
+      } catch (e) {
+        debugPrint('[PlayLab] Failed to fetch verified result from server: $e');
       }
-    } catch (e) {
-      debugPrint('[PlayLab] Failed to fetch verified result: $e');
     }
 
     if (!mounted) return;
 
-    final gameplayScore = verifiedResult?['gameplayScore'] ?? 100;
-    final knowledgeScore = verifiedResult?['knowledgeScore'] ?? 100;
-    final totalScore = verifiedResult?['totalScore'] ?? 100;
-    final stars = verifiedResult?['starsEarned'] ?? 3;
-    final feedback = verifiedResult?['feedbackSummary'] ??
-        'Selamat! Kamu telah menyelesaikan permainan Piring Sehat Nimbo!';
-    final xpAwarded = verifiedResult?['xpAwarded'] ?? 75;
+    // 2. Synthesize score result prioritizing server validation with fallback to bridge
+    final scoreResult = PlayLabScoreResult(
+      sessionId: completedSessionId ?? 'session-${DateTime.now().millisecondsSinceEpoch}',
+      childId: activeChild?.id?.toString(),
+      childName: activeChild?.name,
+      gameplayScore: (verifiedResult?['gameplayScore'] as num?)?.toInt() ??
+          (bridgeScores?['gameplayScore'] as num?)?.toInt() ??
+          100,
+      knowledgeScore: (verifiedResult?['knowledgeScore'] as num?)?.toInt() ??
+          (bridgeScores?['knowledgeScore'] as num?)?.toInt() ??
+          100,
+      totalScore: (verifiedResult?['totalScore'] as num?)?.toInt() ??
+          (bridgeScores?['totalScore'] as num?)?.toInt() ??
+          100,
+      starsEarned: (verifiedResult?['starsEarned'] as num?)?.toInt() ??
+          (bridgeScores?['starsEarned'] as num?)?.toInt() ??
+          3,
+      xpAwarded: (verifiedResult?['xpAwarded'] as num?)?.toInt() ??
+          (bridgeScores?['xpAwarded'] as num?)?.toInt() ??
+          75,
+      feedbackSummary: verifiedResult?['feedbackSummary']?.toString() ??
+          'Hebat! Piring makan ${activeChild?.name ?? "kamu"} berhasil tersusun dengan gizi seimbang sesuai pedoman Isi Piringku.',
+    );
 
-    await showModalBottomSheet(
-      context: context,
-      isDismissible: false,
-      enableDrag: false,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Stars
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(3, (idx) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Icon(
-                      idx < stars ? Icons.star_rounded : Icons.star_border_rounded,
-                      color: Colors.amber,
-                      size: 42,
-                    ),
-                  );
-                }),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Permainan Selesai!',
-                style: AppTypography.headingScreen.copyWith(fontSize: 22),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                feedback,
-                textAlign: TextAlign.center,
-                style: AppTypography.bodySecondary.copyWith(fontSize: 13),
-              ),
-              const SizedBox(height: 16),
+    // 3. Persist score in SharedPreferences & SQLite Activity Log for the kid
+    await PlayLabStorageService.instance.saveScoreResult(scoreResult);
 
-              // XP Badge
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.veryLightGreen,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.primaryGreen.withAlpha(100)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.stars, color: AppColors.primaryGreenDark, size: 18),
-                    const SizedBox(width: 6),
-                    Text(
-                      '+$xpAwarded XP Edukasi Berhasil Diraih',
-                      style: AppTypography.badgeText.copyWith(
-                        color: AppColors.primaryGreenDark,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 18),
+    // 4. Refresh profile provider
+    try {
+      if (mounted) {
+        context.read<ProfileProvider>().loadProfiles();
+      }
+    } catch (_) {}
 
-              // Scores comparison container
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: AppColors.fieldBackground,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.black.withAlpha(15)),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Skor Gameplay Piring:'),
-                        Text(
-                          '$gameplayScore / 100',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Skor Pengetahuan:'),
-                        Text(
-                          '$knowledgeScore / 100',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    const Divider(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Total Skor Validasi Server:', style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text(
-                          '$totalScore / 100',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primaryGreenDark,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
+    if (!mounted) return;
 
-              // Return CTA
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(ctx).pop();
-                    _forceExit();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryGreen,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: Text(
-                    'Kembali ke Si-Cehat',
-                    style: AppTypography.buttonText.copyWith(color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
+    // 5. Present the child-friendly score dialog
+    await PlayLabScoreDialog.show(
+      context,
+      result: scoreResult,
+      onPlayAgain: () {
+        if (_webViewController != null && _gameUrl != null) {
+          _webViewController!.loadRequest(Uri.parse(_gameUrl!));
+        } else {
+          _bootstrapGameSession();
+        }
       },
     );
+
+    _forceExit();
   }
 
   Future<void> _confirmAndExit() async {
@@ -371,6 +302,141 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen> {
     if (shouldExit == true && mounted) {
       _forceExit();
     }
+  }
+
+  Widget _buildDesktopFallbackView() {
+    return Container(
+      color: const Color(0xFFFFF9E9),
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: SingleChildScrollView(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 440),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFF173D31), width: 2),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0xFF173D31),
+                  offset: Offset(3, 4),
+                  blurRadius: 0,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF75C8E8),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFF173D31), width: 2.5),
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.restaurant_menu_rounded, color: Color(0xFF173D31), size: 36),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  'Piring Sehat Nimbo',
+                  style: AppTypography.headingScreen.copyWith(fontSize: 20),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Mode Desktop Windows Terdeteksi\nWebView native berjalan di Android & iOS. Pada Windows, buka game di browser Anda atau simulasikan hasil.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF285648),
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (_sessionId != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF9E9),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: const Color(0xFF173D31).withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Text(
+                      'Sesi Aktif: $_sessionId',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF173D31),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                ],
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      if (_gameUrl != null) {
+                        final uri = Uri.parse(_gameUrl!);
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.open_in_browser, color: Colors.white),
+                    label: const Text(
+                      'Buka Game di Browser (Chrome/Edge)',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF247A4D),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _onGameCompleted(_sessionId, const {
+                      'gameplayScore': 100,
+                      'knowledgeScore': 100,
+                      'totalScore': 100,
+                      'starsEarned': 3,
+                      'xpAwarded': 75,
+                    }),
+                    icon: const Icon(Icons.verified, color: Color(0xFF247A4D)),
+                    label: const Text(
+                      'Simulasi Selesai (Ambil Skor Server)',
+                      style: TextStyle(color: Color(0xFF247A4D), fontWeight: FontWeight.bold),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFF247A4D), width: 1.5),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -429,12 +495,16 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen> {
         body: SafeArea(
           child: Stack(
             children: [
-              // 1. ACTIVE WEBVIEW
-              if (_webViewController != null && !_hasError)
+              // 1. ACTIVE WEBVIEW (Mobile Android/iOS)
+              if (_webViewController != null && !_hasError && !_isDesktopMode)
                 WebViewWidget(controller: _webViewController!),
 
+              // 1b. DESKTOP / WINDOWS FALLBACK
+              if (_isDesktopMode && !_isInitializingSession && !_hasError)
+                _buildDesktopFallbackView(),
+
               // 2. LOADING STATE
-              if (_isInitializingSession || (_isLoadingWeb && !_hasError))
+              if (_isInitializingSession || (_isLoadingWeb && !_hasError && !_isDesktopMode))
                 Container(
                   color: const Color(0xFFFFF9E9),
                   child: Center(
