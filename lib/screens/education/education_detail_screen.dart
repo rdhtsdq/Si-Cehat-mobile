@@ -206,10 +206,10 @@ class _EducationDetailScreenState extends State<EducationDetailScreen> {
                     ),
                     child: Text(
                       isVideo
-                          ? '🎬 Video Edukasi'
+                          ? 'Video Edukasi'
                           : isPodcast
-                              ? '🎙️ Podcast Audio'
-                              : '📄 Artikel Sehat',
+                              ? 'Podcast Audio'
+                              : 'Artikel Sehat',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
@@ -417,7 +417,7 @@ class _EducationDetailScreenState extends State<EducationDetailScreen> {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: const Text(
-                        'Putar Video ↗',
+                        'Putar Video',
                         style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -559,7 +559,7 @@ class _EducationDetailScreenState extends State<EducationDetailScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       elevation: 0,
                     ),
-                    child: const Text('Buka ↗', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    child: const Text('Buka', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                   ),
                 ],
               ),

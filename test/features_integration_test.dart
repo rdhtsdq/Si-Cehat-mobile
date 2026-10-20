@@ -252,9 +252,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Video Edukasi Diabetes Anak'), findsWidgets);
-      expect(find.text('🎬 Video Edukasi'), findsOneWidget);
+      expect(find.text('Video Edukasi'), findsOneWidget);
       expect(find.text('YouTube Video'), findsOneWidget);
-      expect(find.text('Putar Video ↗'), findsOneWidget);
+      expect(find.text('Putar Video'), findsOneWidget);
       expect(find.text('dr. Amanda Sp.A'), findsOneWidget);
     });
 
@@ -274,7 +274,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Podcast Pola Asuh Sehat'), findsWidgets);
-      expect(find.text('🎙️ Podcast Audio'), findsOneWidget);
+      expect(find.text('Podcast Audio'), findsOneWidget);
       expect(find.text('Bidan Rita & dr. Farhan'), findsWidgets);
       expect(find.byIcon(Icons.replay_10), findsOneWidget);
       expect(find.byIcon(Icons.forward_10), findsOneWidget);
