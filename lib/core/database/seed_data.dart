@@ -138,6 +138,8 @@ class SeedData {
       summary: 'Pengenalan jenis diabetes pada anak, gejala awal, dan pentingnya pemantauan gaya hidup.',
       contentBody:
           'Diabetes melitus pada anak dapat berupa Tipe 1 (faktor autoimun) maupun Tipe 2 yang semakin meningkat akibat pola makan tinggi gula, kurang gerak, dan kelebihan berat badan.\n\nGejala umum yang perlu diwaspadai orang tua meliputi:\n1. Sering buang air kecil terutama di malam hari.\n2. Anak cepat haus dan minum lebih banyak dari biasanya.\n3. Cepat lapar namun berat badan cenderung turun atau tidak naik secara wajar.\n4. Anak mudah lelah dan mengantuk saat beraktivitas.\n\nPencegahan Tipe 2 dilakukan dengan membiasakan makanan utuh bergizi dan membatasi konsumsi minuman manis kemasan.',
+      mediaType: 'youtube',
+      videoUrl: 'https://www.youtube.com/watch?v=kXYiU_JCYtU',
     ),
     EducationModel(
       id: 'edu_video_2',
@@ -147,6 +149,8 @@ class SeedData {
       summary: 'Memahami kandungan gula tersembunyi pada teh kemasan, boba, dan minuman soda.',
       contentBody:
           'Satu kotak minuman kemasan sering kali mengandung 20-30 gram gula, padahal anjuran batas maksimal gula harian anak usia 6-12 tahun adalah sekitar 25 gram (setara 4-5 sendok teh).\n\nKonsumsi rutin minuman manis:\n- Meningkatkan risiko resistensi insulin sejak dini.\n- Menyebabkan lonjakan kalori tanpa rasa kenyang.\n- Mengikis kesehatan gigi anak.\n\nSolusi sederhana: Biasakan anak membawa botol air putih dan ganti minuman manis dengan buah potong segar.',
+      mediaType: 'youtube',
+      videoUrl: 'https://www.youtube.com/watch?v=kXYiU_JCYtU',
     ),
     EducationModel(
       id: 'edu_video_3',
@@ -156,6 +160,8 @@ class SeedData {
       summary: 'Inspirasi bekal seimbang dengan konsep "Isi Piringku": karbohidrat, lauk protein, sayur, dan buah.',
       contentBody:
           'Menyiapkan bekal tidak harus rumit dan mahal. Gunakan formula sederhana:\n- 1/3 piring: Karbohidrat (nasi, jagung, atau ubi kukus)\n- 1/3 piring: Sayuran beraneka warna\n- 1/6 piring: Lauk berprotein (telur, ikan pepes, tempe, tahu)\n- 1/6 piring: Buah lokal musiman (pepaya, pisang, jeruk)\n\nBekal buatan rumah menjaga anak dari jajanan sekolah yang tinggi gula dan minyak jenuh.',
+      mediaType: 'youtube',
+      videoUrl: 'https://www.youtube.com/watch?v=kXYiU_JCYtU',
     ),
     EducationModel(
       id: 'edu_podcast_1',
@@ -165,6 +171,9 @@ class SeedData {
       summary: 'Perbincangan hangat seputar tantangan mengajak anak makan sayur dan mengurangi screen-time.',
       contentBody:
           'Audio podcast membahas peran orang tua sebagai role-model. Anak meniru apa yang dimakan orang tuanya di meja makan. Menjadikan makan bersama sebagai momen menyenangkan tanpa gawai sangat efektif membangun hubungan sehat anak dengan makanan.',
+      mediaType: 'direct_audio',
+      audioUrl: 'https://actions.google.com/sounds/v1/water/rain_heavy.ogg',
+      speakerOrSource: 'Bidan Rita & dr. Farhan Sp.A',
     ),
     EducationModel(
       id: 'edu_art_1',

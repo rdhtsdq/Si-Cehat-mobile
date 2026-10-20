@@ -1,12 +1,14 @@
 class EducationModel {
   final String id;
   final String title;
-  final String type; // video, podcast, quiz, artikel
+  final String type; // video, podcast, quiz, artikel, makanan
   final String duration;
   final String summary;
   final String contentBody;
   final String speakerOrSource;
   final String? videoUrl;
+  final String? audioUrl;
+  final String? mediaType;
   final String? imageUrl;
 
   EducationModel({
@@ -18,17 +20,24 @@ class EducationModel {
     required this.contentBody,
     this.speakerOrSource = 'Tim Edukasi Si Cehat',
     this.videoUrl,
+    this.audioUrl,
+    this.mediaType,
     this.imageUrl,
   });
 
   factory EducationModel.fromJson(Map<String, dynamic> json) {
     String type = (json['category'] ?? json['type'] ?? 'artikel').toString().toLowerCase();
-    if (json['videoUrl'] != null && json['videoUrl'].toString().isNotEmpty) {
+    final vidUrl = json['videoUrl']?.toString();
+    final audUrl = json['audioUrl']?.toString();
+
+    if (type == 'podcast' || (audUrl != null && audUrl.isNotEmpty)) {
+      type = 'podcast';
+    } else if (type == 'video' || (vidUrl != null && vidUrl.isNotEmpty)) {
       type = 'video';
     }
 
     final readTime = json['readTimeMinutes'];
-    final dur = readTime != null ? '$readTime Menit Baca' : (json['duration'] ?? '3 Menit');
+    final dur = readTime != null ? '$readTime Menit' : (json['duration'] ?? '3 Menit');
 
     return EducationModel(
       id: json['id']?.toString() ?? '',
@@ -38,7 +47,9 @@ class EducationModel {
       summary: json['summary'] ?? '',
       contentBody: json['content'] ?? json['contentBody'] ?? '',
       speakerOrSource: json['speakerOrSource'] ?? 'Kemenkes RI & IDAI',
-      videoUrl: json['videoUrl'] as String?,
+      videoUrl: vidUrl,
+      audioUrl: audUrl,
+      mediaType: json['mediaType']?.toString(),
       imageUrl: json['imageUrl'] as String?,
     );
   }

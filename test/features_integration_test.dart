@@ -10,6 +10,8 @@ import 'package:si_cehat_mobile/providers/reminder_provider.dart';
 import 'package:si_cehat_mobile/providers/education_provider.dart';
 import 'package:si_cehat_mobile/providers/notification_provider.dart';
 import 'package:si_cehat_mobile/screens/consultation/notification_center_screen.dart';
+import 'package:si_cehat_mobile/data/models/education_model.dart';
+import 'package:si_cehat_mobile/screens/education/education_detail_screen.dart';
 import 'package:si_cehat_mobile/screens/education/pustaka_edukasi_screen.dart';
 import 'package:si_cehat_mobile/screens/profile/mother_profile_screen.dart';
 import 'package:si_cehat_mobile/screens/profile/child_profile_screen.dart';
@@ -232,6 +234,51 @@ void main() {
       await tester.ensureVisible(tumbuhTab);
       await tester.tap(tumbuhTab);
       await tester.pumpAndSettle();
+    });
+
+    testWidgets('Education Detail: displays Video media player view with play action', (tester) async {
+      final videoItem = EducationModel(
+        id: 'test_vid',
+        title: 'Video Edukasi Diabetes Anak',
+        type: 'video',
+        duration: '5 Menit',
+        summary: 'Ringkasan video panduan',
+        contentBody: 'Konten lengkap panduan video diabetes',
+        videoUrl: 'https://www.youtube.com/watch?v=kXYiU_JCYtU',
+        speakerOrSource: 'dr. Amanda Sp.A',
+      );
+
+      await tester.pumpWidget(createTestApp(EducationDetailScreen(item: videoItem)));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Video Edukasi Diabetes Anak'), findsWidgets);
+      expect(find.text('🎬 Video Edukasi'), findsOneWidget);
+      expect(find.text('YouTube Video'), findsOneWidget);
+      expect(find.text('Putar Video ↗'), findsOneWidget);
+      expect(find.text('dr. Amanda Sp.A'), findsOneWidget);
+    });
+
+    testWidgets('Education Detail: displays Podcast audio player view with controls and speaker', (tester) async {
+      final podcastItem = EducationModel(
+        id: 'test_pod',
+        title: 'Podcast Pola Asuh Sehat',
+        type: 'podcast',
+        duration: '15 Menit',
+        summary: 'Ringkasan podcast obrolan hangat',
+        contentBody: 'Transkrip lengkap diskusi podcast',
+        audioUrl: 'https://actions.google.com/sounds/v1/water/rain_heavy.ogg',
+        speakerOrSource: 'Bidan Rita & dr. Farhan',
+      );
+
+      await tester.pumpWidget(createTestApp(EducationDetailScreen(item: podcastItem)));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Podcast Pola Asuh Sehat'), findsWidgets);
+      expect(find.text('🎙️ Podcast Audio'), findsOneWidget);
+      expect(find.text('Bidan Rita & dr. Farhan'), findsWidgets);
+      expect(find.byIcon(Icons.replay_10), findsOneWidget);
+      expect(find.byIcon(Icons.forward_10), findsOneWidget);
+      expect(find.text('1.0x'), findsOneWidget);
     });
   });
 }
