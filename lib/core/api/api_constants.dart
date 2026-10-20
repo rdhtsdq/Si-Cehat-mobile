@@ -3,7 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiConstants {
   static const String _baseUrlPrefKey = 'custom_api_base_url';
-  static const String defaultLanUrl = 'http://192.168.1.3:3000';
+  static const String defaultEmulatorUrl = 'http://10.0.2.2:3000';
+  static const String defaultLanUrl = 'http://172.16.0.35:3000';
 
   static String? _customBaseUrl;
 
@@ -13,7 +14,12 @@ class ApiConstants {
       final prefs = await SharedPreferences.getInstance();
       final saved = prefs.getString(_baseUrlPrefKey);
       if (saved != null && saved.trim().isNotEmpty) {
-        _customBaseUrl = _normalizeUrl(saved.trim());
+        if (saved.contains('192.168.1.3')) {
+          await prefs.remove(_baseUrlPrefKey);
+          _customBaseUrl = null;
+        } else {
+          _customBaseUrl = _normalizeUrl(saved.trim());
+        }
       }
     } catch (_) {}
   }
@@ -57,8 +63,8 @@ class ApiConstants {
       return 'http://localhost:3000';
     }
     if (defaultTargetPlatform == TargetPlatform.android) {
-      // LAN IP of this host machine on port 3000
-      return defaultLanUrl;
+      // 10.0.2.2 is the official loopback interface from Android Emulator to host PC localhost:3000
+      return defaultEmulatorUrl;
     }
     return 'http://localhost:3000';
   }
