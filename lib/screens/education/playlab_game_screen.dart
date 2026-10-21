@@ -11,7 +11,6 @@ import '../../core/constants/typography.dart';
 import '../../core/services/playlab_storage_service.dart';
 import '../../data/models/playlab_score_model.dart';
 import '../../providers/profile_provider.dart';
-import 'widgets/playlab_score_dialog.dart';
 
 class PlayLabGameScreen extends StatefulWidget {
   final String gameSlug;
@@ -25,7 +24,8 @@ class PlayLabGameScreen extends StatefulWidget {
   State<PlayLabGameScreen> createState() => _PlayLabGameScreenState();
 }
 
-class _PlayLabGameScreenState extends State<PlayLabGameScreen> {
+class _PlayLabGameScreenState extends State<PlayLabGameScreen>
+    with WidgetsBindingObserver {
   final ApiClient _apiClient = ApiClient.instance;
   WebViewController? _webViewController;
 
@@ -33,6 +33,7 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen> {
   bool _isLoadingWeb = true;
   bool _hasError = false;
   bool _isDesktopMode = false;
+  bool _isExiting = false;
   String? _errorMessage;
   String? _sessionId;
   String? _gameUrl;
@@ -40,7 +41,22 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _bootstrapGameSession();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _sessionId != null) {
+      // User returned from external browser, check if server has recorded completed score
+      _fetchServerScore(_sessionId);
+    }
   }
 
   Future<void> _bootstrapGameSession() async {
@@ -74,7 +90,7 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen> {
 
       _sessionId = sId;
 
-      // 2. Build target Web Game URL (prefer standalone gameWebUrl, fallback to baseUrl/playlab/piring-sehat)
+      // 2. Build target Web Game URL
       final standaloneBase = ApiConstants.gameWebUrl;
       final queryParams = <String, String>{};
       if (bToken != null && bToken.isNotEmpty) queryParams['bootstrap'] = bToken;
@@ -116,14 +132,18 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen> {
         ..setNavigationDelegate(
           NavigationDelegate(
             onNavigationRequest: (NavigationRequest request) {
-              // Security: only allow allowed game or API host origins
               final reqUri = Uri.tryParse(request.url);
               final gameUri = Uri.tryParse(standaloneBase);
               final apiUri = Uri.tryParse(ApiConstants.baseUrl);
               if (reqUri != null) {
                 if (reqUri.host == gameUri?.host ||
                     reqUri.host == apiUri?.host ||
-                    request.url.startsWith('about:blank')) {
+                    request.url.startsWith('about:blank') ||
+                    request.url.startsWith('sicehat://')) {
+                  if (request.url.startsWith('sicehat://exit')) {
+                    _exitGame();
+                    return NavigationDecision.prevent;
+                  }
                   return NavigationDecision.navigate;
                 }
               }
@@ -180,12 +200,22 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen> {
           break;
 
         case 'GAME_COMPLETED':
+          final sId = data['sessionId']?.toString() ?? _sessionId;
           final scores = data['scores'] as Map<String, dynamic>?;
-          _onGameCompleted(data['sessionId']?.toString() ?? _sessionId, scores);
+          // Pre-fetch & cache server score in background
+          _fetchServerScore(sId, bridgeScores: scores);
           break;
 
         case 'EXIT_GAME':
-          _forceExit();
+          final sId = data['sessionId']?.toString() ?? _sessionId;
+          final scores = data['scores'] as Map<String, dynamic>? ?? {
+            if (data['totalScore'] != null) 'totalScore': data['totalScore'],
+            if (data['gameplayScore'] != null) 'gameplayScore': data['gameplayScore'],
+            if (data['knowledgeScore'] != null) 'knowledgeScore': data['knowledgeScore'],
+            if (data['starsEarned'] != null) 'starsEarned': data['starsEarned'],
+            if (data['xpAwarded'] != null) 'xpAwarded': data['xpAwarded'],
+          };
+          _exitGame(sessionId: sId, bridgeScores: scores);
           break;
 
         default:
@@ -196,92 +226,122 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen> {
     }
   }
 
-  void _forceExit() {
-    if (mounted) {
-      Navigator.of(context).pop();
-    }
-  }
-
-  Future<void> _onGameCompleted(
-    String? completedSessionId, [
+  Future<PlayLabScoreResult?> _fetchServerScore(
+    String? sessionId, {
     Map<String, dynamic>? bridgeScores,
-  ]) async {
-    final activeChild = context.read<ProfileProvider>().activeChild;
+  }) async {
+    final activeChild = mounted ? context.read<ProfileProvider>().activeChild : null;
 
-    // 1. Fetch verified result from server if available
-    Map<String, dynamic>? verifiedResult;
-    if (completedSessionId != null && completedSessionId != 'local-simulation') {
+    // 1. Query the authoritative server score endpoint
+    if (sessionId != null && sessionId.isNotEmpty && sessionId != 'local-simulation') {
       try {
-        final res = await _apiClient.get(ApiConstants.gameSessionResult(completedSessionId));
+        final res = await _apiClient.get(ApiConstants.gameSessionResult(sessionId));
         if (res.isSuccess && res.data != null && res.data['result'] != null) {
-          verifiedResult = res.data['result'] as Map<String, dynamic>;
+          final serverResult = res.data['result'] as Map<String, dynamic>;
+
+          final scoreResult = PlayLabScoreResult(
+            sessionId: sessionId,
+            childId: activeChild?.id?.toString(),
+            childName: activeChild?.name,
+            gameplayScore: (serverResult['gameplayScore'] as num?)?.toInt() ??
+                (bridgeScores?['gameplayScore'] as num?)?.toInt() ?? 0,
+            knowledgeScore: (serverResult['knowledgeScore'] as num?)?.toInt() ??
+                (bridgeScores?['knowledgeScore'] as num?)?.toInt() ?? 0,
+            totalScore: (serverResult['totalScore'] as num?)?.toInt() ??
+                (bridgeScores?['totalScore'] as num?)?.toInt() ?? 0,
+            starsEarned: (serverResult['starsEarned'] as num?)?.toInt() ??
+                (bridgeScores?['starsEarned'] as num?)?.toInt() ?? 1,
+            xpAwarded: (serverResult['xpAwarded'] as num?)?.toInt() ??
+                (bridgeScores?['xpAwarded'] as num?)?.toInt() ?? 0,
+            feedbackSummary: serverResult['feedbackSummary']?.toString() ??
+                'Hebat! Piring makan ${activeChild?.name ?? "kamu"} berhasil tersusun dengan gizi seimbang.',
+          );
+
+          await PlayLabStorageService.instance.saveScoreResult(scoreResult);
+          try {
+            if (mounted) {
+              context.read<ProfileProvider>().loadProfiles();
+            }
+          } catch (_) {}
+
+          return scoreResult;
         }
       } catch (e) {
-        debugPrint('[PlayLab] Failed to fetch verified result from server: $e');
+        debugPrint('[PlayLab] Failed to fetch server score: $e');
       }
     }
 
-    if (!mounted) return;
+    // 2. Fallback to bridge scores if server request did not return a completed session
+    if (bridgeScores != null && bridgeScores.isNotEmpty) {
+      final fallback = PlayLabScoreResult(
+        sessionId: sessionId ?? 'session-${DateTime.now().millisecondsSinceEpoch}',
+        childId: activeChild?.id?.toString(),
+        childName: activeChild?.name,
+        gameplayScore: (bridgeScores['gameplayScore'] as num?)?.toInt() ?? 0,
+        knowledgeScore: (bridgeScores['knowledgeScore'] as num?)?.toInt() ?? 0,
+        totalScore: (bridgeScores['totalScore'] as num?)?.toInt() ?? 0,
+        starsEarned: (bridgeScores['starsEarned'] as num?)?.toInt() ?? 1,
+        xpAwarded: (bridgeScores['xpAwarded'] as num?)?.toInt() ?? 0,
+        feedbackSummary: bridgeScores['feedbackSummary']?.toString() ??
+            'Permainan Piring Sehat selesai.',
+      );
 
-    // 2. Synthesize score result prioritizing server validation with fallback to bridge
-    final scoreResult = PlayLabScoreResult(
-      sessionId: completedSessionId ?? 'session-${DateTime.now().millisecondsSinceEpoch}',
-      childId: activeChild?.id?.toString(),
-      childName: activeChild?.name,
-      gameplayScore: (verifiedResult?['gameplayScore'] as num?)?.toInt() ??
-          (bridgeScores?['gameplayScore'] as num?)?.toInt() ??
-          100,
-      knowledgeScore: (verifiedResult?['knowledgeScore'] as num?)?.toInt() ??
-          (bridgeScores?['knowledgeScore'] as num?)?.toInt() ??
-          100,
-      totalScore: (verifiedResult?['totalScore'] as num?)?.toInt() ??
-          (bridgeScores?['totalScore'] as num?)?.toInt() ??
-          100,
-      starsEarned: (verifiedResult?['starsEarned'] as num?)?.toInt() ??
-          (bridgeScores?['starsEarned'] as num?)?.toInt() ??
-          3,
-      xpAwarded: (verifiedResult?['xpAwarded'] as num?)?.toInt() ??
-          (bridgeScores?['xpAwarded'] as num?)?.toInt() ??
-          75,
-      feedbackSummary: verifiedResult?['feedbackSummary']?.toString() ??
-          'Hebat! Piring makan ${activeChild?.name ?? "kamu"} berhasil tersusun dengan gizi seimbang sesuai pedoman Isi Piringku.',
-    );
-
-    // 3. Persist score in SharedPreferences & SQLite Activity Log for the kid
-    await PlayLabStorageService.instance.saveScoreResult(scoreResult);
-
-    // 4. Refresh profile provider
-    try {
-      if (mounted) {
-        context.read<ProfileProvider>().loadProfiles();
-      }
-    } catch (_) {}
-
-    if (!mounted) return;
-
-    // 5. Present the child-friendly score dialog
-    await PlayLabScoreDialog.show(
-      context,
-      result: scoreResult,
-      onPlayAgain: () {
-        if (_webViewController != null && _gameUrl != null) {
-          _webViewController!.loadRequest(Uri.parse(_gameUrl!));
-        } else {
-          _bootstrapGameSession();
+      await PlayLabStorageService.instance.saveScoreResult(fallback);
+      try {
+        if (mounted) {
+          context.read<ProfileProvider>().loadProfiles();
         }
-      },
+      } catch (_) {}
+
+      return fallback;
+    }
+
+    return null;
+  }
+
+  Future<void> _exitGame({
+    String? sessionId,
+    Map<String, dynamic>? bridgeScores,
+  }) async {
+    if (_isExiting) return;
+    _isExiting = true;
+
+    final childId = mounted ? context.read<ProfileProvider>().activeChild?.id?.toString() : null;
+    final targetSessionId = sessionId ?? _sessionId;
+    PlayLabScoreResult? scoreResult = await _fetchServerScore(
+      targetSessionId,
+      bridgeScores: bridgeScores,
     );
 
-    _forceExit();
+    // Fallback to locally stored latest score if this child already has one
+    scoreResult ??= await PlayLabStorageService.instance.getLatestScore(
+      childId: childId,
+    );
+
+    if (!mounted) return;
+    Navigator.of(context).pop(scoreResult);
   }
 
   Future<void> _confirmAndExit() async {
+    // If score is already available from server, exit directly returning it
+    final targetSessionId = _sessionId;
+    if (targetSessionId != null) {
+      final existingScore = await _fetchServerScore(targetSessionId);
+      if (existingScore != null) {
+        if (mounted) {
+          Navigator.of(context).pop(existingScore);
+        }
+        return;
+      }
+    }
+
+    if (!mounted) return;
     final shouldExit = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Keluar dari Permainan?'),
         content: const Text(
-          'Progres menyusun piring belum tersimpan jika kamu keluar sekarang.',
+          'Apakah kamu yakin ingin keluar dari permainan?',
         ),
         actions: [
           TextButton(
@@ -300,7 +360,7 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen> {
     );
 
     if (shouldExit == true && mounted) {
-      _forceExit();
+      _exitGame();
     }
   }
 
@@ -347,7 +407,7 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Mode Desktop Windows Terdeteksi\nWebView native berjalan di Android & iOS. Pada Windows, buka game di browser Anda atau simulasikan hasil.',
+                  'Mode Desktop Windows Terdeteksi\nWebView native berjalan di Android & iOS. Pada Windows, silakan buka permainan di browser Anda.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 12,
@@ -410,16 +470,28 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    onPressed: () => _onGameCompleted(_sessionId, const {
-                      'gameplayScore': 100,
-                      'knowledgeScore': 100,
-                      'totalScore': 100,
-                      'starsEarned': 3,
-                      'xpAwarded': 75,
-                    }),
-                    icon: const Icon(Icons.verified, color: Color(0xFF247A4D)),
+                    onPressed: () async {
+                      final result = await _fetchServerScore(_sessionId);
+                      if (result != null) {
+                        if (mounted) {
+                          Navigator.of(context).pop(result);
+                        }
+                      } else {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Sesi permainan belum selesai di browser. Silakan selesaikan piring dan kuis di browser terlebih dahulu.',
+                              ),
+                              duration: Duration(seconds: 3),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.check_circle_outline_rounded, color: Color(0xFF247A4D)),
                     label: const Text(
-                      'Simulasi Selesai (Ambil Skor Server)',
+                      'Periksa Skor Server & Selesai',
                       style: TextStyle(color: Color(0xFF247A4D), fontWeight: FontWeight.bold),
                     ),
                     style: OutlinedButton.styleFrom(
@@ -458,7 +530,7 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen> {
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textDark, size: 26),
             tooltip: 'Kembali',
-            onPressed: _forceExit,
+            onPressed: _confirmAndExit,
           ),
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

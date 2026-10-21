@@ -46,6 +46,22 @@ class _EducationScreenState extends State<EducationScreen> {
     } catch (_) {}
   }
 
+  Future<void> _launchPlayLabGame() async {
+    final res = await Navigator.of(context).push<PlayLabScoreResult?>(
+      MaterialPageRoute(builder: (_) => const PlayLabGameScreen()),
+    );
+    if (!mounted) return;
+    await _loadPlayLabScore();
+    if (!mounted) return;
+    if (res != null) {
+      PlayLabScoreDialog.show(
+        context,
+        result: res,
+        onPlayAgain: _launchPlayLabGame,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final eduProv = context.watch<EducationProvider>();
@@ -249,12 +265,7 @@ class _EducationScreenState extends State<EducationScreen> {
                       PlayLabScoreDialog.show(
                         context,
                         result: _latestPlayLabScore!,
-                        onPlayAgain: () async {
-                          await Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const PlayLabGameScreen()),
-                          );
-                          _loadPlayLabScore();
-                        },
+                        onPlayAgain: _launchPlayLabGame,
                       );
                     },
                     icon: const Icon(Icons.analytics_outlined, size: 16, color: Color(0xFF173D31)),
@@ -273,12 +284,7 @@ class _EducationScreenState extends State<EducationScreen> {
               ],
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () async {
-                    await Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const PlayLabGameScreen()),
-                    );
-                    _loadPlayLabScore();
-                  },
+                  onPressed: _launchPlayLabGame,
                   icon: const Icon(Icons.sports_esports_rounded, size: 16, color: Colors.white),
                   label: Text(
                     hasScore ? 'Main Lagi' : 'Main Sekarang',
