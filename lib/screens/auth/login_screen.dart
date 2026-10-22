@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/api/api_constants.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/app_text_field.dart';
@@ -32,89 +31,6 @@ class _LoginScreenState extends State<LoginScreen> {
     _identifierController.dispose();
     _passwordController.dispose();
     super.dispose();
-  }
-
-  void _showServerConfigDialog() {
-    final urlController = TextEditingController(text: ApiConstants.baseUrl);
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text(
-          'Konfigurasi Server API',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Masukkan alamat IP lokal komputer dan port backend (contoh: http://192.168.1.3:3000):',
-              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: urlController,
-              keyboardType: TextInputType.url,
-              decoration: InputDecoration(
-                hintText: ApiConstants.defaultLanUrl,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 10,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: [
-                ActionChip(
-                  label: const Text(
-                    'LAN (192.168.1.3:3000)',
-                    style: TextStyle(fontSize: 11),
-                  ),
-                  onPressed: () =>
-                      urlController.text = 'http://192.168.1.3:3000',
-                ),
-                ActionChip(
-                  label: const Text(
-                    'Emulator (10.0.2.2:3000)',
-                    style: TextStyle(fontSize: 11),
-                  ),
-                  onPressed: () => urlController.text = 'http://10.0.2.2:3000',
-                ),
-              ],
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.white,
-            ),
-            onPressed: () async {
-              await ApiConstants.setCustomBaseUrl(urlController.text);
-              if (!mounted || !ctx.mounted) return;
-              Navigator.pop(ctx);
-              setState(() {});
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Server diatur ke: ${ApiConstants.baseUrl}'),
-                ),
-              );
-            },
-            child: const Text('Simpan'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _handleLogin() async {
@@ -174,27 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: _showServerConfigDialog,
-                  icon: const Icon(
-                    Icons.dns_outlined,
-                    size: 16,
-                    color: AppColors.textSecondary,
-                  ),
-                  label: Text(
-                    ApiConstants.baseUrl
-                        .replaceFirst('http://', '')
-                        .replaceFirst('https://', ''),
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
               Text(
                 'Selamat Datang\nKembali!',
                 textAlign: TextAlign.center,

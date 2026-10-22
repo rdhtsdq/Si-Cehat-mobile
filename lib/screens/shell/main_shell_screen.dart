@@ -17,11 +17,18 @@ class MainShellScreen extends StatefulWidget {
 
 class _MainShellScreenState extends State<MainShellScreen> {
   late int _currentIndex;
+  late final List<Widget> _pages;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+    _pages = [
+      HomeScreen(onNavigateTab: _onTabSelected),
+      const TrackerScreen(showBackButton: false),
+      const EducationScreen(showBackButton: false),
+      const ProfileSelectScreen(),
+    ];
   }
 
   void _onTabSelected(int index) {
@@ -32,18 +39,11 @@ class _MainShellScreenState extends State<MainShellScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> pages = [
-      HomeScreen(onNavigateTab: _onTabSelected),
-      const TrackerScreen(showBackButton: false),
-      const EducationScreen(showBackButton: false),
-      const ProfileSelectScreen(),
-    ];
-
     return Scaffold(
       backgroundColor: AppColors.background,
       body: IndexedStack(
         index: _currentIndex,
-        children: pages,
+        children: _pages,
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(

@@ -40,6 +40,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  @override
+  void dispose() {
+    _field1Controller.dispose();
+    _field2Controller.dispose();
+    _field3Controller.dispose();
+    _field4Controller.dispose();
+    super.dispose();
+  }
+
   void _save() async {
     final profileProv = context.read<ProfileProvider>();
     if (widget.isMother && profileProv.mother != null) {

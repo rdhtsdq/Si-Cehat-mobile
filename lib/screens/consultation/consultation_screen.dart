@@ -239,12 +239,14 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
           ],
         ),
       ),
-    );
+    ).whenComplete(() {
+      topicController.dispose();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final unreadNotifs = context.watch<NotificationProvider>().unreadCount;
+    final unreadNotifs = context.select<NotificationProvider, int>((p) => p.unreadCount);
 
     return Scaffold(
       backgroundColor: AppColors.background,

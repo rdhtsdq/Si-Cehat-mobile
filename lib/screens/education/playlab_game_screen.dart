@@ -48,6 +48,8 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _webViewController?.loadRequest(Uri.parse('about:blank'));
+    _webViewController = null;
     super.dispose();
   }
 
@@ -97,7 +99,12 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen>
       if (sId != null) queryParams['sessionId'] = sId;
       if (childId != null) queryParams['childId'] = childId;
 
-      final uri = Uri.parse(standaloneBase).replace(
+      final parsedBase = Uri.parse(standaloneBase);
+      final targetPath = (parsedBase.path.isEmpty || parsedBase.path == '/')
+          ? '/playlab'
+          : parsedBase.path;
+      final uri = parsedBase.replace(
+        path: targetPath,
         queryParameters: queryParams.isNotEmpty ? queryParams : null,
       );
       _gameUrl = uri.toString();
@@ -138,6 +145,8 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen>
               if (reqUri != null) {
                 if (reqUri.host == gameUri?.host ||
                     reqUri.host == apiUri?.host ||
+                    reqUri.host == 'localhost' ||
+                    reqUri.host == '10.0.2.2' ||
                     request.url.startsWith('about:blank') ||
                     request.url.startsWith('sicehat://')) {
                   if (request.url.startsWith('sicehat://exit')) {

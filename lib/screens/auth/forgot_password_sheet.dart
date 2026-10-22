@@ -17,6 +17,12 @@ class _ForgotPasswordSheetState extends State<ForgotPasswordSheet> {
   bool _submitted = false;
 
   @override
+  void dispose() {
+    _identifierController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.only(

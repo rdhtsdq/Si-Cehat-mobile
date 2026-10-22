@@ -36,6 +36,9 @@ class ReminderService {
       final currentHourMinute =
           '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
+      // Prune keys from previous days to prevent unbounded memory growth
+      _triggeredSet.removeWhere((key) => !key.startsWith(dateKey));
+
       final reminders = await DatabaseHelper.instance.getReminders();
 
       for (final r in reminders) {

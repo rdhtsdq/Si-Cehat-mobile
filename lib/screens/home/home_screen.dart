@@ -35,13 +35,12 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final profile = context.watch<ProfileProvider>();
-    final auth = context.watch<AuthProvider>();
-    final notificationProv = context.watch<NotificationProvider>();
+    final authName = context.select<AuthProvider, String?>((a) => a.currentUserName);
+    final unreadCount = context.select<NotificationProvider, int>((p) => p.unreadCount);
     final motherName = (profile.mother?.name.isNotEmpty == true)
         ? profile.mother!.name
-        : (auth.currentUserName ?? 'Ibu Rina');
+        : (authName ?? 'Ibu Rina');
     final activeChild = profile.activeChild;
-    final unreadCount = notificationProv.unreadCount;
 
     final riskCat = activeChild?.latestRiskCategory?.toUpperCase();
     final String riskTitle;

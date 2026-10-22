@@ -1,73 +1,6 @@
-import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
 class ApiConstants {
-  static const String _baseUrlPrefKey = 'custom_api_base_url';
-  static const String defaultEmulatorUrl = 'http://10.0.2.2:3000';
-  static const String defaultLanUrl = 'http://192.168.1.3:3000';
-
-  static String? _customBaseUrl;
-
-  /// Loads any previously saved custom API Base URL from SharedPreferences.
-  static Future<void> init() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final saved = prefs.getString(_baseUrlPrefKey);
-      if (saved != null && saved.trim().isNotEmpty) {
-        if (saved.contains('192.168.1.3.')) {
-          await prefs.remove(_baseUrlPrefKey);
-          _customBaseUrl = null;
-        } else {
-          _customBaseUrl = _normalizeUrl(saved.trim());
-        }
-      }
-    } catch (_) {}
-  }
-
-  static String _normalizeUrl(String url) {
-    var trimmed = url.trim();
-    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
-      trimmed = 'http://$trimmed';
-    }
-    return trimmed.endsWith('/')
-        ? trimmed.substring(0, trimmed.length - 1)
-        : trimmed;
-  }
-
-  /// Allows changing and persisting the API Base URL dynamically (e.g. from Settings or for LAN IP testing)
-  static Future<void> setCustomBaseUrl(String? url) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      if (url == null || url.trim().isEmpty) {
-        _customBaseUrl = null;
-        await prefs.remove(_baseUrlPrefKey);
-      } else {
-        final normalized = _normalizeUrl(url);
-        _customBaseUrl = normalized;
-        await prefs.setString(_baseUrlPrefKey, normalized);
-      }
-    } catch (_) {
-      if (url == null || url.trim().isEmpty) {
-        _customBaseUrl = null;
-      } else {
-        _customBaseUrl = _normalizeUrl(url);
-      }
-    }
-  }
-
-  static String get baseUrl {
-    if (_customBaseUrl != null && _customBaseUrl!.isNotEmpty) {
-      return _customBaseUrl!;
-    }
-    if (kIsWeb) {
-      return 'http://localhost:3000';
-    }
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      // 10.0.2.2 is the official loopback interface from Android Emulator to host PC localhost:3000
-      return defaultEmulatorUrl;
-    }
-    return 'http://localhost:3000';
-  }
+  // static const String baseUrl = 'http://localhost:3000';
+  static const String baseUrl = 'http://192.168.1.112:3000';
 
   // Auth endpoints
   static const String authLogin = '/api/auth/login';
@@ -109,18 +42,23 @@ class ApiConstants {
   // Si-Cehat PlayLab (Mini-Game & Research)
   static const String games = '/api/games';
   static const String gameSessions = '/api/game-sessions';
-  static String gameSessionEvents(String sessionId) => '/api/game-sessions/$sessionId/events';
-  static String gameSessionComplete(String sessionId) => '/api/game-sessions/$sessionId/complete';
-  static String gameSessionResult(String sessionId) => '/api/game-sessions/$sessionId/result';
+  static String gameSessionEvents(String sessionId) =>
+      '/api/game-sessions/$sessionId/events';
+  static String gameSessionComplete(String sessionId) =>
+      '/api/game-sessions/$sessionId/complete';
+  static String gameSessionResult(String sessionId) =>
+      '/api/game-sessions/$sessionId/result';
 
-  /// Returns the base URL hosting the standalone web game
+  /// Returns the base URL hosting the web game.
+  /// Automatically derives the host and port from [baseUrl] (e.g. 192.168.x.x, 10.0.2.2, or localhost)
+  /// so that when [baseUrl] is configured for physical device or emulator testing, the web game
+  /// stays accessible and avoids 'net::ERR_CONNECTION_REFUSED' errors.
   static String get gameWebUrl {
-    if (kIsWeb) {
-      return 'http://localhost:5173';
+    final baseUri = Uri.tryParse(baseUrl);
+    if (baseUri != null && baseUri.hasAuthority) {
+      final portPart = baseUri.hasPort ? ':${baseUri.port}' : '';
+      return '${baseUri.scheme}://${baseUri.host}$portPart';
     }
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:5173';
-    }
-    return 'http://localhost:5173';
+    return baseUrl;
   }
 }

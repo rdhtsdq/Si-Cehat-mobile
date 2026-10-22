@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -35,6 +34,13 @@ class _GameWebviewScreenState extends State<GameWebviewScreen> {
   void initState() {
     super.initState();
     _startAuthorizedGameSession();
+  }
+
+  @override
+  void dispose() {
+    _webViewController?.loadRequest(Uri.parse('about:blank'));
+    _webViewController = null;
+    super.dispose();
   }
 
   Future<void> _startAuthorizedGameSession() async {
@@ -85,7 +91,14 @@ class _GameWebviewScreenState extends State<GameWebviewScreen> {
       queryParams['childId'] = widget.childId!;
     }
 
-    final uri = Uri.parse(baseUrl).replace(queryParameters: queryParams);
+    final parsedBase = Uri.parse(baseUrl);
+    final targetPath = (parsedBase.path.isEmpty || parsedBase.path == '/')
+        ? '/playlab'
+        : parsedBase.path;
+    final uri = parsedBase.replace(
+      path: targetPath,
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    );
 
     final controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -120,8 +133,12 @@ class _GameWebviewScreenState extends State<GameWebviewScreen> {
             // Strict origin allowlist check
             final reqUri = Uri.tryParse(request.url);
             final targetUri = Uri.tryParse(baseUrl);
-            if (reqUri != null && targetUri != null) {
-              if (reqUri.host == targetUri.host ||
+            final apiUri = Uri.tryParse(ApiConstants.baseUrl);
+            if (reqUri != null) {
+              if (reqUri.host == targetUri?.host ||
+                  reqUri.host == apiUri?.host ||
+                  reqUri.host == 'localhost' ||
+                  reqUri.host == '10.0.2.2' ||
                   request.url.startsWith('about:blank')) {
                 return NavigationDecision.navigate;
               }
@@ -240,7 +257,7 @@ class _GameWebviewScreenState extends State<GameWebviewScreen> {
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
         final ok = await _onWillPop();
-        if (ok && mounted) {
+        if (ok && context.mounted) {
           Navigator.of(context).pop();
         }
       },
