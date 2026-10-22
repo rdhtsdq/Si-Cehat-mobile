@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/avatar_image.dart';
 import '../../core/widgets/photo_picker_sheet.dart';
 import '../../data/models/child_model.dart';
-import '../../providers/profile_provider.dart';
+import '../../providers/app_providers.dart';
 import '../tracker/tracker_screen.dart';
 import 'edit_profile_screen.dart';
 import 'child_manage_sheet.dart';
 
-class ChildProfileScreen extends StatelessWidget {
+class ChildProfileScreen extends ConsumerWidget {
   const ChildProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final profileProv = context.watch<ProfileProvider>();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileProv = ref.watch(profileProvider);
     final child = profileProv.activeChild;
 
     return Scaffold(
@@ -99,7 +99,7 @@ class ChildProfileScreen extends StatelessWidget {
                         child: InkWell(
                           customBorder: const CircleBorder(),
                           onTap: child != null
-                              ? () => _showAvatarPicker(context, child)
+                              ? () => _showAvatarPicker(context, ref, child)
                               : null,
                           child: const Padding(
                             padding: EdgeInsets.all(8),
@@ -249,7 +249,7 @@ class ChildProfileScreen extends StatelessWidget {
     );
   }
 
-  void _showAvatarPicker(BuildContext context, ChildModel child) {
+  void _showAvatarPicker(BuildContext context, WidgetRef ref, ChildModel child) {
     PhotoPickerSheet.show(
       context: context,
       title: 'Pilih Foto Profil Anak',
@@ -269,7 +269,7 @@ class ChildProfileScreen extends StatelessWidget {
       ],
       onSelected: (assetOrBase64) async {
         final isBase64 = assetOrBase64.startsWith('data:');
-        await context.read<ProfileProvider>().updateChildAvatar(
+        await ref.read(profileProvider).updateChildAvatar(
               child.id,
               assetOrBase64,
               isBase64: isBase64,
@@ -283,7 +283,7 @@ class ChildProfileScreen extends StatelessWidget {
         }
       },
       onReset: () async {
-        await context.read<ProfileProvider>().updateChildAvatar(child.id, '');
+        await ref.read(profileProvider).updateChildAvatar(child.id, '');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

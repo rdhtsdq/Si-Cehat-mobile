@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../data/models/education_model.dart';
-import '../../providers/education_provider.dart';
+import '../../providers/app_providers.dart';
 import 'education_detail_screen.dart';
 
-class PustakaEdukasiScreen extends StatefulWidget {
+class PustakaEdukasiScreen extends ConsumerStatefulWidget {
   final bool showAppBar;
 
   const PustakaEdukasiScreen({super.key, this.showAppBar = true});
 
   @override
-  State<PustakaEdukasiScreen> createState() => _PustakaEdukasiScreenState();
+  ConsumerState<PustakaEdukasiScreen> createState() => _PustakaEdukasiScreenState();
 }
 
-class _PustakaEdukasiScreenState extends State<PustakaEdukasiScreen> {
+class _PustakaEdukasiScreenState extends ConsumerState<PustakaEdukasiScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedCategory = 'Semua';
   String _searchQuery = '';
@@ -35,7 +35,7 @@ class _PustakaEdukasiScreenState extends State<PustakaEdukasiScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final eduProv = context.watch<EducationProvider>();
+    final eduProv = ref.watch(educationProvider);
     final allArticles = eduProv.educationItems.where((e) => e.type == 'artikel' || e.type == 'makanan' || e.type == 'umum').toList();
 
     // Filter by category and search

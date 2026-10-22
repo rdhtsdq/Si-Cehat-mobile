@@ -1,28 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../data/models/education_model.dart';
 import '../../data/models/playlab_score_model.dart';
 import '../../core/services/playlab_storage_service.dart';
-import '../../providers/education_provider.dart';
-import '../../providers/profile_provider.dart';
+import '../../providers/app_providers.dart';
 import 'education_detail_screen.dart';
 import 'quiz_screen.dart';
 import 'pustaka_edukasi_screen.dart';
 import 'playlab_game_screen.dart';
 import 'widgets/playlab_score_dialog.dart';
 
-class EducationScreen extends StatefulWidget {
+class EducationScreen extends ConsumerStatefulWidget {
   final bool showBackButton;
 
   const EducationScreen({super.key, this.showBackButton = false});
 
   @override
-  State<EducationScreen> createState() => _EducationScreenState();
+  ConsumerState<EducationScreen> createState() => _EducationScreenState();
 }
 
-class _EducationScreenState extends State<EducationScreen> {
+class _EducationScreenState extends ConsumerState<EducationScreen> {
   int _selectedTab = 0; // 0: Video, 1: Podcast, 2: Quiz
   PlayLabScoreResult? _latestPlayLabScore;
 
@@ -36,7 +35,7 @@ class _EducationScreenState extends State<EducationScreen> {
 
   Future<void> _loadPlayLabScore() async {
     try {
-      final activeChild = context.read<ProfileProvider>().activeChild;
+      final activeChild = ref.read(profileProvider).activeChild;
       final score = await PlayLabStorageService.instance.getLatestScore(
         childId: activeChild?.id?.toString(),
       );
@@ -64,7 +63,7 @@ class _EducationScreenState extends State<EducationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final eduProv = context.watch<EducationProvider>();
+    final eduProv = ref.watch(educationProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,

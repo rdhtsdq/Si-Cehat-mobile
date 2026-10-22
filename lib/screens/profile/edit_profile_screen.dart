@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/custom_app_bar.dart';
-import '../../providers/profile_provider.dart';
+import '../../providers/app_providers.dart';
 
-class EditProfileScreen extends StatefulWidget {
+class EditProfileScreen extends ConsumerStatefulWidget {
   final bool isMother;
 
   const EditProfileScreen({super.key, required this.isMother});
 
   @override
-  State<EditProfileScreen> createState() => _EditProfileScreenState();
+  ConsumerState<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
-class _EditProfileScreenState extends State<EditProfileScreen> {
+class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late TextEditingController _field1Controller;
   late TextEditingController _field2Controller;
   late TextEditingController _field3Controller;
@@ -24,7 +24,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    final profileProv = context.read<ProfileProvider>();
+    final profileProv = ref.read(profileProvider);
     if (widget.isMother) {
       final mother = profileProv.mother;
       _field1Controller = TextEditingController(text: mother?.name ?? '');
@@ -50,7 +50,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void _save() async {
-    final profileProv = context.read<ProfileProvider>();
+    final profileProv = ref.read(profileProvider);
     if (widget.isMother && profileProv.mother != null) {
       final updated = profileProv.mother!.copyWith(
         name: _field1Controller.text.trim(),

@@ -1,21 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../data/models/measurement_model.dart';
-import '../../providers/profile_provider.dart';
-import '../../providers/tracker_provider.dart';
+import '../../providers/app_providers.dart';
 
-class AddMeasurementSheet extends StatefulWidget {
+class AddMeasurementSheet extends ConsumerStatefulWidget {
   const AddMeasurementSheet({super.key});
 
   @override
-  State<AddMeasurementSheet> createState() => _AddMeasurementSheetState();
+  ConsumerState<AddMeasurementSheet> createState() => _AddMeasurementSheetState();
 }
 
-class _AddMeasurementSheetState extends State<AddMeasurementSheet> {
+class _AddMeasurementSheetState extends ConsumerState<AddMeasurementSheet> {
   final _dateController = TextEditingController(
     text: DateTime.now().toString().substring(0, 10),
   );
@@ -54,7 +53,7 @@ class _AddMeasurementSheetState extends State<AddMeasurementSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final activeChild = context.watch<ProfileProvider>().activeChild;
+    final activeChild = ref.watch(profileProvider).activeChild;
 
     return Padding(
       padding: EdgeInsets.only(
@@ -191,7 +190,7 @@ class _AddMeasurementSheetState extends State<AddMeasurementSheet> {
                 notes: _notesController.text.trim(),
               );
 
-              await context.read<TrackerProvider>().addMeasurement(measurement);
+              await ref.read(trackerProvider).addMeasurement(measurement);
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(

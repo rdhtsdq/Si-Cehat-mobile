@@ -1,46 +1,51 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../data/models/measurement_model.dart';
-import '../../providers/profile_provider.dart';
-import '../../providers/tracker_provider.dart';
+import '../../providers/app_providers.dart';
 import 'add_measurement_sheet.dart';
 import 'habit_log_screen.dart';
 
-class TrackerScreen extends StatefulWidget {
+class TrackerScreen extends ConsumerStatefulWidget {
   final bool showBackButton;
 
   const TrackerScreen({super.key, this.showBackButton = true});
 
   @override
-  State<TrackerScreen> createState() => _TrackerScreenState();
+  ConsumerState<TrackerScreen> createState() => _TrackerScreenState();
 }
 
-class _TrackerScreenState extends State<TrackerScreen> {
+class _TrackerScreenState extends ConsumerState<TrackerScreen> {
   int _selectedTab = 0; // 0: Tumbuh Kembang, 1: Aktivitas
-  dynamic _loadedChildId;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final child = context.watch<ProfileProvider>().activeChild;
-    if (child != null && child.id != _loadedChildId) {
-      _loadedChildId = child.id;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          final prov = context.read<TrackerProvider>();
-          prov.loadMeasurements(child.id);
-          prov.loadActivities(child.id);
-        }
-      });
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
+  }
+
+  void _loadData() {
+    final child = ref.read(profileProvider).activeChild;
+    if (child != null) {
+      final prov = ref.read(trackerProvider);
+      prov.loadMeasurements(child.id);
+      prov.loadActivities(child.id);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final trackerProv = context.watch<TrackerProvider>();
+    ref.listen(profileProvider.select((p) => p.activeChild?.id), (prev, next) {
+      if (next != null && next != prev) {
+        _loadData();
+      }
+    });
+
+    final trackerProv = ref.watch(trackerProvider);
     final measurements = trackerProv.measurements;
     final latest = trackerProv.latestMeasurement;
 
@@ -399,7 +404,7 @@ class _TrackerScreenState extends State<TrackerScreen> {
                       onPressed: () async {
                         Navigator.of(dialogCtx).pop();
                         if (m.id != null) {
-                          await context.read<TrackerProvider>().deleteMeasurement(m.id);
+                          await ref.read(trackerProvider).deleteMeasurement(m.id);
                         }
                       },
                       style: TextButton.styleFrom(foregroundColor: Colors.red),

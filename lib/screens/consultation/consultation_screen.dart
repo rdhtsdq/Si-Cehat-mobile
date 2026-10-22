@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_client.dart';
 import '../../core/api/api_constants.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/safety_banner.dart';
-import '../../providers/notification_provider.dart';
+import '../../providers/app_providers.dart';
 import 'notification_center_screen.dart';
 
-class ConsultationScreen extends StatefulWidget {
+class ConsultationScreen extends ConsumerStatefulWidget {
   const ConsultationScreen({super.key});
 
   @override
-  State<ConsultationScreen> createState() => _ConsultationScreenState();
+  ConsumerState<ConsultationScreen> createState() => _ConsultationScreenState();
 }
 
-class _ConsultationScreenState extends State<ConsultationScreen> {
+class _ConsultationScreenState extends ConsumerState<ConsultationScreen> {
   List<dynamic> _specialists = [];
   List<dynamic> _myConsultations = [];
   bool _loading = false;
@@ -80,7 +80,7 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
     if (!mounted) return;
 
     if (res.isSuccess) {
-      context.read<NotificationProvider>().loadNotifications();
+      ref.read(notificationProvider).loadNotifications();
       _fetchMyConsultations();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -90,7 +90,7 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
       );
     } else {
       // Local fallback
-      await context.read<NotificationProvider>().addLocalNotification(
+      await ref.read(notificationProvider).addLocalNotification(
         title: 'Permintaan Konsultasi Terkirim',
         message: 'Konsultasi dengan $name mengenai "$topic" telah diajukan.',
         type: 'CONSULTATION',
@@ -246,7 +246,7 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final unreadNotifs = context.select<NotificationProvider, int>((p) => p.unreadCount);
+    final unreadNotifs = ref.watch(notificationProvider.select((p) => p.unreadCount));
 
     return Scaffold(
       backgroundColor: AppColors.background,

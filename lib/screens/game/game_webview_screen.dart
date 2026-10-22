@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../core/api/api_client.dart';
 import '../../core/api/api_constants.dart';
 import '../../core/constants/colors.dart';
-import '../../providers/profile_provider.dart';
+import '../../providers/app_providers.dart';
 
-class GameWebviewScreen extends StatefulWidget {
+class GameWebviewScreen extends ConsumerStatefulWidget {
   final String? childId;
   final String? childName;
 
@@ -18,10 +18,10 @@ class GameWebviewScreen extends StatefulWidget {
   });
 
   @override
-  State<GameWebviewScreen> createState() => _GameWebviewScreenState();
+  ConsumerState<GameWebviewScreen> createState() => _GameWebviewScreenState();
 }
 
-class _GameWebviewScreenState extends State<GameWebviewScreen> {
+class _GameWebviewScreenState extends ConsumerState<GameWebviewScreen> {
   final ApiClient _apiClient = ApiClient.instance;
 
   WebViewController? _webViewController;
@@ -176,7 +176,7 @@ class _GameWebviewScreenState extends State<GameWebviewScreen> {
           debugPrint('[PlayLab WebView] Game completed: $decoded');
           // Invalidate profile & reload progress in background so XP refreshes
           if (mounted) {
-            context.read<ProfileProvider>().loadProfiles();
+            ref.read(profileProvider).loadProfiles();
           }
           break;
 

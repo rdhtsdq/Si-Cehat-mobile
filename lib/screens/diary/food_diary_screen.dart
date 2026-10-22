@@ -1,24 +1,24 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/api/api_client.dart';
 import '../../core/api/api_constants.dart';
-import '../../providers/profile_provider.dart';
+import '../../providers/app_providers.dart';
 
-class FoodDiaryScreen extends StatefulWidget {
+class FoodDiaryScreen extends ConsumerStatefulWidget {
   final String? initialFood;
   final String? initialMeal;
 
   const FoodDiaryScreen({super.key, this.initialFood, this.initialMeal});
 
   @override
-  State<FoodDiaryScreen> createState() => _FoodDiaryScreenState();
+  ConsumerState<FoodDiaryScreen> createState() => _FoodDiaryScreenState();
 }
 
-class _FoodDiaryScreenState extends State<FoodDiaryScreen> {
+class _FoodDiaryScreenState extends ConsumerState<FoodDiaryScreen> {
   final _foodController = TextEditingController();
   final _notesController = TextEditingController();
   DateTime _date = DateTime.now();
@@ -105,7 +105,7 @@ class _FoodDiaryScreenState extends State<FoodDiaryScreen> {
   }
 
   Future<void> _loadEntriesForDate() async {
-    final activeChild = mounted ? context.read<ProfileProvider>().activeChild : null;
+    final activeChild = mounted ? ref.read(profileProvider).activeChild : null;
     setState(() => _loadingEntries = true);
     final dateStr = _date.toIso8601String().substring(0, 10);
     final List<Map<String, dynamic>> result = [];
@@ -813,7 +813,7 @@ class _FoodDiaryScreenState extends State<FoodDiaryScreen> {
     final dateStr = _date.toIso8601String().substring(0, 10);
     final foodName = _foodController.text.trim();
     final notes = _notesController.text.trim();
-    final activeChild = context.read<ProfileProvider>().activeChild;
+    final activeChild = ref.read(profileProvider).activeChild;
 
     // 1. Post to Backend API if authenticated and childId is available
     try {

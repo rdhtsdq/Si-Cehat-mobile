@@ -1,27 +1,25 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/api/api_client.dart';
 import '../../core/api/api_constants.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../data/models/recipe_model.dart';
-import '../../providers/education_provider.dart';
-import '../../providers/profile_provider.dart';
-import '../../providers/reminder_provider.dart';
+import '../../providers/app_providers.dart';
 import '../diary/food_diary_screen.dart';
 
-class MenuDetailScreen extends StatefulWidget {
+class MenuDetailScreen extends ConsumerStatefulWidget {
   final RecipeModel recipe;
 
   const MenuDetailScreen({super.key, required this.recipe});
 
   @override
-  State<MenuDetailScreen> createState() => _MenuDetailScreenState();
+  ConsumerState<MenuDetailScreen> createState() => _MenuDetailScreenState();
 }
 
-class _MenuDetailScreenState extends State<MenuDetailScreen> {
+class _MenuDetailScreenState extends ConsumerState<MenuDetailScreen> {
   late RecipeModel _recipe;
   bool _isLoadingDetail = false;
   bool _isLoggingDiary = false;
@@ -38,7 +36,7 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
 
     setState(() => _isLoadingDetail = true);
     try {
-      final prov = context.read<EducationProvider>();
+      final prov = ref.read(educationProvider);
       final fresh = await prov.fetchRecipeDetail(_recipe.id);
       if (fresh != null && mounted) {
         setState(() => _recipe = fresh);
@@ -73,7 +71,7 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
 
   Future<void> _quickLogFoodDiary(String mealSlot) async {
     setState(() => _isLoggingDiary = true);
-    final activeChild = context.read<ProfileProvider>().activeChild;
+    final activeChild = ref.read(profileProvider).activeChild;
     final nowStr = DateTime.now().toIso8601String().substring(0, 10);
 
     int? calVal;
@@ -209,7 +207,7 @@ class _MenuDetailScreenState extends State<MenuDetailScreen> {
         ? '15:30'
         : '06:30';
 
-    await context.read<ReminderProvider>().addReminder(
+    await ref.read(reminderProvider).addReminder(
           'Masak ${_recipe.name}',
           defaultTime,
           category: 'makan',

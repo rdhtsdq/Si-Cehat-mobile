@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/api/api_client.dart';
 import '../../core/api/api_constants.dart';
@@ -8,9 +8,7 @@ import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../data/models/child_model.dart';
 import '../../data/models/recipe_model.dart';
-import '../../providers/education_provider.dart';
-import '../../providers/profile_provider.dart';
-import '../../providers/reminder_provider.dart';
+import '../../providers/app_providers.dart';
 import '../diary/food_diary_screen.dart';
 import 'menu_catalog_screen.dart';
 import 'menu_detail_screen.dart';
@@ -75,22 +73,22 @@ class _MealItemData {
   }
 }
 
-class MealPlanScreen extends StatefulWidget {
+class MealPlanScreen extends ConsumerStatefulWidget {
   const MealPlanScreen({super.key});
 
   @override
-  State<MealPlanScreen> createState() => _MealPlanScreenState();
+  ConsumerState<MealPlanScreen> createState() => _MealPlanScreenState();
 }
 
-class _MealPlanScreenState extends State<MealPlanScreen> {
+class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
   int _range = 0; // 0: Menu 1 Hari, 1: Menu 7 Hari, 2: Smart Traditional
   int _day = 0; // 0..6 for 7 days
   bool _isSyncingReminders = false;
 
   void _loadActiveChildPlan() {
-    final profileProv = context.read<ProfileProvider>();
+    final profileProv = ref.read(profileProvider);
     final child = profileProv.activeChild;
-    context.read<EducationProvider>().loadMealPlan(
+    ref.read(educationProvider).loadMealPlan(
       childId: child?.id?.toString(),
       riskCategory: child?.latestRiskCategory,
     );
@@ -703,7 +701,7 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
   }
 
   Future<void> _quickLogMealItem(_MealItemData meal) async {
-    final activeChild = context.read<ProfileProvider>().activeChild;
+    final activeChild = ref.read(profileProvider).activeChild;
     final nowStr = DateTime.now().toIso8601String().substring(0, 10);
 
     int? calVal;
@@ -794,13 +792,13 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
   Future<void> _syncAllReminders(EducationProvider eduProv) async {
     setState(() => _isSyncingReminders = true);
-    final child = context.read<ProfileProvider>().activeChild;
+    final child = ref.read(profileProvider).activeChild;
     try {
       final success = await eduProv.syncMealReminders(
         childId: child?.id?.toString(),
       );
       if (!mounted) return;
-      await context.read<ReminderProvider>().loadReminders();
+      await ref.read(reminderProvider).loadReminders();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -1430,8 +1428,8 @@ class _MealPlanScreenState extends State<MealPlanScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final eduProv = context.watch<EducationProvider>();
-    final profileProv = context.watch<ProfileProvider>();
+    final eduProv = ref.watch(educationProvider);
+    final profileProv = ref.watch(profileProvider);
     final activeChild = profileProv.activeChild;
     final allRecipes = eduProv.allRecipes;
     final recommendedMenus = eduProv.recommendedMenus;

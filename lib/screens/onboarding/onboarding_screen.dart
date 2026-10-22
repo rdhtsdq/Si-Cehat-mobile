@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/primary_button.dart';
-import '../../providers/auth_provider.dart';
+import '../../providers/app_providers.dart';
 import '../auth/login_screen.dart';
 
-class OnboardingScreen extends StatelessWidget {
+class OnboardingScreen extends ConsumerWidget {
   const OnboardingScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -45,7 +45,7 @@ class OnboardingScreen extends StatelessWidget {
               PrimaryButton(
                 text: 'Lanjut',
                 onPressed: () {
-                  context.read<AuthProvider>().completeOnboarding();
+                  ref.read(authProvider).completeOnboarding();
                   Navigator.of(context).pushReplacement(
                     MaterialPageRoute(builder: (_) => const LoginScreen()),
                   );

@@ -1,24 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/primary_button.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/profile_provider.dart';
-import '../../providers/reminder_provider.dart';
+import '../../providers/app_providers.dart';
 import '../shell/main_shell_screen.dart';
 import 'register_screen.dart';
 import 'forgot_password_sheet.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _identifierController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
@@ -51,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
-    final authProv = context.read<AuthProvider>();
+    final authProv = ref.read(authProvider);
     final result = await authProv.login(
       identifier: identifier,
       password: password,
@@ -60,11 +58,11 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
 
     if (result['success'] == true) {
-      final profileProv = context.read<ProfileProvider>();
+      final profileProv = ref.read(profileProvider);
       profileProv.clearSession();
       await profileProv.loadProfiles();
       if (!mounted) return;
-      await context.read<ReminderProvider>().loadReminders();
+      await ref.read(reminderProvider).loadReminders();
       if (!mounted) return;
 
       Navigator.of(context).pushReplacement(

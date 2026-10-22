@@ -1,13 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:si_cehat_mobile/core/theme/app_theme.dart';
-import 'package:si_cehat_mobile/providers/auth_provider.dart';
-import 'package:si_cehat_mobile/providers/profile_provider.dart';
-import 'package:si_cehat_mobile/providers/tracker_provider.dart';
-import 'package:si_cehat_mobile/providers/reminder_provider.dart';
-import 'package:si_cehat_mobile/providers/education_provider.dart';
-import 'package:si_cehat_mobile/providers/notification_provider.dart';
 import 'package:si_cehat_mobile/screens/shell/main_shell_screen.dart';
 import 'package:si_cehat_mobile/screens/screening/screening_step1_screen.dart';
 import 'package:si_cehat_mobile/screens/screening/screening_result_screen.dart';
@@ -15,15 +9,7 @@ import 'package:si_cehat_mobile/screens/menu/menu_catalog_screen.dart';
 import 'package:si_cehat_mobile/screens/reminder/reminder_screen.dart';
 
 Widget createTestApp(Widget child) {
-  return MultiProvider(
-    providers: [
-      ChangeNotifierProvider(create: (_) => AuthProvider()),
-      ChangeNotifierProvider(create: (_) => ProfileProvider()),
-      ChangeNotifierProvider(create: (_) => TrackerProvider()),
-      ChangeNotifierProvider(create: (_) => ReminderProvider()),
-      ChangeNotifierProvider(create: (_) => EducationProvider()),
-      ChangeNotifierProvider(create: (_) => NotificationProvider()),
-    ],
+  return ProviderScope(
     child: MaterialApp(
       theme: AppTheme.lightTheme,
       home: child,

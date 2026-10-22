@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/avatar_image.dart';
 import '../../core/widgets/photo_picker_sheet.dart';
-import '../../providers/profile_provider.dart';
+import '../../providers/app_providers.dart';
 import 'edit_profile_screen.dart';
 
-class MotherProfileScreen extends StatelessWidget {
+class MotherProfileScreen extends ConsumerWidget {
   const MotherProfileScreen({super.key});
 
   String _valOrPlaceholder(String? val) {
@@ -17,8 +17,8 @@ class MotherProfileScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final profileProv = context.watch<ProfileProvider>();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profileProv = ref.watch(profileProvider);
     final mother = profileProv.mother;
 
     return Scaffold(
@@ -84,7 +84,7 @@ class MotherProfileScreen extends StatelessWidget {
                         elevation: 2,
                         child: InkWell(
                           customBorder: const CircleBorder(),
-                          onTap: () => _showAvatarPicker(context),
+                          onTap: () => _showAvatarPicker(context, ref),
                           child: const Padding(
                             padding: EdgeInsets.all(8),
                             child: Icon(
@@ -174,7 +174,7 @@ class MotherProfileScreen extends StatelessWidget {
     );
   }
 
-  void _showAvatarPicker(BuildContext context) {
+  void _showAvatarPicker(BuildContext context, WidgetRef ref) {
     PhotoPickerSheet.show(
       context: context,
       title: 'Pilih Foto Profil Ibu',
@@ -194,7 +194,7 @@ class MotherProfileScreen extends StatelessWidget {
       ],
       onSelected: (assetOrBase64) async {
         final isBase64 = assetOrBase64.startsWith('data:');
-        await context.read<ProfileProvider>().updateAvatar(
+        await ref.read(profileProvider).updateAvatar(
               assetOrBase64,
               isBase64: isBase64,
             );
@@ -205,7 +205,7 @@ class MotherProfileScreen extends StatelessWidget {
         }
       },
       onReset: () async {
-        await context.read<ProfileProvider>().updateAvatar('');
+        await ref.read(profileProvider).updateAvatar('');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Foto profil dikembalikan ke default')),

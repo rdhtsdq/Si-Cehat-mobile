@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/safety_banner.dart';
 import '../../data/models/reminder_model.dart';
-import '../../providers/reminder_provider.dart';
+import '../../providers/app_providers.dart';
 import 'reminder_editor_sheet.dart';
 import '../diary/food_diary_screen.dart';
 
-class ReminderScreen extends StatelessWidget {
+class ReminderScreen extends ConsumerWidget {
   const ReminderScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final reminderProv = context.watch<ReminderProvider>();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final reminderProv = ref.watch(reminderProvider);
     final reminders = reminderProv.reminders;
     final completedCount = reminderProv.completedTodayCount;
     final totalCount = reminders.length;
@@ -132,7 +132,7 @@ class ReminderScreen extends StatelessWidget {
                   ),
                 )
               else
-                ...reminders.map((r) => _buildReminderCard(context, r)),
+                ...reminders.map((r) => _buildReminderCard(context, ref, r)),
 
               const SizedBox(height: 16),
               SizedBox(
@@ -161,7 +161,7 @@ class ReminderScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildReminderCard(BuildContext context, ReminderModel item) {
+  Widget _buildReminderCard(BuildContext context, WidgetRef ref, ReminderModel item) {
     final isDone = item.isCompleted;
 
     return Container(
@@ -194,7 +194,7 @@ class ReminderScreen extends StatelessWidget {
             ),
             onPressed: () {
               if (item.id != null) {
-                context.read<ReminderProvider>().toggleCompleteReminder(item.id);
+                ref.read(reminderProvider).toggleCompleteReminder(item.id);
               }
             },
           ),
@@ -283,7 +283,7 @@ class ReminderScreen extends StatelessWidget {
             activeTrackColor: AppColors.veryLightGreen,
             onChanged: (val) {
               if (item.id != null) {
-                context.read<ReminderProvider>().toggleReminder(item.id!, val);
+                ref.read(reminderProvider).toggleReminder(item.id!, val);
               }
             },
           ),

@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../data/models/notification_model.dart';
-import '../../providers/notification_provider.dart';
+import '../../providers/app_providers.dart';
 import 'consultation_screen.dart';
 
-class NotificationCenterScreen extends StatelessWidget {
+class NotificationCenterScreen extends ConsumerWidget {
   const NotificationCenterScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final notifProv = context.watch<NotificationProvider>();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notifProv = ref.watch(notificationProvider);
     final notifs = notifProv.notifications;
     final unreadCount = notifProv.unreadCount;
 

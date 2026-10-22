@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../data/models/recipe_model.dart';
-import '../../providers/education_provider.dart';
+import '../../providers/app_providers.dart';
 import 'menu_detail_screen.dart';
 
-class MenuCatalogScreen extends StatefulWidget {
+class MenuCatalogScreen extends ConsumerStatefulWidget {
   const MenuCatalogScreen({super.key});
 
   @override
-  State<MenuCatalogScreen> createState() => _MenuCatalogScreenState();
+  ConsumerState<MenuCatalogScreen> createState() => _MenuCatalogScreenState();
 }
 
-class _MenuCatalogScreenState extends State<MenuCatalogScreen> {
+class _MenuCatalogScreenState extends ConsumerState<MenuCatalogScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -21,7 +21,7 @@ class _MenuCatalogScreenState extends State<MenuCatalogScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      final prov = context.read<EducationProvider>();
+      final prov = ref.read(educationProvider);
       _searchController.text = prov.searchQuery;
       prov.fetchRecipes();
     });
@@ -35,7 +35,7 @@ class _MenuCatalogScreenState extends State<MenuCatalogScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final eduProv = context.watch<EducationProvider>();
+    final eduProv = ref.watch(educationProvider);
     final recipes = eduProv.filteredRecipes;
     final selectedCategory = eduProv.selectedRecipeCategory;
     final categories = ['Semua', 'Makanan', 'Minuman', 'Cemilan'];

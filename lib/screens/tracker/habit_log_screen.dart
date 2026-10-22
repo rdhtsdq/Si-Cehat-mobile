@@ -1,23 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../data/models/activity_log_model.dart';
-import '../../providers/profile_provider.dart';
-import '../../providers/tracker_provider.dart';
+import '../../providers/app_providers.dart';
 import 'add_activity_sheet.dart';
 
-class HabitLogView extends StatefulWidget {
+class HabitLogView extends ConsumerStatefulWidget {
   const HabitLogView({super.key});
 
   @override
-  State<HabitLogView> createState() => _HabitLogViewState();
+  ConsumerState<HabitLogView> createState() => _HabitLogViewState();
 }
 
-class _HabitLogViewState extends State<HabitLogView> {
+class _HabitLogViewState extends ConsumerState<HabitLogView> {
   DateTime _currentDate = DateTime.now();
-  dynamic _lastChildId;
 
   @override
   void initState() {
@@ -27,22 +25,10 @@ class _HabitLogViewState extends State<HabitLogView> {
     });
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final child = context.watch<ProfileProvider>().activeChild;
-    if (child != null && child.id != _lastChildId) {
-      _lastChildId = child.id;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _loadData();
-      });
-    }
-  }
-
   void _loadData() {
-    final child = context.read<ProfileProvider>().activeChild;
+    final child = ref.read(profileProvider).activeChild;
     if (child != null) {
-      context.read<TrackerProvider>().loadActivities(child.id, date: _currentDate);
+      ref.read(trackerProvider).loadActivities(child.id, date: _currentDate);
     }
   }
 
@@ -133,8 +119,14 @@ class _HabitLogViewState extends State<HabitLogView> {
 
   @override
   Widget build(BuildContext context) {
-    final trackerProv = context.watch<TrackerProvider>();
-    final profileProv = context.watch<ProfileProvider>();
+    ref.listen(profileProvider.select((p) => p.activeChild?.id), (prev, next) {
+      if (next != null && next != prev) {
+        _loadData();
+      }
+    });
+
+    final trackerProv = ref.watch(trackerProvider);
+    final profileProv = ref.watch(profileProvider);
     final child = profileProv.activeChild;
 
     final activities = trackerProv.activities;

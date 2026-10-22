@@ -1,25 +1,24 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/api/api_client.dart';
 import '../../core/api/api_constants.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/primary_button.dart';
-import '../../providers/profile_provider.dart';
-import '../../providers/tracker_provider.dart';
+import '../../providers/app_providers.dart';
 import '../profile/child_profile_setup_screen.dart';
 import 'screening_result_screen.dart';
 
-class ScreeningStep1Screen extends StatefulWidget {
+class ScreeningStep1Screen extends ConsumerStatefulWidget {
   final bool isPostRegistration;
 
   const ScreeningStep1Screen({super.key, this.isPostRegistration = false});
 
   @override
-  State<ScreeningStep1Screen> createState() => _ScreeningStep1ScreenState();
+  ConsumerState<ScreeningStep1Screen> createState() => _ScreeningStep1ScreenState();
 }
 
-class _ScreeningStep1ScreenState extends State<ScreeningStep1Screen> {
+class _ScreeningStep1ScreenState extends ConsumerState<ScreeningStep1Screen> {
   int _selectedAge = 7;
   double _selectedWeight = 22.0;
   double _selectedHeight = 120.0;
@@ -32,7 +31,7 @@ class _ScreeningStep1ScreenState extends State<ScreeningStep1Screen> {
   @override
   void initState() {
     super.initState();
-    final child = context.read<ProfileProvider>().activeChild;
+    final child = ref.read(profileProvider).activeChild;
     if (child != null && child.dateOfBirth.isNotEmpty) {
       _selectedAge = child.ageInYears.clamp(1, 18);
     }
@@ -93,7 +92,7 @@ class _ScreeningStep1ScreenState extends State<ScreeningStep1Screen> {
   }
 
   void _handleCalculate() async {
-    final profileProv = context.read<ProfileProvider>();
+    final profileProv = ref.read(profileProvider);
     var child = profileProv.activeChild;
     if (child == null) {
       await profileProv.loadProfiles();
@@ -115,7 +114,7 @@ class _ScreeningStep1ScreenState extends State<ScreeningStep1Screen> {
             initialChild: child,
             onCompleted: () {
               setState(() {
-                final updated = context.read<ProfileProvider>().activeChild;
+                final updated = ref.read(profileProvider).activeChild;
                 if (updated != null && updated.dateOfBirth.isNotEmpty) {
                   _selectedAge = updated.ageInYears.clamp(1, 18);
                 }
@@ -161,7 +160,7 @@ class _ScreeningStep1ScreenState extends State<ScreeningStep1Screen> {
             [];
 
         profileProv.updateLatestScreening(category: cat, score: score);
-        context.read<TrackerProvider>().loadMeasurements(child.id);
+        ref.read(trackerProvider).loadMeasurements(child.id);
 
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
@@ -192,7 +191,7 @@ class _ScreeningStep1ScreenState extends State<ScreeningStep1Screen> {
 
   @override
   Widget build(BuildContext context) {
-    final activeChild = context.watch<ProfileProvider>().activeChild;
+    final activeChild = ref.watch(profileProvider).activeChild;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -309,7 +308,7 @@ class _ScreeningStep1ScreenState extends State<ScreeningStep1Screen> {
                                   initialChild: activeChild,
                                   onCompleted: () {
                                     setState(() {
-                                      final updated = context.read<ProfileProvider>().activeChild;
+                                      final updated = ref.read(profileProvider).activeChild;
                                       if (updated != null && updated.dateOfBirth.isNotEmpty) {
                                         _selectedAge = updated.ageInYears.clamp(1, 18);
                                       }

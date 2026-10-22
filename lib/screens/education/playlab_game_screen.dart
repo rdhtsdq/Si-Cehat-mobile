@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../core/api/api_client.dart';
@@ -10,9 +10,9 @@ import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/services/playlab_storage_service.dart';
 import '../../data/models/playlab_score_model.dart';
-import '../../providers/profile_provider.dart';
+import '../../providers/app_providers.dart';
 
-class PlayLabGameScreen extends StatefulWidget {
+class PlayLabGameScreen extends ConsumerStatefulWidget {
   final String gameSlug;
 
   const PlayLabGameScreen({
@@ -21,10 +21,10 @@ class PlayLabGameScreen extends StatefulWidget {
   });
 
   @override
-  State<PlayLabGameScreen> createState() => _PlayLabGameScreenState();
+  ConsumerState<PlayLabGameScreen> createState() => _PlayLabGameScreenState();
 }
 
-class _PlayLabGameScreenState extends State<PlayLabGameScreen>
+class _PlayLabGameScreenState extends ConsumerState<PlayLabGameScreen>
     with WidgetsBindingObserver {
   final ApiClient _apiClient = ApiClient.instance;
   WebViewController? _webViewController;
@@ -69,7 +69,7 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen>
     });
 
     try {
-      final profileProv = context.read<ProfileProvider>();
+      final profileProv = ref.read(profileProvider);
       final activeChild = profileProv.activeChild;
       final childId = activeChild?.id.toString();
 
@@ -239,7 +239,7 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen>
     String? sessionId, {
     Map<String, dynamic>? bridgeScores,
   }) async {
-    final activeChild = mounted ? context.read<ProfileProvider>().activeChild : null;
+    final activeChild = mounted ? ref.read(profileProvider).activeChild : null;
 
     // 1. Query the authoritative server score endpoint
     if (sessionId != null && sessionId.isNotEmpty && sessionId != 'local-simulation') {
@@ -269,7 +269,7 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen>
           await PlayLabStorageService.instance.saveScoreResult(scoreResult);
           try {
             if (mounted) {
-              context.read<ProfileProvider>().loadProfiles();
+              ref.read(profileProvider).loadProfiles();
             }
           } catch (_) {}
 
@@ -298,7 +298,7 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen>
       await PlayLabStorageService.instance.saveScoreResult(fallback);
       try {
         if (mounted) {
-          context.read<ProfileProvider>().loadProfiles();
+          ref.read(profileProvider).loadProfiles();
         }
       } catch (_) {}
 
@@ -315,7 +315,7 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen>
     if (_isExiting) return;
     _isExiting = true;
 
-    final childId = mounted ? context.read<ProfileProvider>().activeChild?.id?.toString() : null;
+    final childId = mounted ? ref.read(profileProvider).activeChild?.id?.toString() : null;
     final targetSessionId = sessionId ?? _sessionId;
     PlayLabScoreResult? scoreResult = await _fetchServerScore(
       targetSessionId,
@@ -522,7 +522,7 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen>
 
   @override
   Widget build(BuildContext context) {
-    final activeChild = context.watch<ProfileProvider>().activeChild;
+    final activeChild = ref.watch(profileProvider).activeChild;
 
     return PopScope(
       canPop: false,

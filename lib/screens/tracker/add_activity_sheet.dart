@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../data/models/activity_log_model.dart';
-import '../../providers/tracker_provider.dart';
+import '../../providers/app_providers.dart';
 
-class AddActivitySheet extends StatefulWidget {
+class AddActivitySheet extends ConsumerStatefulWidget {
   final dynamic childId;
   final DateTime date;
 
@@ -28,10 +28,10 @@ class AddActivitySheet extends StatefulWidget {
   }
 
   @override
-  State<AddActivitySheet> createState() => _AddActivitySheetState();
+  ConsumerState<AddActivitySheet> createState() => _AddActivitySheetState();
 }
 
-class _AddActivitySheetState extends State<AddActivitySheet> {
+class _AddActivitySheetState extends ConsumerState<AddActivitySheet> {
   final _titleController = TextEditingController();
   final _notesController = TextEditingController();
   String _selectedCategory = 'Aktivitas Fisik';
@@ -100,7 +100,7 @@ class _AddActivitySheetState extends State<AddActivitySheet> {
     );
 
     try {
-      await context.read<TrackerProvider>().addActivity(activity);
+      await ref.read(trackerProvider).addActivity(activity);
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(

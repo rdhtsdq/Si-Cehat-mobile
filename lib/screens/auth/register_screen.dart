@@ -1,23 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/primary_button.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/profile_provider.dart';
-import '../../providers/reminder_provider.dart';
+import '../../providers/app_providers.dart';
 import '../profile/child_profile_setup_screen.dart';
 import '../shell/main_shell_screen.dart';
 
-class RegisterScreen extends StatefulWidget {
+class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
@@ -81,7 +79,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _isLoading = true);
 
-    final authProv = context.read<AuthProvider>();
+    final authProv = ref.read(authProvider);
     final result = await authProv.register(
       name: name,
       phone: phone,
@@ -93,9 +91,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!mounted) return;
 
     if (result['success'] == true) {
-      await context.read<ProfileProvider>().loadProfiles();
+      await ref.read(profileProvider).loadProfiles();
       if (!mounted) return;
-      await context.read<ReminderProvider>().loadReminders();
+      await ref.read(reminderProvider).loadReminders();
       if (!mounted) return;
 
       final navigator = Navigator.of(context);

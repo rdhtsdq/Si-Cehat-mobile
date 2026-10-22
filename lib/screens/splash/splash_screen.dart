@@ -1,23 +1,21 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/profile_provider.dart';
-import '../../providers/reminder_provider.dart';
+import '../../providers/app_providers.dart';
 import '../auth/login_screen.dart';
 import '../onboarding/onboarding_screen.dart';
 import '../shell/main_shell_screen.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
@@ -25,7 +23,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _navigateNext() async {
-    final auth = context.read<AuthProvider>();
+    final auth = ref.read(authProvider);
     await Future.wait([
       auth.ensureInitialized(),
       Future.delayed(const Duration(milliseconds: 1000)),
@@ -46,9 +44,9 @@ class _SplashScreenState extends State<SplashScreen> {
       return;
     }
 
-    await context.read<ProfileProvider>().loadProfiles();
+    await ref.read(profileProvider).loadProfiles();
     if (!mounted) return;
-    await context.read<ReminderProvider>().loadReminders();
+    await ref.read(reminderProvider).loadReminders();
     if (!mounted) return;
 
     Navigator.of(context).pushReplacement(

@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/profile_provider.dart';
+import '../../providers/app_providers.dart';
 import '../auth/login_screen.dart';
 import '../auth/privacy_sheet.dart';
 import 'mother_profile_screen.dart';
 import 'child_profile_screen.dart';
 import 'child_manage_sheet.dart';
 
-class ProfileSelectScreen extends StatelessWidget {
+class ProfileSelectScreen extends ConsumerWidget {
   const ProfileSelectScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -146,8 +145,8 @@ class ProfileSelectScreen extends StatelessWidget {
                   ),
                 ),
                 onTap: () async {
-                  final authProv = context.read<AuthProvider>();
-                  final profileProv = context.read<ProfileProvider>();
+                  final authProv = ref.read(authProvider);
+                  final profileProv = ref.read(profileProvider);
                   await authProv.logout();
                   profileProv.clearSession();
                   if (context.mounted) {

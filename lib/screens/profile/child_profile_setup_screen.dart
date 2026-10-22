@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../data/models/child_model.dart';
-import '../../providers/profile_provider.dart';
+import '../../providers/app_providers.dart';
 import '../screening/screening_step1_screen.dart';
 
-class ChildProfileSetupScreen extends StatefulWidget {
+class ChildProfileSetupScreen extends ConsumerStatefulWidget {
   final bool isPostRegistration;
   final VoidCallback? onCompleted;
   final ChildModel? initialChild;
@@ -21,11 +21,11 @@ class ChildProfileSetupScreen extends StatefulWidget {
   });
 
   @override
-  State<ChildProfileSetupScreen> createState() =>
+  ConsumerState<ChildProfileSetupScreen> createState() =>
       _ChildProfileSetupScreenState();
 }
 
-class _ChildProfileSetupScreenState extends State<ChildProfileSetupScreen> {
+class _ChildProfileSetupScreenState extends ConsumerState<ChildProfileSetupScreen> {
   final _nameController = TextEditingController();
   final _dobController = TextEditingController();
   final _notesController = TextEditingController();
@@ -39,7 +39,7 @@ class _ChildProfileSetupScreenState extends State<ChildProfileSetupScreen> {
   @override
   void initState() {
     super.initState();
-    final profileProv = context.read<ProfileProvider>();
+    final profileProv = ref.read(profileProvider);
     final targetChild = widget.initialChild ?? profileProv.activeChild;
 
     if (targetChild != null) {
@@ -150,7 +150,7 @@ class _ChildProfileSetupScreenState extends State<ChildProfileSetupScreen> {
     setState(() => _isSaving = true);
 
     try {
-      final profileProv = context.read<ProfileProvider>();
+      final profileProv = ref.read(profileProvider);
       final existingChild = widget.initialChild ?? profileProv.activeChild;
 
       final hasExistingId = existingChild != null &&

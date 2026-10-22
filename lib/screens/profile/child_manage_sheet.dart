@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/avatar_image.dart';
 import '../../data/models/child_model.dart';
-import '../../providers/profile_provider.dart';
-import '../../providers/tracker_provider.dart';
+import '../../providers/app_providers.dart';
 
-class ChildManageSheet extends StatefulWidget {
+class ChildManageSheet extends ConsumerStatefulWidget {
   const ChildManageSheet({super.key});
 
   @override
-  State<ChildManageSheet> createState() => _ChildManageSheetState();
+  ConsumerState<ChildManageSheet> createState() => _ChildManageSheetState();
 }
 
-class _ChildManageSheetState extends State<ChildManageSheet> {
+class _ChildManageSheetState extends ConsumerState<ChildManageSheet> {
   bool _isAdding = false;
   final _nameController = TextEditingController();
   final _dobController = TextEditingController();
@@ -52,7 +51,7 @@ class _ChildManageSheetState extends State<ChildManageSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final profileProv = context.watch<ProfileProvider>();
+    final profileProv = ref.watch(profileProvider);
     final children = profileProv.children;
 
     return Padding(
@@ -137,7 +136,7 @@ class _ChildManageSheetState extends State<ChildManageSheet> {
                         )
                       : null,
                   onTap: () async {
-                    final trackerProv = context.read<TrackerProvider>();
+                    final trackerProv = ref.read(trackerProvider);
                     await profileProv.selectActiveChild(child.id);
                     trackerProv.loadMeasurements(child.id);
                     if (context.mounted) Navigator.of(context).pop();

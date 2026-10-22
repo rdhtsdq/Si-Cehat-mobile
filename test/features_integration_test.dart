@@ -1,14 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:si_cehat_mobile/core/theme/app_theme.dart';
-import 'package:si_cehat_mobile/providers/auth_provider.dart';
-import 'package:si_cehat_mobile/providers/profile_provider.dart';
-import 'package:si_cehat_mobile/providers/tracker_provider.dart';
-import 'package:si_cehat_mobile/providers/reminder_provider.dart';
-import 'package:si_cehat_mobile/providers/education_provider.dart';
-import 'package:si_cehat_mobile/providers/notification_provider.dart';
+import 'package:si_cehat_mobile/providers/app_providers.dart';
 import 'package:si_cehat_mobile/screens/consultation/notification_center_screen.dart';
 import 'package:si_cehat_mobile/data/models/education_model.dart';
 import 'package:si_cehat_mobile/screens/education/education_detail_screen.dart';
@@ -19,15 +14,7 @@ import 'package:si_cehat_mobile/screens/reminder/reminder_screen.dart';
 import 'package:si_cehat_mobile/screens/tracker/tracker_screen.dart';
 
 Widget createTestApp(Widget child) {
-  return MultiProvider(
-    providers: [
-      ChangeNotifierProvider(create: (_) => AuthProvider()),
-      ChangeNotifierProvider(create: (_) => ProfileProvider()),
-      ChangeNotifierProvider(create: (_) => TrackerProvider()),
-      ChangeNotifierProvider(create: (_) => ReminderProvider()),
-      ChangeNotifierProvider(create: (_) => EducationProvider()),
-      ChangeNotifierProvider(create: (_) => NotificationProvider()),
-    ],
+  return ProviderScope(
     child: MaterialApp(
       theme: AppTheme.lightTheme,
       home: child,
@@ -132,7 +119,7 @@ void main() {
       expect(find.text('Hapus / Reset Foto'), findsOneWidget);
 
       // Select preset
-      final prov = tester.element(find.byType(MotherProfileScreen)).read<ProfileProvider>();
+      final prov = ProviderScope.containerOf(tester.element(find.byType(MotherProfileScreen))).read(profileProvider);
       await tester.tap(find.byKey(const Key('preset_Ibu Si Cehat')));
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
@@ -167,7 +154,7 @@ void main() {
       expect(find.text('Hapus / Reset Foto'), findsOneWidget);
 
       // Select preset
-      final prov = tester.element(find.byType(ChildProfileScreen)).read<ProfileProvider>();
+      final prov = ProviderScope.containerOf(tester.element(find.byType(ChildProfileScreen))).read(profileProvider);
       await tester.tap(find.byKey(const Key('preset_Anak Si Cehat')));
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));

@@ -1,22 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../data/models/reminder_model.dart';
-import '../../providers/reminder_provider.dart';
+import '../../providers/app_providers.dart';
 
-class ReminderEditorSheet extends StatefulWidget {
+class ReminderEditorSheet extends ConsumerStatefulWidget {
   final ReminderModel? reminder;
 
   const ReminderEditorSheet({super.key, this.reminder});
 
   @override
-  State<ReminderEditorSheet> createState() => _ReminderEditorSheetState();
+  ConsumerState<ReminderEditorSheet> createState() => _ReminderEditorSheetState();
 }
 
-class _ReminderEditorSheetState extends State<ReminderEditorSheet> {
+class _ReminderEditorSheetState extends ConsumerState<ReminderEditorSheet> {
   late TextEditingController _titleController;
   late TimeOfDay _selectedTime;
   late String _selectedCategory;
@@ -161,7 +161,7 @@ class _ReminderEditorSheetState extends State<ReminderEditorSheet> {
               final title = _titleController.text.trim();
               if (title.isEmpty) return;
 
-              final prov = context.read<ReminderProvider>();
+              final prov = ref.read(reminderProvider);
               if (isEditing) {
                 await prov.updateReminder(
                   widget.reminder!.id,
@@ -200,7 +200,7 @@ class _ReminderEditorSheetState extends State<ReminderEditorSheet> {
                 icon: const Icon(Icons.delete_outline, size: 18),
                 label: const Text('Hapus Pengingat Ini'),
                 onPressed: () async {
-                  await context.read<ReminderProvider>().deleteReminder(widget.reminder!.id);
+                  await ref.read(reminderProvider).deleteReminder(widget.reminder!.id);
                   if (context.mounted) {
                     Navigator.of(context).pop();
                     ScaffoldMessenger.of(context).showSnackBar(

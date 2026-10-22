@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/profile_provider.dart';
-import '../../providers/notification_provider.dart';
+import '../../providers/app_providers.dart';
 import '../consultation/consultation_screen.dart';
 import '../consultation/notification_center_screen.dart';
 import '../community/community_screen.dart';
@@ -19,7 +17,7 @@ import '../reminder/reminder_screen.dart';
 import '../screening/screening_step1_screen.dart';
 import '../../core/widgets/avatar_image.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   final Function(int)? onNavigateTab;
 
   const HomeScreen({super.key, this.onNavigateTab});
@@ -33,10 +31,10 @@ class HomeScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final profile = context.watch<ProfileProvider>();
-    final authName = context.select<AuthProvider, String?>((a) => a.currentUserName);
-    final unreadCount = context.select<NotificationProvider, int>((p) => p.unreadCount);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(profileProvider);
+    final authName = ref.watch(authProvider.select((a) => a.currentUserName));
+    final unreadCount = ref.watch(notificationProvider.select((p) => p.unreadCount));
     final motherName = (profile.mother?.name.isNotEmpty == true)
         ? profile.mother!.name
         : (authName ?? 'Ibu Rina');
@@ -188,7 +186,7 @@ class HomeScreen extends StatelessWidget {
               ],
               const SizedBox(height: 18),
               InkWell(
-                onTap: () => _openScreeningFlow(context),
+                onTap: () => _openScreeningFlow(context, ref),
                 borderRadius: BorderRadius.circular(14),
                 child: Container(
                   width: double.infinity,
@@ -246,7 +244,7 @@ class HomeScreen extends StatelessWidget {
                   _buildMenuCard(
                     'screening.png',
                     'Skrining',
-                    () => _openScreeningFlow(context),
+                    () => _openScreeningFlow(context, ref),
                   ),
                   const SizedBox(width: 12),
                   _buildMenuCard(
@@ -358,8 +356,8 @@ class HomeScreen extends StatelessWidget {
         ),
       );
 
-  void _openScreeningFlow(BuildContext context) {
-    final profile = context.read<ProfileProvider>();
+  void _openScreeningFlow(BuildContext context, WidgetRef ref) {
+    final profile = ref.read(profileProvider);
     final activeChild = profile.activeChild;
 
     // Before screening, ensure child profile is fulfilled
