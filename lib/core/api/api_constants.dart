@@ -1,6 +1,77 @@
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 class ApiConstants {
-  // static const String baseUrl = 'http://localhost:3000';
-  static const String baseUrl = 'http://192.168.1.112:3000';
+  static const String _baseUrlPrefKey = 'custom_api_base_url';
+  static const String defaultEmulatorUrl = 'http://10.0.2.2:3000';
+  static const String defaultLanUrl = 'http://192.168.101.141:3000';
+
+  static String? _customBaseUrl;
+
+  /// Loads any previously saved custom API Base URL from SharedPreferences.
+  static Future<void> init() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(_baseUrlPrefKey);
+      if (saved != null && saved.trim().isNotEmpty) {
+        if (saved.contains('192.168.1.3.')) {
+          await prefs.remove(_baseUrlPrefKey);
+          _customBaseUrl = null;
+        } else {
+          _customBaseUrl = _normalizeUrl(saved.trim());
+        }
+      }
+    } catch (_) {}
+  }
+
+  static String _normalizeUrl(String url) {
+    var trimmed = url.trim();
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      trimmed = 'http://$trimmed';
+    }
+    return trimmed.endsWith('/')
+        ? trimmed.substring(0, trimmed.length - 1)
+        : trimmed;
+  }
+
+  /// Allows changing and persisting the API Base URL dynamically (e.g. from Settings or for LAN IP testing)
+  static Future<void> setCustomBaseUrl(String? url) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (url == null || url.trim().isEmpty) {
+        _customBaseUrl = null;
+        await prefs.remove(_baseUrlPrefKey);
+      } else {
+        final normalized = _normalizeUrl(url);
+        _customBaseUrl = normalized;
+        await prefs.setString(_baseUrlPrefKey, normalized);
+      }
+    } catch (_) {
+      if (url == null || url.trim().isEmpty) {
+        _customBaseUrl = null;
+      } else {
+        _customBaseUrl = _normalizeUrl(url);
+      }
+    }
+  }
+
+  static String get baseUrl {
+    if (_customBaseUrl != null && _customBaseUrl!.isNotEmpty) {
+      return _customBaseUrl!;
+    }
+    if (kIsWeb) {
+      return 'http://localhost:3000';
+    }
+    if (defaultTargetPlatform == TargetPlatform.windows ||
+        defaultTargetPlatform == TargetPlatform.linux ||
+        defaultTargetPlatform == TargetPlatform.macOS) {
+      return 'http://localhost:3000';
+    }
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return defaultLanUrl;
+    }
+    return 'http://localhost:3000';
+  }
 
   // Auth endpoints
   static const String authLogin = '/api/auth/login';

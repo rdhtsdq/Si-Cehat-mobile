@@ -211,7 +211,7 @@ class _GameWebviewScreenState extends State<GameWebviewScreen> {
           ),
         ),
         content: const Text(
-          'Piring sehatmu belum selesai tersusun. Mau lanjut bermain?',
+          'Piring sehatmu belum selesai. Mau lanjut main?',
           style: TextStyle(
             fontWeight: FontWeight.w600,
             color: Color(0xFF285648),

@@ -348,14 +348,14 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen>
     final shouldExit = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Keluar dari Permainan?'),
+        title: const Text('Keluar dari Game?'),
         content: const Text(
-          'Apakah kamu yakin ingin keluar dari permainan?',
+          'Yakin ingin keluar dari game?',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Lanjut Bermain'),
+            child: const Text('Lanjut Main'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -416,7 +416,7 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen>
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Mode Desktop Windows Terdeteksi\nWebView native berjalan di Android & iOS. Pada Windows, silakan buka permainan di browser Anda.',
+                  'Buka dan mainkan game di browsermu.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 12,
@@ -438,7 +438,7 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen>
                       ),
                     ),
                     child: Text(
-                      'Sesi Aktif: $_sessionId',
+                      'Sesi: $_sessionId',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         fontSize: 11,
@@ -462,7 +462,7 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen>
                     },
                     icon: const Icon(Icons.open_in_browser, color: Colors.white),
                     label: const Text(
-                      'Buka Game di Browser (Chrome/Edge)',
+                      'Buka di Browser',
                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                     style: ElevatedButton.styleFrom(
@@ -490,7 +490,7 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen>
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text(
-                                'Sesi permainan belum selesai di browser. Silakan selesaikan piring dan kuis di browser terlebih dahulu.',
+                                'Permainan belum selesai di browser.',
                               ),
                               duration: Duration(seconds: 3),
                             ),
@@ -500,7 +500,7 @@ class _PlayLabGameScreenState extends State<PlayLabGameScreen>
                     },
                     icon: const Icon(Icons.check_circle_outline_rounded, color: Color(0xFF247A4D)),
                     label: const Text(
-                      'Periksa Skor Server & Selesai',
+                      'Cek Skor & Selesai',
                       style: TextStyle(color: Color(0xFF247A4D), fontWeight: FontWeight.bold),
                     ),
                     style: OutlinedButton.styleFrom(
