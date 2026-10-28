@@ -2,17 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
+import '../../core/services/local_notification_service.dart';
 import '../../core/widgets/safety_banner.dart';
 import '../../data/models/reminder_model.dart';
 import '../../providers/app_providers.dart';
 import 'reminder_editor_sheet.dart';
 import '../diary/food_diary_screen.dart';
 
-class ReminderScreen extends ConsumerWidget {
+class ReminderScreen extends ConsumerStatefulWidget {
   const ReminderScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ReminderScreen> createState() => _ReminderScreenState();
+}
+
+class _ReminderScreenState extends ConsumerState<ReminderScreen> {
+  bool _permissionDenied = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final granted =
+          await LocalNotificationService.instance.requestPermission();
+      if (!granted && mounted) {
+        setState(() => _permissionDenied = true);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final reminderProv = ref.watch(reminderProvider);
     final reminders = reminderProv.reminders;
     final completedCount = reminderProv.completedTodayCount;
@@ -43,6 +63,51 @@ class ReminderScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (_permissionDenied) ...[
+                Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF7E6),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFF0C36B)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.notifications_off_rounded,
+                        size: 18,
+                        color: Color(0xFF9A6700),
+                      ),
+                      const SizedBox(width: 8),
+                      const Expanded(
+                        child: Text(
+                          'Izin notifikasi belum aktif. Pengingat tidak akan muncul di luar aplikasi.',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF9A6700),
+                            height: 1.35,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          final granted = await LocalNotificationService.instance
+                              .requestPermission();
+                          if (granted && mounted) {
+                            setState(() => _permissionDenied = false);
+                          }
+                        },
+                        child: const Text(
+                          'Aktifkan',
+                          style: TextStyle(fontSize: 10),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               // Header aksi "+ Tambah Reminder"
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,

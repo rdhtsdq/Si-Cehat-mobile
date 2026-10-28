@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/api/api_client.dart';
 import '../core/api/api_constants.dart';
+import '../core/services/push_notification_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final ApiClient _apiClient = ApiClient.instance;
@@ -154,6 +155,7 @@ class AuthProvider extends ChangeNotifier {
 
         _isLoading = false;
         notifyListeners();
+        await PushNotificationService.instance.registerDevice();
         return {'success': true, 'guardian': guardian};
       } else {
         _isLoading = false;
@@ -225,6 +227,7 @@ class AuthProvider extends ChangeNotifier {
 
         _isLoading = false;
         notifyListeners();
+        await PushNotificationService.instance.registerDevice();
         return {'success': true, 'guardian': guardian};
       } else {
         _isLoading = false;
@@ -258,6 +261,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    await PushNotificationService.instance.unregisterDevice();
     try {
       await _apiClient.post(ApiConstants.authLogout);
     } catch (_) {}

@@ -3,6 +3,7 @@ import '../core/api/api_client.dart';
 import '../core/api/api_constants.dart';
 import '../core/database/database_helper.dart';
 import '../core/database/seed_data.dart';
+import '../core/services/local_notification_service.dart';
 import '../data/models/reminder_model.dart';
 
 class ReminderProvider extends ChangeNotifier {
@@ -59,7 +60,12 @@ class ReminderProvider extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+      await _reschedule();
     }
+  }
+
+  Future<void> _reschedule() async {
+    await LocalNotificationService.instance.rescheduleReminders(_reminders);
   }
 
   Future<void> toggleReminder(dynamic id, bool isEnabled) async {
@@ -82,6 +88,7 @@ class ReminderProvider extends ChangeNotifier {
       }
 
       await _dbHelper.updateReminder(updated);
+      await _reschedule();
     }
   }
 
@@ -192,6 +199,7 @@ class ReminderProvider extends ChangeNotifier {
       }
 
       await _dbHelper.updateReminder(updated);
+      await _reschedule();
     }
   }
 
