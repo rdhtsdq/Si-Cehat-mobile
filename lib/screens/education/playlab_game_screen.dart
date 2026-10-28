@@ -146,11 +146,12 @@ class _PlayLabGameScreenState extends ConsumerState<PlayLabGameScreen>
               final reqUri = Uri.tryParse(request.url);
               final gameUri = Uri.tryParse(standaloneBase);
               final apiUri = Uri.tryParse(ApiConstants.baseUrl);
+              final isLocalDevHost = kDebugMode &&
+                  (reqUri?.host == 'localhost' || reqUri?.host == '10.0.2.2');
               if (reqUri != null) {
                 if (reqUri.host == gameUri?.host ||
                     reqUri.host == apiUri?.host ||
-                    reqUri.host == 'localhost' ||
-                    reqUri.host == '10.0.2.2' ||
+                    isLocalDevHost ||
                     request.url.startsWith('about:blank') ||
                     request.url.startsWith('sicehat://')) {
                   if (request.url.startsWith('sicehat://exit')) {
