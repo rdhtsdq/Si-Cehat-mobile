@@ -253,7 +253,6 @@ class TrackerProvider extends ChangeNotifier {
             'date': dateStr,
             'waterGlasses': _waterGlasses,
             'activityMinutes': totalActiveMinutes,
-            'foodLogs': [],
           },
         );
       } catch (_) {}
