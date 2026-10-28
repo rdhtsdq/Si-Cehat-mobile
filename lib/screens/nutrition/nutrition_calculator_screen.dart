@@ -139,7 +139,11 @@ class _NutritionCalculatorScreenState
   void _addQuickToDraft(NutritionProvider provider) {
     final food = _quickFood;
     if (food == null || _quickResult == null) return;
-    provider.addDraft(food, weightGram: _quickWeightGram);
+    provider.addDraft(
+      food,
+      weightGram: _quickWeightGram,
+      preparedValues: _quickResult,
+    );
     setState(() => _tab = 1);
     _showSnack('${food.name} ditambahkan ke asupan.');
   }

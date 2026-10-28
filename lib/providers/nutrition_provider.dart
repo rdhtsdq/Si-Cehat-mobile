@@ -188,10 +188,18 @@ class NutritionProvider extends ChangeNotifier {
     }
   }
 
-  void addDraft(FoodItem food, {double weightGram = 100}) {
+  void addDraft(
+    FoodItem food, {
+    double weightGram = 100,
+    NutritionValues? preparedValues,
+  }) {
     _draft = [
       ..._draft,
-      NutritionDraftItem(food: food, weightGram: weightGram),
+      NutritionDraftItem(
+        food: food,
+        weightGram: weightGram,
+        preparedValues: preparedValues,
+      ),
     ];
     _batchTotals = localDraftTotals;
     notifyListeners();
@@ -315,6 +323,9 @@ class NutritionProvider extends ChangeNotifier {
     }
 
     await _enqueuePendingBatch(payload);
+    // The batch is now queued locally; clear the draft so the user cannot
+    // accidentally enqueue the same items twice.
+    clearDraft();
     return false;
   }
 

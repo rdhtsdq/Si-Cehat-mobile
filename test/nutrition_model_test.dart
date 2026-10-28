@@ -125,5 +125,17 @@ void main() {
 
       expect(item.values.caloriesKkal, 195);
     });
+
+    test('draft item uses prepared values when provided', () {
+      const prepared = NutritionValues(caloriesKkal: 244, fatGram: 0.4);
+      final item = NutritionDraftItem(
+        food: localFoodCatalog.first,
+        weightGram: 150,
+        preparedValues: prepared,
+      );
+
+      expect(item.values.caloriesKkal, 244);
+      expect(item.values.fatGram, 0.4);
+    });
   });
 }

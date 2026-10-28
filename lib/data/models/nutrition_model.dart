@@ -235,7 +235,16 @@ class NutritionDraftItem {
   final FoodItem food;
   final double weightGram;
 
-  const NutritionDraftItem({required this.food, required this.weightGram});
+  /// Values adjusted for preparation (for example frying). When null the
+  /// catalog values scaled to [weightGram] are used.
+  final NutritionValues? preparedValues;
 
-  NutritionValues get values => food.per100g.scaled(weightGram);
+  const NutritionDraftItem({
+    required this.food,
+    required this.weightGram,
+    this.preparedValues,
+  });
+
+  NutritionValues get values =>
+      preparedValues ?? food.per100g.scaled(weightGram);
 }
