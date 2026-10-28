@@ -296,6 +296,21 @@ class ApiClient {
     }
 
     final statusCode = response.statusCode;
+    final contentType = response.headers['content-type'] ?? '';
+    final bodyPrefix = decodedData is String ? decodedData.trimLeft() : '';
+    final isHtmlResponse = contentType.contains('text/html') ||
+        bodyPrefix.startsWith('<!doctype') ||
+        bodyPrefix.startsWith('<html');
+
+    // The backend serves the SPA for unknown routes (HTTP 200 + HTML). Treat
+    // that as a missing endpoint instead of a successful API response.
+    if (isHtmlResponse) {
+      return ApiResponse.failure(
+        'Endpoint API tidak ditemukan.',
+        statusCode: statusCode,
+      );
+    }
+
     if (statusCode >= 200 && statusCode < 300) {
       return ApiResponse.success(decodedData, statusCode: statusCode);
     } else {

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import '../core/api/api_client.dart';
-import '../core/api/api_constants.dart';
 import '../core/database/database_helper.dart';
 import '../core/database/seed_data.dart';
 import '../data/models/notification_model.dart';
 
+/// Notifications are local-only for now: the deployed backend does not expose
+/// `/api/notifications` (GET falls through to the SPA and mutations return
+/// 404), so asking the server on every action only produced silent failures.
 class NotificationProvider extends ChangeNotifier {
-  final ApiClient _apiClient = ApiClient.instance;
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
 
   List<NotificationModel> _notifications = [];
@@ -27,38 +27,13 @@ class NotificationProvider extends ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    final token = await _apiClient.getToken();
-    if (token != null && token.isNotEmpty) {
-      try {
-        final res = await _apiClient.get(ApiConstants.notifications);
-        if (res.isSuccess && res.data != null) {
-          final rawList = res.data['notifications'] as List<dynamic>?;
-          if (rawList != null) {
-            _notifications = rawList
-                .map((n) => NotificationModel.fromJson(n as Map<String, dynamic>))
-                .toList();
-
-            _unreadCount = res.data['unreadCount'] as int? ??
-                _notifications.where((n) => !n.isRead).length;
-
-            // Cache to local db
-            for (final n in _notifications) {
-              await _dbHelper.insertNotification(n);
-            }
-
-            _isLoading = false;
-            notifyListeners();
-            return;
-          }
-        }
-      } catch (e) {
-        debugPrint('[NotificationProvider] Remote load error: $e');
-      }
-    }
-
-    // Local SQLite fallback
     try {
-      _notifications = await _dbHelper.getNotifications();
+      final local = await _dbHelper.getNotifications();
+      // Keep the seeded items on a fresh install so the center is not empty
+      // before the local database has been populated.
+      if (local.isNotEmpty) {
+        _notifications = local;
+      }
       _unreadCount = _notifications.where((n) => !n.isRead).length;
     } catch (e) {
       debugPrint('[NotificationProvider] Local load error: $e');
@@ -75,18 +50,6 @@ class NotificationProvider extends ChangeNotifier {
       _unreadCount = (_unreadCount > 0) ? _unreadCount - 1 : 0;
       notifyListeners();
 
-      final token = await _apiClient.getToken();
-      if (token != null && token.isNotEmpty) {
-        try {
-          await _apiClient.patch(
-            '${ApiConstants.notifications}/$id',
-            body: {'isRead': true},
-          );
-        } catch (e) {
-          debugPrint('[NotificationProvider] Remote markRead error: $e');
-        }
-      }
-
       await _dbHelper.markNotificationRead(id);
     }
   }
@@ -100,15 +63,6 @@ class NotificationProvider extends ChangeNotifier {
     _unreadCount = 0;
     notifyListeners();
 
-    final token = await _apiClient.getToken();
-    if (token != null && token.isNotEmpty) {
-      try {
-        await _apiClient.post(ApiConstants.notificationsReadAll);
-      } catch (e) {
-        debugPrint('[NotificationProvider] Remote markAllRead error: $e');
-      }
-    }
-
     await _dbHelper.markAllNotificationsRead();
   }
 
@@ -116,15 +70,6 @@ class NotificationProvider extends ChangeNotifier {
     _notifications.removeWhere((n) => n.id == id);
     _unreadCount = _notifications.where((n) => !n.isRead).length;
     notifyListeners();
-
-    final token = await _apiClient.getToken();
-    if (token != null && token.isNotEmpty) {
-      try {
-        await _apiClient.delete('${ApiConstants.notifications}/$id');
-      } catch (e) {
-        debugPrint('[NotificationProvider] Remote delete error: $e');
-      }
-    }
 
     await _dbHelper.deleteNotification(id);
   }
