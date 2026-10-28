@@ -318,5 +318,5 @@ No issues found!
 - Entry PlayLab dari Beranda maupun layar Edukasi sama-sama menampilkan `PlayLabScoreDialog` setelah sesi selesai.
 - Keluar di tengah permainan tidak lagi menampilkan skor sesi sebelumnya; skor hanya dikembalikan bila sesi tersebut benar-benar selesai.
 - Implementasi WebView ganda (`lib/screens/game/game_webview_screen.dart`) sudah dihapus; satu-satunya host adalah `PlayLabGameScreen`.
-- Notifikasi masih **lokal** karena backend belum menyediakan `/api/notifications`; `NotificationProvider` tidak lagi memanggil endpoint tersebut.
+- Pusat notifikasi disinkronkan ke backend (`GET/PATCH/DELETE /api/notifications`, `POST /api/notifications/read-all`) dengan cache SQLite sebagai fallback offline. Backend membuat notifikasi otomatis untuk registrasi, pengingat baru, konsultasi, dan penyelesaian PlayLab.
 - `ApiClient` menolak respons HTML dari route yang tidak dikenal agar fallback SPA tidak dianggap sukses.

@@ -506,6 +506,15 @@ class DatabaseHelper {
     return result.map((n) => NotificationModel.fromJson(n)).toList();
   }
 
+  Future<void> clearNotifications() async {
+    final db = await database;
+    if (db == null) {
+      _fallbackNotifications.clear();
+      return;
+    }
+    await db.delete('notifications');
+  }
+
   Future<void> insertNotification(NotificationModel notif) async {
     final db = await database;
     if (db == null) {
