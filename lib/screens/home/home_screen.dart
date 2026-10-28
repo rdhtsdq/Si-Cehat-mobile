@@ -8,6 +8,8 @@ import '../consultation/notification_center_screen.dart';
 import '../community/community_screen.dart';
 import '../education/pustaka_edukasi_screen.dart';
 import '../education/playlab_game_screen.dart';
+import '../education/widgets/playlab_score_dialog.dart';
+import '../../data/models/playlab_score_model.dart';
 import '../menu/menu_catalog_screen.dart';
 import '../menu/meal_plan_screen.dart';
 import '../nutrition/nutrition_calculator_screen.dart';
@@ -300,7 +302,7 @@ class HomeScreen extends ConsumerWidget {
                   _buildMenuCard(
                     'activity.png',
                     'PlayLab Game',
-                    () => _push(context, const PlayLabGameScreen()),
+                    () => _openPlayLabGame(context),
                   ),
                 ],
               ),
@@ -383,4 +385,17 @@ class HomeScreen extends ConsumerWidget {
 
   void _push(BuildContext context, Widget page) =>
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+
+  Future<void> _openPlayLabGame(BuildContext context) async {
+    final result = await Navigator.of(context).push<PlayLabScoreResult?>(
+      MaterialPageRoute(builder: (_) => const PlayLabGameScreen()),
+    );
+    if (!context.mounted || result == null) return;
+
+    await PlayLabScoreDialog.show(
+      context,
+      result: result,
+      onPlayAgain: () => _openPlayLabGame(context),
+    );
+  }
 }

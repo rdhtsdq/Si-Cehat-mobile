@@ -37,6 +37,8 @@ class _PlayLabGameScreenState extends ConsumerState<PlayLabGameScreen>
   String? _errorMessage;
   String? _sessionId;
   String? _gameUrl;
+  PlayLabScoreResult? _scoreResult;
+  Future<PlayLabScoreResult?>? _scoreFetchFuture;
 
   @override
   void initState() {
@@ -66,6 +68,8 @@ class _PlayLabGameScreenState extends ConsumerState<PlayLabGameScreen>
       _isInitializingSession = true;
       _hasError = false;
       _errorMessage = null;
+      _scoreResult = null;
+      _scoreFetchFuture = null;
     });
 
     try {
@@ -238,6 +242,34 @@ class _PlayLabGameScreenState extends ConsumerState<PlayLabGameScreen>
   Future<PlayLabScoreResult?> _fetchServerScore(
     String? sessionId, {
     Map<String, dynamic>? bridgeScores,
+  }) {
+    final cached = _scoreResult;
+    if (cached != null &&
+        (sessionId == null ||
+            sessionId.isEmpty ||
+            cached.sessionId == sessionId)) {
+      return Future.value(cached);
+    }
+
+    // GAME_COMPLETED, EXIT_GAME, and app-resume can all request the score for
+    // the same session at once. Reuse the in-flight request so the session is
+    // only fetched, persisted, and logged once.
+    final pending = _scoreFetchFuture;
+    if (pending != null) return pending;
+
+    final future = _loadScore(sessionId, bridgeScores: bridgeScores);
+    _scoreFetchFuture = future;
+    future.whenComplete(() {
+      if (identical(_scoreFetchFuture, future)) {
+        _scoreFetchFuture = null;
+      }
+    });
+    return future;
+  }
+
+  Future<PlayLabScoreResult?> _loadScore(
+    String? sessionId, {
+    Map<String, dynamic>? bridgeScores,
   }) async {
     final activeChild = mounted ? ref.read(profileProvider).activeChild : null;
 
@@ -266,6 +298,7 @@ class _PlayLabGameScreenState extends ConsumerState<PlayLabGameScreen>
                 'Hebat! Piring makan ${activeChild?.name ?? "kamu"} berhasil tersusun dengan gizi seimbang.',
           );
 
+          _scoreResult = scoreResult;
           await PlayLabStorageService.instance.saveScoreResult(scoreResult);
           try {
             if (mounted) {
@@ -295,6 +328,7 @@ class _PlayLabGameScreenState extends ConsumerState<PlayLabGameScreen>
             'Permainan Piring Sehat selesai.',
       );
 
+      _scoreResult = fallback;
       await PlayLabStorageService.instance.saveScoreResult(fallback);
       try {
         if (mounted) {
@@ -315,19 +349,15 @@ class _PlayLabGameScreenState extends ConsumerState<PlayLabGameScreen>
     if (_isExiting) return;
     _isExiting = true;
 
-    final childId = mounted ? ref.read(profileProvider).activeChild?.id?.toString() : null;
     final targetSessionId = sessionId ?? _sessionId;
-    PlayLabScoreResult? scoreResult = await _fetchServerScore(
+    final scoreResult = await _fetchServerScore(
       targetSessionId,
       bridgeScores: bridgeScores,
     );
 
-    // Fallback to locally stored latest score if this child already has one
-    scoreResult ??= await PlayLabStorageService.instance.getLatestScore(
-      childId: childId,
-    );
-
     if (!mounted) return;
+    // Do not fall back to a previously stored score here: an unfinished
+    // session must not be presented as if the child just completed it.
     Navigator.of(context).pop(scoreResult);
   }
 
