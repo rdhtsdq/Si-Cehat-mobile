@@ -319,4 +319,5 @@ No issues found!
 - Keluar di tengah permainan tidak lagi menampilkan skor sesi sebelumnya; skor hanya dikembalikan bila sesi tersebut benar-benar selesai.
 - Implementasi WebView ganda (`lib/screens/game/game_webview_screen.dart`) sudah dihapus; satu-satunya host adalah `PlayLabGameScreen`.
 - Pusat notifikasi disinkronkan ke backend (`GET/PATCH/DELETE /api/notifications`, `POST /api/notifications/read-all`) dengan cache SQLite sebagai fallback offline. Backend membuat notifikasi otomatis untuk registrasi, pengingat baru, konsultasi, dan penyelesaian PlayLab.
+- XP PlayLab disimpan pada `DailyProgress` dengan kunci tanggal UTC yang sama dengan `GET /api/progress`. `POST /api/progress` bersifat parsial, sehingga mencatat air minum atau aktivitas tidak mereset XP/streak.
 - `ApiClient` menolak respons HTML dari route yang tidak dikenal agar fallback SPA tidak dianggap sukses.
