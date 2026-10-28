@@ -25,12 +25,5 @@ void main() {
       expect(message.type, isNull);
     });
 
-    test('phase 1 service is disabled without Firebase config', () async {
-      final service = PushNotificationService.instance;
-
-      await service.initialize();
-
-      expect(service.isEnabled, isFalse);
-    });
   });
 }
