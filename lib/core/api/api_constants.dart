@@ -1,5 +1,74 @@
+import 'package:shared_preferences/shared_preferences.dart';
+
 class ApiConstants {
-  static const String baseUrl = 'https://sicehat.id';
+  /// Production backend and web-game host. This is the default for every
+  /// build, including debug, so `flutter run` talks to the real deployment.
+  static const String productionUrl = 'https://sicehat.id';
+
+  /// Convenience constant for local Android emulator testing.
+  static const String defaultEmulatorUrl = 'http://10.0.2.2:3000';
+
+  static const String _baseUrlPrefKey = 'custom_api_base_url';
+  static String? _customBaseUrl;
+
+  /// Loads a previously saved custom API base URL from SharedPreferences.
+  /// Used for local/LAN testing without rebuilding the app.
+  static Future<void> init() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final saved = prefs.getString(_baseUrlPrefKey);
+      if (saved != null && saved.trim().isNotEmpty) {
+        _customBaseUrl = _normalizeUrl(saved.trim());
+      }
+    } catch (_) {}
+  }
+
+  static String _normalizeUrl(String url) {
+    var trimmed = url.trim();
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      trimmed = 'http://$trimmed';
+    }
+    return trimmed.endsWith('/')
+        ? trimmed.substring(0, trimmed.length - 1)
+        : trimmed;
+  }
+
+  /// Allows changing and persisting the API base URL dynamically (e.g. for
+  /// LAN IP testing or a debug settings screen).
+  static Future<void> setCustomBaseUrl(String? url) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (url == null || url.trim().isEmpty) {
+        _customBaseUrl = null;
+        await prefs.remove(_baseUrlPrefKey);
+      } else {
+        final normalized = _normalizeUrl(url);
+        _customBaseUrl = normalized;
+        await prefs.setString(_baseUrlPrefKey, normalized);
+      }
+    } catch (_) {
+      if (url == null || url.trim().isEmpty) {
+        _customBaseUrl = null;
+      } else {
+        _customBaseUrl = _normalizeUrl(url);
+      }
+    }
+  }
+
+  static String get baseUrl {
+    if (_customBaseUrl != null && _customBaseUrl!.isNotEmpty) {
+      return _customBaseUrl!;
+    }
+
+    // Local override without touching source:
+    //   flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000
+    const definedUrl = String.fromEnvironment('API_BASE_URL');
+    if (definedUrl.isNotEmpty) {
+      return _normalizeUrl(definedUrl);
+    }
+
+    return productionUrl;
+  }
 
   // Auth endpoints
   static const String authLogin = '/api/auth/login';

@@ -57,8 +57,15 @@ Konfigurasi URL didefinisikan pada [`lib/core/api/api_constants.dart`](lib/core/
 
 ```dart
 class ApiConstants {
-  // Backend API & web game host (production)
-  static const String baseUrl = 'https://sicehat.id';
+  // Production backend & web game host (default for every build)
+  static const String productionUrl = 'https://sicehat.id';
+
+  static String get baseUrl {
+    // Optional local override (--dart-define or saved custom URL)
+    const definedUrl = String.fromEnvironment('API_BASE_URL');
+    if (definedUrl.isNotEmpty) return _normalizeUrl(definedUrl);
+    return productionUrl;
+  }
 
   // The web game is served by the same host. PlayLabGameScreen appends /playlab.
   static String get gameWebUrl {
@@ -75,7 +82,13 @@ class ApiConstants {
 }
 ```
 
-Untuk pengujian lokal, ubah `baseUrl` ke host backend lokal (mis. `http://10.0.2.2:3000` pada emulator Android) dan jalankan web game pada host yang sama dengan path `/playlab`.
+Untuk pengujian lokal tanpa mengubah source:
+
+```powershell
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000
+```
+
+Web game harus dilayani pada host yang sama dengan path `/playlab`.
 
 ### 2.2 Izin Akses Android (`AndroidManifest.xml`)
 
