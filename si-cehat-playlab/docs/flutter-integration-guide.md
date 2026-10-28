@@ -53,22 +53,21 @@ Mini-game edukasi PlayLab dijalankan sebagai aplikasi web interaktif mandiri yan
 
 ### 2.1 URL Endpoint & Base Constants
 
-Konfigurasi URL didefinisikan pada [`lib/core/api/api_constants.dart`](file:///c:/laragon/www/Si-Cehat-mobile/lib/core/api/api_constants.dart):
+Konfigurasi URL didefinisikan pada [`lib/core/api/api_constants.dart`](lib/core/api/api_constants.dart):
 
 ```dart
 class ApiConstants {
-  // Backend API Base URL
-  static String get baseUrl {
-    if (kIsWeb) return 'http://localhost:3000';
-    if (defaultTargetPlatform == TargetPlatform.android) return 'http://10.0.2.2:3000';
-    return 'http://localhost:3000';
-  }
+  // Backend API & web game host (production)
+  static const String baseUrl = 'https://sicehat.id';
 
-  // Web Mini-Game Base URL
+  // The web game is served by the same host. PlayLabGameScreen appends /playlab.
   static String get gameWebUrl {
-    if (kIsWeb) return 'http://localhost:5173';
-    if (defaultTargetPlatform == TargetPlatform.android) return 'http://10.0.2.2:5173';
-    return 'http://localhost:5173';
+    final baseUri = Uri.tryParse(baseUrl);
+    if (baseUri != null && baseUri.hasAuthority) {
+      final portPart = baseUri.hasPort ? ':${baseUri.port}' : '';
+      return '${baseUri.scheme}://${baseUri.host}$portPart';
+    }
+    return baseUrl;
   }
 
   static const String gameSessions = '/api/game-sessions';
@@ -76,20 +75,20 @@ class ApiConstants {
 }
 ```
 
+Untuk pengujian lokal, ubah `baseUrl` ke host backend lokal (mis. `http://10.0.2.2:3000` pada emulator Android) dan jalankan web game pada host yang sama dengan path `/playlab`.
+
 ### 2.2 Izin Akses Android (`AndroidManifest.xml`)
 
-Untuk pengembangan lokal menggunakan HTTP (non-HTTPS), pastikan atribut `usesCleartextTraffic` diaktifkan pada `android/app/src/main/AndroidManifest.xml`:
+Build produksi hanya mengizinkan HTTPS (`android:usesCleartextTraffic="false"` di `android/app/src/main/AndroidManifest.xml`). Untuk pengembangan lokal dengan HTTP, override hanya ada di `android/app/src/debug/AndroidManifest.xml`:
 
 ```xml
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
-        android:label="Si-Cehat"
         android:usesCleartextTraffic="true"
-        android:icon="@mipmap/ic_launcher">
-        <!-- ... -->
-    </application>
+        tools:replace="android:usesCleartextTraffic" />
 </manifest>
 ```
 
@@ -136,7 +135,7 @@ Untuk menjaga privasi anak dan kepatuhan HIPAA/COPPA, **JWT token orang tua tida
 3. **Pemuatan WebView**:
    Flutter memuat URL game dengan query parameter token sementara:
    ```
-   http://10.0.2.2:5173/?token=bt_xyz789
+   https://sicehat.id/playlab?bootstrap=bt_xyz789&sessionId=sess_abc123
    ```
 4. **Penukaran Token oleh Web Game**:
    Web game memanggil `POST /api/game-sessions/bootstrap/exchange` untuk memvalidasi token dan memperoleh token otorisasi sesi lokal.
@@ -186,7 +185,7 @@ final controller = WebViewController()
 
 ## 5. Manajemen Skor, Persistensi & Catatan Aktivitas Anak
 
-### 5.1 Model Skor ([`PlayLabScoreResult`](file:///c:/laragon/www/Si-Cehat-mobile/lib/data/models/playlab_score_model.dart))
+### 5.1 Model Skor ([`PlayLabScoreResult`](lib/data/models/playlab_score_model.dart))
 
 Menyimpan metrik lengkap pencapaian anak:
 - `gameplayScore`: Skor praktik piring sehat (0–100).
@@ -196,7 +195,7 @@ Menyimpan metrik lengkap pencapaian anak:
 - `xpAwarded`: Tambahan XP Si-Cehat (+50 s.d. +75 XP).
 - `feedbackSummary`: Rekomendasi gizi dari maskot Nimbo.
 
-### 5.2 Layanan Persistensi ([`PlayLabStorageService`](file:///c:/laragon/www/Si-Cehat-mobile/lib/core/services/playlab_storage_service.dart))
+### 5.2 Layanan Persistensi ([`PlayLabStorageService`](lib/core/services/playlab_storage_service.dart))
 
 Setiap kali sesi permainan selesai, layanan ini melakukan tiga hal:
 1. Menyimpan skor terbaru anak ke dalam `SharedPreferences` (`playlab_latest_score_<childId>`).
@@ -216,7 +215,7 @@ Setiap kali sesi permainan selesai, layanan ini melakukan tiga hal:
    await DatabaseHelper.instance.insertActivity(log);
    ```
 
-### 5.3 Dialog Perayaan Nilai Anak ([`PlayLabScoreDialog`](file:///c:/laragon/www/Si-Cehat-mobile/lib/screens/education/widgets/playlab_score_dialog.dart))
+### 5.3 Dialog Perayaan Nilai Anak ([`PlayLabScoreDialog`](lib/screens/education/widgets/playlab_score_dialog.dart))
 
 Dialog modal bottom sheet ramah anak menampilkan:
 - Bintang emas animasi (`Icons.star_rounded`).
@@ -227,7 +226,7 @@ Dialog modal bottom sheet ramah anak menampilkan:
 - Lencana hadiah XP: `+75 XP Edukasi Berhasil Diraih`.
 - Tombol aksi: *"Kembali ke Si-Cehat"* atau *"Susun Piring Lainnya"*.
 
-### 5.4 Banner Interaktif pada [`EducationScreen`](file:///c:/laragon/www/Si-Cehat-mobile/lib/screens/education/education_screen.dart)
+### 5.4 Banner Interaktif pada [`EducationScreen`](lib/screens/education/education_screen.dart)
 
 Banner edukasi PlayLab mendeteksi riwayat bermain anak:
 - **Jika belum pernah main**: Menampilkan ajakan *"Susun variasi makanan seimbang & kuis!"* dan tombol **"Main Sekarang"**.
@@ -268,33 +267,22 @@ Seluruh komponen Flutter dan web game mematuhi pedoman visual resmi Si-Cehat:
 
 ### 8.1 Menjalankan Pengujian Unit Flutter
 
-Jalankan test suite PlayLab untuk memvalidasi parser protokol bridge dan persistensi skor:
+Jalankan seluruh test suite. Test PlayLab saat ini berada di `test/playlab_storage_test.dart` dan memverifikasi deduplikasi riwayat serta activity log per sesi:
 
 ```powershell
-cd c:\laragon\www\Si-Cehat-mobile
-flutter test test/playlab_score_test.dart test/playlab_bridge_test.dart
+flutter test
 ```
 
-Hasil verifikasi:
-```text
-00:00 +0: PlayLabScoreResult Model Tests serializes and deserializes score result correctly
-00:00 +1: PlayLabScoreResult Model Tests saves and retrieves latest score from storage service
-00:00 +2: PlayLabBridge Message Protocol parses GAME_READY message payload
-00:00 +3: PlayLabBridge Message Protocol parses GAME_COMPLETED message with decoupled scores
-00:00 +4: PlayLabBridge Message Protocol parses EXIT_GAME message cleanly
-00:00 +5: PlayLabBridge Message Protocol safely discards malformed or unknown bridge messages
-00:00 +6: All tests passed!
-```
+Hasil verifikasi terakhir: **21 test lulus** (`00:05 +21: All tests passed!`).
 
 ### 8.2 Menjalankan Analisis Statis Kode
 
 ```powershell
-flutter analyze lib/screens/education/ lib/core/services/playlab_storage_service.dart lib/data/models/playlab_score_model.dart
+flutter analyze
 ```
 
 Hasil verifikasi:
 ```text
-Analyzing 5 items...
 No issues found!
 ```
 
@@ -304,7 +292,18 @@ No issues found!
 
 | Masalah | Kemungkinan Penyebab | Solusi |
 | :--- | :--- | :--- |
-| **WebView putih / net::ERR_CONNECTION_REFUSED** | URL menggunakan `localhost` pada emulator Android. | Gunakan `http://10.0.2.2:5173` untuk Android emulator (sudah ditangani otomatis oleh `ApiConstants.gameWebUrl`). |
-| **CLEARTEXT communication not permitted** | Android 9+ memblokir HTTP non-TLS secara default. | Pastikan `android:usesCleartextTraffic="true"` terpasang pada `AndroidManifest.xml` untuk lingkungan development. |
+| **WebView putih / net::ERR_CONNECTION_REFUSED** | Host game tidak dapat dijangkau dari perangkat/emulator. | `ApiConstants.gameWebUrl` menurunkan host dari `baseUrl`, lalu `PlayLabGameScreen` menambahkan path `/playlab`. Pastikan host tersebut melayani halaman game. |
+| **CLEARTEXT communication not permitted** | Android 9+ memblokir HTTP non-TLS; build release memang menonaktifkan cleartext. | Gunakan HTTPS (produksi). Untuk backend lokal, jalankan build debug yang meng-override `usesCleartextTraffic` di `android/app/src/debug/AndroidManifest.xml`. |
 | **Null pointer pada WebViewPlatform.instance** | Dijalankan pada Windows desktop tanpa platform WebView. | `PlayLabGameScreen` telah dilengkapi deteksi otomatis platform desktop dengan fallback browser launcher. |
-| **Skor tidak tersimpan setelah main** | Sesi ID tidak terdeteksi saat game selesai. | `PlayLabStorageService` menyimpan fallback skor global dan otomatis mengaitkan dengan `activeChild` yang sedang aktif di `ProfileProvider`. |
+| **Skor tidak tersimpan setelah main** | Sesi ID tidak terdeteksi saat game selesai. | `PlayLabStorageService` menyimpan fallback skor global dan mengaitkannya dengan `activeChild` dari `profileProvider` (Riverpod). |
+| **Dialog skor ganda / entri diary dobel** | `GAME_COMPLETED`, `EXIT_GAME`, dan app-resume meminta skor untuk sesi yang sama. | `PlayLabGameScreen` memakai single-flight fetch dan `PlayLabStorageService` menyimpan daftar `playlab_saved_session_ids` untuk deduplikasi. |
+
+---
+
+## 10. Catatan Implementasi Terkini
+
+- Entry PlayLab dari Beranda maupun layar Edukasi sama-sama menampilkan `PlayLabScoreDialog` setelah sesi selesai.
+- Keluar di tengah permainan tidak lagi menampilkan skor sesi sebelumnya; skor hanya dikembalikan bila sesi tersebut benar-benar selesai.
+- Implementasi WebView ganda (`lib/screens/game/game_webview_screen.dart`) sudah dihapus; satu-satunya host adalah `PlayLabGameScreen`.
+- Notifikasi masih **lokal** karena backend belum menyediakan `/api/notifications`; `NotificationProvider` tidak lagi memanggil endpoint tersebut.
+- `ApiClient` menolak respons HTML dari route yang tidak dikenal agar fallback SPA tidak dianggap sukses.
