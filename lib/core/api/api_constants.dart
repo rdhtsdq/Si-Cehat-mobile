@@ -89,7 +89,12 @@ class ApiConstants {
 
   // Nutrition & Food Diary
   static const String foodDiary = '/api/food-diary';
+  static const String foodDiaryBatch = '/api/food-diary/batch';
   static const String nutritionCalculate = '/api/nutrition/calculate';
+  static const String nutritionFoods = '/api/nutrition/foods';
+  static const String nutritionCalculateBatch = '/api/nutrition/calculate-batch';
+  static const String nutritionTarget = '/api/nutrition/target';
+  static const String nutritionSummary = '/api/nutrition/summary';
 
   // Catalog, Meal Plan & Education
   static const String recipes = '/api/recipes';
