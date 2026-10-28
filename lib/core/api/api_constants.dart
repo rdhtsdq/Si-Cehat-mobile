@@ -1,5 +1,5 @@
 class ApiConstants {
-  static const String baseUrl = 'http://139.190.103.70';
+  static const String baseUrl = 'https://sicehat.id';
 
   // Auth endpoints
   static const String authLogin = '/api/auth/login';
