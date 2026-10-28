@@ -107,6 +107,7 @@ class ApiConstants {
   static const String consultations = '/api/consultations';
   static const String notifications = '/api/notifications';
   static const String notificationsReadAll = '/api/notifications/read-all';
+  static const String notificationsDevices = '/api/notifications/devices';
 
   // Profile Avatar
   static const String parentProfileAvatar = '/api/parent/profile/avatar';

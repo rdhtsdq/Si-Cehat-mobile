@@ -319,6 +319,6 @@ No issues found!
 - Keluar di tengah permainan tidak lagi menampilkan skor sesi sebelumnya; skor hanya dikembalikan bila sesi tersebut benar-benar selesai.
 - Implementasi WebView ganda (`lib/screens/game/game_webview_screen.dart`) sudah dihapus; satu-satunya host adalah `PlayLabGameScreen`.
 - Pusat notifikasi disinkronkan ke backend (`GET/PATCH/DELETE /api/notifications`, `POST /api/notifications/read-all`) dengan cache SQLite sebagai fallback offline. Backend membuat notifikasi otomatis untuk registrasi, pengingat baru, konsultasi, dan penyelesaian PlayLab.
-- Pengingat lokal dijadwalkan lewat `flutter_local_notifications` dan tetap muncul saat aplikasi ditutup. FCM disiapkan sebagai lapisan fase 2: endpoint `POST/DELETE /api/notifications/devices` dan push service backend sudah ada, sedangkan plugin Firebase mobile diaktifkan setelah `google-services.json` tersedia.
+- Pengingat lokal dijadwalkan lewat `flutter_local_notifications` dan tetap muncul saat aplikasi ditutup. FCM aktif lewat `firebase_core`/`firebase_messaging`: FID perangkat didaftarkan ke `POST /api/notifications/devices`, dan backend mengirim push via `firebase-admin` (lihat `docs/firebase-setup.md`).
 - XP PlayLab disimpan pada `DailyProgress` dengan kunci tanggal UTC yang sama dengan `GET /api/progress`. `POST /api/progress` bersifat parsial, sehingga mencatat air minum atau aktivitas tidak mereset XP/streak.
 - `ApiClient` menolak respons HTML dari route yang tidak dikenal agar fallback SPA tidak dianggap sukses.

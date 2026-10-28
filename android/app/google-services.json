@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "436327307688",
+    "project_id": "si-cehat",
+    "storage_bucket": "si-cehat.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:436327307688:android:99952613f9bcbf5e1f659d",
+        "android_client_info": {
+          "package_name": "com.example.si_cehat_mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBnX6WKorIlzquKyTgvdTDXIlt2N9wWa6s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
