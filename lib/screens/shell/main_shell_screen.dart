@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
+import '../../core/services/notification_navigation.dart';
 import '../home/home_screen.dart';
 import '../tracker/tracker_screen.dart';
 import '../education/education_screen.dart';
@@ -29,6 +30,9 @@ class _MainShellScreenState extends State<MainShellScreen> {
       const EducationScreen(showBackButton: false),
       const ProfileSelectScreen(),
     ];
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NotificationNavigation.consumePending();
+    });
   }
 
   void _onTabSelected(int index) {

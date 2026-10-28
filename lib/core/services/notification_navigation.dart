@@ -7,6 +7,22 @@ class NotificationNavigation {
   static final GlobalKey<NavigatorState> navigatorKey =
       GlobalKey<NavigatorState>();
 
+  static String? _pendingPayload;
+
+  /// Queues a payload that arrived before the main shell/navigator was ready.
+  static void queuePayload(String? payload) {
+    if (payload == null || payload.isEmpty) return;
+    _pendingPayload = payload;
+  }
+
+  /// Call after the main shell is mounted.
+  static Future<void> consumePending() async {
+    final payload = _pendingPayload;
+    if (payload == null) return;
+    _pendingPayload = null;
+    await handlePayload(payload);
+  }
+
   /// Returns `reminder`, `notifications`, or null for unknown payloads.
   static String? routeNameForPayload(String? payload) {
     if (payload == null || payload.isEmpty) return null;

@@ -31,9 +31,7 @@ void main() async {
 
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     final payload = await PushNotificationService.instance.consumeInitialMessage();
-    if (payload != null) {
-      await NotificationNavigation.handlePayload(payload);
-    }
+    NotificationNavigation.queuePayload(payload);
   });
 }
 
