@@ -1,24 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/database/seed_data.dart';
 import '../../data/models/education_model.dart';
+import '../../providers/app_providers.dart';
 
-class QuizScreen extends StatefulWidget {
+class QuizScreen extends ConsumerStatefulWidget {
   const QuizScreen({super.key});
 
   @override
-  State<QuizScreen> createState() => _QuizScreenState();
+  ConsumerState<QuizScreen> createState() => _QuizScreenState();
 }
 
-class _QuizScreenState extends State<QuizScreen> {
-  final List<QuizQuestion> _questions = SeedData.sampleQuizQuestions;
+class _QuizScreenState extends ConsumerState<QuizScreen> {
   int _currentIndex = 0;
   int? _selectedOption;
   bool _hasAnswered = false;
   int _scoreCorrect = 0;
   bool _quizFinished = false;
+
+  /// Prefers quiz questions from the backend (`GET /api/content`) and falls
+  /// back to the bundled questions when the remote content is unavailable.
+  List<QuizQuestion> get _questions {
+    final remote = ref.read(educationProvider).quizQuestions;
+    return remote.isNotEmpty ? remote : SeedData.sampleQuizQuestions;
+  }
 
   void _submitAnswer(int index) {
     if (_hasAnswered) return;
@@ -47,6 +55,9 @@ class _QuizScreenState extends State<QuizScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Rebuild when remote quiz content arrives from the API.
+    ref.watch(educationProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(

@@ -33,7 +33,7 @@ class EducationProvider extends ChangeNotifier {
 
   EducationProvider() {
     _recipes = List.from(SeedData.initialRecipes);
-    _educationItems = List.from(SeedData.initialEducation);
+    _educationItems = [];
     _quizQuestions = List.from(SeedData.sampleQuizQuestions);
     loadRemoteContent();
   }
@@ -259,14 +259,7 @@ class EducationProvider extends ChangeNotifier {
             .map(EducationModel.fromJson)
             .toList();
 
-        final remoteTitles = remoteEdu
-            .map((e) => e.title.toLowerCase())
-            .toSet();
-        final uniqueSeedEdu = SeedData.initialEducation
-            .where((e) => !remoteTitles.contains(e.title.toLowerCase()))
-            .toList();
-
-        _educationItems = [...remoteEdu, ...uniqueSeedEdu];
+        _educationItems = remoteEdu;
       }
     }
   }

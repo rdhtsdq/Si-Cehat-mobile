@@ -47,11 +47,11 @@ void main() {
       expect(find.text('Tandai Dibaca'), findsNothing);
     });
 
-    testWidgets('Pustaka Edukasi: category chips filter content and search filters accurately', (tester) async {
+    testWidgets('Pustaka Edukasi: renders chips and shows empty state when API has no content', (tester) async {
       await tester.pumpWidget(createTestApp(const PustakaEdukasiScreen()));
       await tester.pumpAndSettle();
 
-      // Verify initial rendering
+      // Verify initial rendering of header, search and category chips
       expect(find.text('Pustaka Edukasi'), findsOneWidget);
       expect(find.text('Cari topik edukasi kesehatan...'), findsOneWidget);
       expect(find.text('Semua'), findsOneWidget);
@@ -59,20 +59,11 @@ void main() {
       expect(find.text('Nutrisi'), findsOneWidget);
       expect(find.text('Pencegahan'), findsOneWidget);
 
-      // Filter by "Nutrisi"
+      // Content is now API-driven; with no remote data the empty state renders.
+      expect(find.text('Materi Tidak Ditemukan'), findsOneWidget);
+
+      // Filter by "Nutrisi" still keeps the empty state without crashing
       await tester.tap(find.text('Nutrisi'));
-      await tester.pumpAndSettle();
-
-      // Type in search bar
-      final searchInput = find.byType(TextField);
-      expect(searchInput, findsOneWidget);
-      await tester.enterText(searchInput, 'Isi Piringku');
-      await tester.pumpAndSettle();
-
-      expect(find.text('Panduan Praktis "Isi Piringku" untuk Keluarga'), findsOneWidget);
-
-      // Search non-existent query to test empty state
-      await tester.enterText(searchInput, 'XYZ_TIDAK_ADA_KONTEN_123');
       await tester.pumpAndSettle();
 
       expect(find.text('Materi Tidak Ditemukan'), findsOneWidget);

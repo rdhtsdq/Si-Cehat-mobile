@@ -58,9 +58,8 @@ class _FoodDiaryScreenState extends ConsumerState<FoodDiaryScreen> {
       case 'Makan Malam':
         return 'malam';
       case 'Camilan Pagi':
-        return 'camilan_pagi';
       case 'Camilan Sore':
-        return 'camilan_sore';
+        return 'camilan';
       default:
         return 'camilan';
     }

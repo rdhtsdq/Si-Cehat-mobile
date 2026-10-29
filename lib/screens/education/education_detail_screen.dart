@@ -299,7 +299,7 @@ class _EducationDetailScreenState extends State<EducationDetailScreen> {
   // WIDGET: VIDEO PLAYER SECTION
   // ==========================================
   Widget _buildVideoPlayerSection(EducationModel item, String? ytId) {
-    final videoUrl = item.videoUrl ?? 'https://www.youtube.com/watch?v=kXYiU_JCYtU';
+    final videoUrl = item.videoUrl ?? '';
     final resolvedYtId = ytId ?? item.youtubeId;
 
     return YouTubeEmbeddedPlayer(

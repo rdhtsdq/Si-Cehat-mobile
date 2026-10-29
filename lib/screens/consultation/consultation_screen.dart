@@ -104,9 +104,221 @@ class _ConsultationScreenState extends ConsumerState<ConsultationScreen> {
     }
   }
 
-  void _showSpecialistDetail(BuildContext context, String role, String typeKey) {
-    final filtered = _specialists.where((s) => (s['type'] ?? '').toString().toUpperCase() == typeKey).toList();
-    final specialist = filtered.isNotEmpty ? filtered.first : null;
+  List<dynamic> _specialistsOfType(String typeKey) {
+    return _specialists
+        .where((s) => (s['type'] ?? '').toString().toUpperCase() == typeKey)
+        .toList();
+  }
+
+  void _openSpecialistPicker(
+    BuildContext context,
+    String role,
+    String typeKey,
+  ) {
+    final specialists = _specialistsOfType(typeKey);
+
+    if (specialists.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Belum ada tenaga medis untuk kategori $role.'),
+        ),
+      );
+      return;
+    }
+
+    if (specialists.length == 1) {
+      _showSpecialistDetail(context, role, typeKey, specialists.first);
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Pilih $role',
+                style: AppTypography.titleCard.copyWith(fontSize: 18),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${specialists.length} tenaga medis tersedia untuk wilayah Anda.',
+                style: AppTypography.bodySecondary.copyWith(fontSize: 12),
+              ),
+              const SizedBox(height: 12),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(ctx).size.height * 0.6,
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: specialists.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final specialist = specialists[index];
+                    return _buildSpecialistTile(
+                      specialist: specialist,
+                      onTap: () {
+                        Navigator.of(ctx).pop();
+                        _showSpecialistDetail(
+                          context,
+                          role,
+                          typeKey,
+                          specialist,
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSpecialistTile({
+    required dynamic specialist,
+    required VoidCallback onTap,
+  }) {
+    final name = specialist['name']?.toString() ?? 'Tenaga Medis';
+    final title = (specialist['title'] ??
+            specialist['typeLabel'] ??
+            'Fasilitas Kesehatan Mitra Si-Cehat')
+        .toString();
+    final rating = specialist['rating'];
+    final experience = specialist['experienceYears'];
+    final focus = specialist['focus'];
+
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 24,
+                backgroundColor: AppColors.primaryGreen.withValues(alpha: 0.12),
+                child: const Icon(
+                  Icons.person,
+                  color: AppColors.primaryGreen,
+                  size: 26,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: AppTypography.titleCard.copyWith(fontSize: 14),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.bodySecondary.copyWith(fontSize: 12),
+                    ),
+                    if (rating != null || experience != null) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          if (rating != null) ...[
+                            const Icon(
+                              Icons.star_rounded,
+                              color: Color(0xFFF59E0B),
+                              size: 14,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              '$rating',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                          if (rating != null && experience != null)
+                            const SizedBox(width: 10),
+                          if (experience != null)
+                            Text(
+                              '$experience tahun pengalaman',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                    if (focus is List && focus.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: focus.take(3).map<Widget>((item) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.paleGreenBg,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              item.toString(),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: AppColors.primaryGreenDark,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right,
+                color: AppColors.primaryGreen,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showSpecialistDetail(
+    BuildContext context,
+    String role,
+    String typeKey,
+    dynamic specialist,
+  ) {
     final specialistName = specialist != null
         ? specialist['name'].toString()
         : 'Tenaga Medis Mitra $role';
@@ -301,68 +513,102 @@ class _ConsultationScreenState extends ConsumerState<ConsultationScreen> {
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SafetyBanner(
-                text:
-                    'Direktori Tenaga Medis Mitra Si-Cehat: Pilih spesialis untuk konsultasi pencegahan & tumbuh kembang anak.',
-                type: BannerType.notice,
-              ),
-              if (_loading)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: LinearProgressIndicator(color: AppColors.primaryGreen),
+        child: RefreshIndicator(
+          color: AppColors.primaryGreen,
+          onRefresh: () async {
+            await Future.wait([
+              _fetchSpecialists(),
+              _fetchMyConsultations(),
+            ]);
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SafetyBanner(
+                  text:
+                      'Direktori Tenaga Medis Mitra Si-Cehat: Pilih tenaga medis untuk konsultasi pencegahan & tumbuh kembang anak sesuai wilayah Posyandu Anda.',
+                  type: BannerType.notice,
                 ),
-              const SizedBox(height: 16),
-
-              if (_loading)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20),
-                    child: CircularProgressIndicator(color: AppColors.primaryGreen),
+                if (_loading)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: LinearProgressIndicator(color: AppColors.primaryGreen),
                   ),
+
+                if (!_loading && _specialists.isEmpty)
+                  Container(
+                    margin: const EdgeInsets.only(top: 16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.amber.shade200),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.amber.shade800, size: 20),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Belum ada tenaga medis yang tersedia untuk wilayah Posyandu Anda. Silakan hubungi admin Posyandu atau coba lagi nanti.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.amber.shade900,
+                              height: 1.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                const SizedBox(height: 16),
+
+                _buildRoleCard(
+                  context,
+                  title: 'Bidan',
+                  subtitle:
+                      'Konsultasi pendampingan ibu dan tumbuh kembang balita/anak',
+                  count: _specialistsOfType('BIDAN').length,
+                  onTap: () => _openSpecialistPicker(context, 'Bidan', 'BIDAN'),
                 ),
+                const SizedBox(height: 16),
 
-              _buildRoleCard(
-                context,
-                title: 'Bidan',
-                subtitle:
-                    'Konsultasi pendampingan ibu dan tumbuh kembang balita/anak',
-                onTap: () => _showSpecialistDetail(context, 'Bidan', 'BIDAN'),
-              ),
-              const SizedBox(height: 16),
-
-              _buildRoleCard(
-                context,
-                title: 'Ahli Gizi',
-                subtitle:
-                    'Konsultasi pengaturan menu, porsi, dan batasan gula anak',
-                onTap: () =>
-                    _showSpecialistDetail(context, 'Ahli Gizi', 'AHLI_GIZI'),
-              ),
-              const SizedBox(height: 16),
-
-              _buildRoleCard(
-                context,
-                title: 'Dokter',
-                subtitle: 'Pemeriksaan lanjutan faktor risiko dan rujukan klinis',
-                onTap: () => _showSpecialistDetail(context, 'Dokter', 'DOKTER'),
-              ),
-              const SizedBox(height: 24),
-
-              // Riwayat Konsultasi Saya
-              if (_myConsultations.isNotEmpty) ...[
-                Text(
-                  'Riwayat Konsultasi Saya',
-                  style: AppTypography.titleCard.copyWith(fontSize: 16, fontWeight: FontWeight.w700),
+                _buildRoleCard(
+                  context,
+                  title: 'Ahli Gizi',
+                  subtitle:
+                      'Konsultasi pengaturan menu, porsi, dan batasan gula anak',
+                  count: _specialistsOfType('AHLI_GIZI').length,
+                  onTap: () =>
+                      _openSpecialistPicker(context, 'Ahli Gizi', 'AHLI_GIZI'),
                 ),
-                const SizedBox(height: 10),
-                ..._myConsultations.map((c) => _buildConsultationHistoryCard(c)),
+                const SizedBox(height: 16),
+
+                _buildRoleCard(
+                  context,
+                  title: 'Dokter',
+                  subtitle: 'Pemeriksaan lanjutan faktor risiko dan rujukan klinis',
+                  count: _specialistsOfType('DOKTER').length,
+                  onTap: () => _openSpecialistPicker(context, 'Dokter', 'DOKTER'),
+                ),
+                const SizedBox(height: 24),
+
+                // Riwayat Konsultasi Saya
+                if (_myConsultations.isNotEmpty) ...[
+                  Text(
+                    'Riwayat Konsultasi Saya',
+                    style: AppTypography.titleCard.copyWith(fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 10),
+                  ..._myConsultations.map((c) => _buildConsultationHistoryCard(c)),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -373,6 +619,7 @@ class _ConsultationScreenState extends ConsumerState<ConsultationScreen> {
     BuildContext context, {
     required String title,
     required String subtitle,
+    required int count,
     required VoidCallback onTap,
   }) {
     return Container(
@@ -402,12 +649,41 @@ class _ConsultationScreenState extends ConsumerState<ConsultationScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        title,
-                        style: AppTypography.titleCard.copyWith(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              title,
+                              style: AppTypography.titleCard.copyWith(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: count > 0
+                                  ? AppColors.paleGreenBg
+                                  : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              count > 0 ? '$count tersedia' : 'Belum tersedia',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: count > 0
+                                    ? AppColors.primaryGreenDark
+                                    : AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Text(

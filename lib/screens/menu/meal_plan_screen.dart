@@ -693,11 +693,11 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
   String _mapMealSlot(String meal) {
     final lower = meal.toLowerCase();
     if (lower.contains('sarapan')) return 'sarapan';
-    if (lower.contains('pagi')) return 'camilan_pagi';
-    if (lower.contains('siang')) return 'makan_siang';
-    if (lower.contains('sore')) return 'camilan_sore';
-    if (lower.contains('malam')) return 'makan_malam';
-    return 'makan_siang';
+    if (lower.contains('pagi')) return 'camilan';
+    if (lower.contains('siang')) return 'siang';
+    if (lower.contains('sore')) return 'camilan';
+    if (lower.contains('malam')) return 'malam';
+    return 'siang';
   }
 
   Future<void> _quickLogMealItem(_MealItemData meal) async {
