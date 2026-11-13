@@ -24,6 +24,8 @@ class NutritionProvider extends ChangeNotifier {
   bool _isLoadingSummary = false;
   bool _isCalculating = false;
   bool _isSaving = false;
+  bool _isAnalyzingPhoto = false;
+  PhotoAnalysisResult? _photoResult;
   String? _catalogError;
   int _pendingSyncCount = 0;
 
@@ -37,14 +39,14 @@ class NutritionProvider extends ChangeNotifier {
   bool get isLoadingSummary => _isLoadingSummary;
   bool get isCalculating => _isCalculating;
   bool get isSaving => _isSaving;
+  bool get isAnalyzingPhoto => _isAnalyzingPhoto;
+  PhotoAnalysisResult? get photoResult => _photoResult;
   String? get catalogError => _catalogError;
   int get pendingSyncCount => _pendingSyncCount;
   bool get isOfflineCatalog => _catalogError != null;
 
-  NutritionValues get localDraftTotals => _draft.fold(
-        NutritionValues.zero,
-        (total, item) => total + item.values,
-      );
+  NutritionValues get localDraftTotals =>
+      _draft.fold(NutritionValues.zero, (total, item) => total + item.values);
 
   NutritionProvider({bool autoLoad = true}) {
     if (autoLoad) {
@@ -288,8 +290,7 @@ class NutritionProvider extends ChangeNotifier {
     final items = _draft
         .map(
           (item) => {
-            if (!item.food.id.startsWith('local-'))
-              'foodItemId': item.food.id,
+            if (!item.food.id.startsWith('local-')) 'foodItemId': item.food.id,
             'foodName': item.food.name,
             'portion': '${item.weightGram.toStringAsFixed(0)} g',
             'weightGram': item.weightGram,
@@ -329,14 +330,98 @@ class NutritionProvider extends ChangeNotifier {
     return false;
   }
 
+  Future<PhotoAnalysisResult?> analyzePhoto(
+    String imageBase64,
+    String childId,
+  ) async {
+    if (_isAnalyzingPhoto) return _photoResult;
+
+    _isAnalyzingPhoto = true;
+    _photoResult = null;
+    notifyListeners();
+
+    try {
+      final res = await _apiClient.post(
+        ApiConstants.nutritionAnalyzePhoto,
+        body: {'imageBase64': imageBase64, 'childId': childId},
+      );
+
+      if (res.isSuccess && res.data is Map<String, dynamic>) {
+        final result = PhotoAnalysisResult.fromJson(
+          res.data as Map<String, dynamic>,
+        );
+        _photoResult = result;
+        return result;
+      }
+      return null;
+    } catch (e) {
+      debugPrint('[NutritionProvider] Analyze photo error: $e');
+      return null;
+    } finally {
+      _isAnalyzingPhoto = false;
+      notifyListeners();
+    }
+  }
+
+  void clearPhotoResult() {
+    _photoResult = null;
+    notifyListeners();
+  }
+
+  Future<bool> savePhotoResultToDiary({
+    required String childId,
+    required String date,
+    required String mealSlot,
+    required List<PhotoAnalysisItem> items,
+  }) async {
+    if (items.isEmpty || _isSaving) return false;
+
+    _isSaving = true;
+    notifyListeners();
+
+    final payload = {
+      'childId': childId,
+      'date': date,
+      'mealSlot': mealSlot,
+      'items': items
+          .map(
+            (item) => {
+              if (item.foodId != null && item.foodId!.isNotEmpty)
+                'foodItemId': item.foodId,
+              'foodName': item.foodName,
+              'portion': '${item.weightGram.toStringAsFixed(0)} g',
+              'weightGram': item.weightGram,
+              ...item.values.toJson(),
+            },
+          )
+          .toList(),
+    };
+
+    try {
+      final res = await _apiClient.post(
+        ApiConstants.foodDiaryBatch,
+        body: payload,
+      );
+      if (res.isSuccess) {
+        clearPhotoResult();
+        await loadSummary(childId, date);
+        return true;
+      }
+    } catch (e) {
+      debugPrint('[NutritionProvider] Save photo result error: $e');
+    } finally {
+      _isSaving = false;
+      notifyListeners();
+    }
+
+    return false;
+  }
+
   Future<void> saveTarget(String childId, NutritionTarget target) async {
     final values = target.values;
     final res = await _apiClient.put(
       ApiConstants.nutritionTarget,
-      body: {
-        'childId': childId,
-        ...values.toJson(),
-      },
+      body: {'childId': childId, ...values.toJson()},
     );
 
     if (res.isSuccess) {
@@ -345,10 +430,7 @@ class NutritionProvider extends ChangeNotifier {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(
           _targetCacheKey(childId),
-          jsonEncode({
-            ...target.values.toJson(),
-            'source': target.source,
-          }),
+          jsonEncode({...target.values.toJson(), 'source': target.source}),
         );
       } catch (_) {}
       notifyListeners();
