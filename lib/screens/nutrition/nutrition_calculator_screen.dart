@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
@@ -109,8 +112,10 @@ class _NutritionCalculatorScreenState
     }
 
     final quantity =
-        double.tryParse(_quickQuantityController.text.trim().replaceAll(',', '.')) ??
-            100;
+        double.tryParse(
+          _quickQuantityController.text.trim().replaceAll(',', '.'),
+        ) ??
+        100;
     final weight = _weightFromUnit(quantity, _unit);
     if (weight <= 0) {
       _showSnack('Jumlah harus lebih dari 0.');
@@ -156,8 +161,10 @@ class _NutritionCalculatorScreenState
       return;
     }
     final weight =
-        double.tryParse(_batchWeightController.text.trim().replaceAll(',', '.')) ??
-            100;
+        double.tryParse(
+          _batchWeightController.text.trim().replaceAll(',', '.'),
+        ) ??
+        100;
     if (weight <= 0) {
       _showSnack('Berat harus lebih dari 0 gram.');
       return;
@@ -219,10 +226,8 @@ class _NutritionCalculatorScreenState
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => _TargetSheet(
-        childId: childId,
-        initial: provider.target,
-      ),
+      builder: (ctx) =>
+          _TargetSheet(childId: childId, initial: provider.target),
     );
     if (result != null) {
       await provider.saveTarget(childId, result);
@@ -234,6 +239,157 @@ class _NutritionCalculatorScreenState
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
+    );
+  }
+
+  Future<void> _analyzePhoto() async {
+    final childId = _childId;
+    if (childId == null || childId.isEmpty) {
+      _showSnack('Pilih profil anak terlebih dahulu.');
+      return;
+    }
+
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_rounded),
+              title: const Text('Ambil Foto'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_rounded),
+              title: const Text('Pilih dari Galeri'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+
+    final XFile? file = await ImagePicker().pickImage(
+      source: source,
+      maxWidth: 1280,
+      imageQuality: 70,
+    );
+    if (file == null) return;
+
+    final bytes = await file.readAsBytes();
+    final provider = ref.read(nutritionProvider);
+    final result = await provider.analyzePhoto(base64Encode(bytes), childId);
+
+    if (!mounted) return;
+    if (result == null) {
+      _showSnack(
+        'Gagal menganalisis foto. Coba lagi atau gunakan input manual.',
+      );
+      return;
+    }
+    _showPhotoResult(result);
+  }
+
+  void _showPhotoResult(PhotoAnalysisResult result) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => _PhotoResultSheet(
+        result: result,
+        onSave: (mealSlot) async {
+          final childId = _childId;
+          if (childId == null || childId.isEmpty) return;
+          final provider = ref.read(nutritionProvider);
+          final saved = await provider.savePhotoResultToDiary(
+            childId: childId,
+            date: _dateString,
+            mealSlot: mealSlot,
+            items: result.items,
+          );
+          if (!mounted) return;
+          _showSnack(
+            saved
+                ? 'Asupan dari foto disimpan ke diary.'
+                : 'Gagal menyimpan ke diary.',
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _photoButton(NutritionProvider provider) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.primaryGreen,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: provider.isAnalyzingPhoto ? null : _analyzePhoto,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.photo_camera_rounded,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Analisis Foto Makanan',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        provider.isAnalyzingPhoto
+                            ? 'Menganalisis foto...'
+                            : 'Foto makanan, AI memperkirakan asupan gizi',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (provider.isAnalyzingPhoto)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                else
+                  const Icon(
+                    Icons.chevron_right,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -277,6 +433,10 @@ class _NutritionCalculatorScreenState
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+              child: _photoButton(provider),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Row(
                 children: [
                   Expanded(
@@ -312,8 +472,11 @@ class _NutritionCalculatorScreenState
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.cloud_off_rounded,
-                        size: 16, color: Color(0xFF9A6700)),
+                    Icon(
+                      Icons.cloud_off_rounded,
+                      size: 16,
+                      color: Color(0xFF9A6700),
+                    ),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -444,17 +607,24 @@ class _NutritionCalculatorScreenState
                           initialValue: _unit,
                           isExpanded: true,
                           decoration: _decoration(''),
-                          items: const ['gram', 'porsi', 'potong', 'butir', 'gelas']
-                              .map(
-                                (unit) => DropdownMenuItem(
-                                  value: unit,
-                                  child: Text(
-                                    unit,
-                                    style: const TextStyle(fontSize: 12),
-                                  ),
-                                ),
-                              )
-                              .toList(),
+                          items:
+                              const [
+                                    'gram',
+                                    'porsi',
+                                    'potong',
+                                    'butir',
+                                    'gelas',
+                                  ]
+                                  .map(
+                                    (unit) => DropdownMenuItem(
+                                      value: unit,
+                                      child: Text(
+                                        unit,
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
                           onChanged: (value) {
                             if (value != null) setState(() => _unit = value);
                           },
@@ -471,20 +641,24 @@ class _NutritionCalculatorScreenState
                 initialValue: _preparation,
                 isExpanded: true,
                 decoration: _decoration(''),
-                items: const [
-                  'Tanpa tambahan minyak',
-                  'Direbus',
-                  'Dikukus',
-                  'Dipanggang',
-                  'Digoreng',
-                ]
-                    .map(
-                      (prep) => DropdownMenuItem(
-                        value: prep,
-                        child: Text(prep, style: const TextStyle(fontSize: 12)),
-                      ),
-                    )
-                    .toList(),
+                items:
+                    const [
+                          'Tanpa tambahan minyak',
+                          'Direbus',
+                          'Dikukus',
+                          'Dipanggang',
+                          'Digoreng',
+                        ]
+                        .map(
+                          (prep) => DropdownMenuItem(
+                            value: prep,
+                            child: Text(
+                              prep,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        )
+                        .toList(),
                 onChanged: (value) {
                   if (value != null) setState(() => _preparation = value);
                 },
@@ -583,8 +757,10 @@ class _NutritionCalculatorScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _fieldLabel(Icons.add_circle_outline_rounded,
-                  'Tambah makanan ke asupan'),
+              _fieldLabel(
+                Icons.add_circle_outline_rounded,
+                'Tambah makanan ke asupan',
+              ),
               const SizedBox(height: 8),
               Autocomplete<FoodItem>(
                 optionsBuilder: (value) {
@@ -736,18 +912,8 @@ class _NutritionCalculatorScreenState
             target.caloriesKkal.toDouble(),
             'kkal',
           ),
-          _progressRow(
-            'Protein',
-            totals.proteinGram,
-            target.proteinGram,
-            'g',
-          ),
-          _progressRow(
-            'Karbohidrat',
-            totals.carbsGram,
-            target.carbsGram,
-            'g',
-          ),
+          _progressRow('Protein', totals.proteinGram, target.proteinGram, 'g'),
+          _progressRow('Karbohidrat', totals.carbsGram, target.carbsGram, 'g'),
           _progressRow('Lemak', totals.fatGram, target.fatGram, 'g'),
           _progressRow('Gula', totals.sugarGram, target.sugarGram, 'g'),
           _progressRow('Serat', totals.fiberGram, target.fiberGram, 'g'),
@@ -756,12 +922,7 @@ class _NutritionCalculatorScreenState
     );
   }
 
-  Widget _progressRow(
-    String label,
-    double value,
-    double target,
-    String unit,
-  ) {
+  Widget _progressRow(String label, double value, double target, String unit) {
     final ratio = target <= 0 ? 0.0 : (value / target).clamp(0.0, 1.0);
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -797,9 +958,7 @@ class _NutritionCalculatorScreenState
               minHeight: 6,
               backgroundColor: const Color(0xFFE8EEEA),
               valueColor: AlwaysStoppedAnimation<Color>(
-                ratio >= 1
-                    ? const Color(0xFFD97706)
-                    : AppColors.primaryGreen,
+                ratio >= 1 ? const Color(0xFFD97706) : AppColors.primaryGreen,
               ),
             ),
           ),
@@ -900,8 +1059,11 @@ class _NutritionCalculatorScreenState
       ),
       child: Row(
         children: [
-          const Icon(Icons.sync_problem_rounded,
-              size: 20, color: Color(0xFF9A6700)),
+          const Icon(
+            Icons.sync_problem_rounded,
+            size: 20,
+            color: Color(0xFF9A6700),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -1167,13 +1329,16 @@ class _DraftRowState extends State<_DraftRow> {
             width: 64,
             child: TextField(
               controller: _controller,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(
                 isDense: true,
                 suffixText: 'g',
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 6,
+                  vertical: 8,
+                ),
                 border: OutlineInputBorder(),
               ),
               onSubmitted: (value) {
@@ -1240,9 +1405,7 @@ class _TargetSheetState extends State<_TargetSheet> {
   }
 
   double? _read(String key) {
-    return double.tryParse(
-      _controllers[key]!.text.trim().replaceAll(',', '.'),
-    );
+    return double.tryParse(_controllers[key]!.text.trim().replaceAll(',', '.'));
   }
 
   void _save() {
@@ -1338,8 +1501,9 @@ class _TargetSheetState extends State<_TargetSheet> {
               const SizedBox(height: 4),
               TextField(
                 controller: _controllers[field.$1],
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
                 decoration: InputDecoration(
                   isDense: true,
                   filled: true,
@@ -1375,6 +1539,159 @@ class _TargetSheetState extends State<_TargetSheet> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _PhotoResultSheet extends StatefulWidget {
+  final PhotoAnalysisResult result;
+  final Future<void> Function(String mealSlot) onSave;
+
+  const _PhotoResultSheet({required this.result, required this.onSave});
+
+  @override
+  State<_PhotoResultSheet> createState() => _PhotoResultSheetState();
+}
+
+class _PhotoResultSheetState extends State<_PhotoResultSheet> {
+  String _mealSlot = 'sarapan';
+  bool _saving = false;
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    await widget.onSave(_mealSlot);
+    if (mounted) {
+      setState(() => _saving = false);
+      Navigator.of(context).pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final result = widget.result;
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 16,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Hasil Analisis Foto',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                ),
+              ),
+              IconButton(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close_rounded),
+              ),
+            ],
+          ),
+          const Text(
+            'Perkiraan dari foto, bukan nilai pasti gizi.',
+            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 8),
+          if (result.items.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Text('Tidak ada makanan terdeteksi.'),
+            )
+          else ...[
+            ...result.items.map(
+              (item) => ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(
+                  Icons.restaurant_rounded,
+                  color: AppColors.primaryGreen,
+                ),
+                title: Text(
+                  item.foodName,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                subtitle: Text(
+                  '${item.weightGram.toStringAsFixed(0)} g • ${item.values.caloriesKkal} kkal${item.isEstimate ? ' (estimasi)' : ''}',
+                  style: const TextStyle(fontSize: 11),
+                ),
+              ),
+            ),
+            const Divider(),
+            Text(
+              'Total: ${result.totals.caloriesKkal} kkal • P ${result.totals.proteinGram}g • K ${result.totals.carbsGram}g',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+            if (result.target != null)
+              Text(
+                'Target harian: ${result.target!.caloriesKkal} kkal (edukatif)',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  initialValue: _mealSlot,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 10,
+                    ),
+                  ),
+                  items: const ['sarapan', 'siang', 'camilan', 'malam']
+                      .map(
+                        (s) => DropdownMenuItem(
+                          value: s,
+                          child: Text(s, style: const TextStyle(fontSize: 12)),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) {
+                    if (v != null) setState(() => _mealSlot = v);
+                  },
+                ),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton(
+                onPressed: result.items.isEmpty || _saving ? null : _save,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryGreen,
+                  foregroundColor: Colors.white,
+                ),
+                child: _saving
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Simpan ke Diary'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
