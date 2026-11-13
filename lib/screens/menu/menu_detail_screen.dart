@@ -48,17 +48,6 @@ class _MenuDetailScreenState extends ConsumerState<MenuDetailScreen> {
     }
   }
 
-  String _mapCategoryToMealType(String category) {
-    final lower = category.toLowerCase();
-    if (lower.contains('cemilan') || lower.contains('camilan')) {
-      return 'Camilan Sore';
-    }
-    if (lower.contains('minuman')) {
-      return 'Camilan Pagi';
-    }
-    return 'Makan Siang';
-  }
-
   String _mapMealSlot(String meal) {
     final lower = meal.toLowerCase();
     if (lower.contains('sarapan')) return 'sarapan';
@@ -81,12 +70,16 @@ class _MenuDetailScreenState extends ConsumerState<MenuDetailScreen> {
 
     double? carbsVal;
     try {
-      carbsVal = double.tryParse(_recipe.carbs.replaceAll(RegExp(r'[^0-9.]'), ''));
+      carbsVal = double.tryParse(
+        _recipe.carbs.replaceAll(RegExp(r'[^0-9.]'), ''),
+      );
     } catch (_) {}
 
     double? proteinVal;
     try {
-      proteinVal = double.tryParse(_recipe.protein.replaceAll(RegExp(r'[^0-9.]'), ''));
+      proteinVal = double.tryParse(
+        _recipe.protein.replaceAll(RegExp(r'[^0-9.]'), ''),
+      );
     } catch (_) {}
 
     double? fatVal;
@@ -136,7 +129,9 @@ class _MenuDetailScreenState extends ConsumerState<MenuDetailScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('"${_recipe.name}" berhasil dicatat ke Jurnal Makan ($mealSlot)!'),
+        content: Text(
+          '"${_recipe.name}" berhasil dicatat ke Jurnal Makan ($mealSlot)!',
+        ),
         backgroundColor: AppColors.primaryGreenDark,
         duration: const Duration(seconds: 3),
         action: SnackBarAction(
@@ -160,7 +155,13 @@ class _MenuDetailScreenState extends ConsumerState<MenuDetailScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) {
-        final slots = ['Sarapan', 'Camilan Pagi', 'Makan Siang', 'Camilan Sore', 'Makan Malam'];
+        final slots = [
+          'Sarapan',
+          'Camilan Pagi',
+          'Makan Siang',
+          'Camilan Sore',
+          'Makan Malam',
+        ];
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
@@ -183,9 +184,16 @@ class _MenuDetailScreenState extends ConsumerState<MenuDetailScreen> {
                     contentPadding: EdgeInsets.zero,
                     leading: const CircleAvatar(
                       backgroundColor: AppColors.veryLightGreen,
-                      child: Icon(Icons.check, color: AppColors.primaryGreen, size: 18),
+                      child: Icon(
+                        Icons.check,
+                        color: AppColors.primaryGreen,
+                        size: 18,
+                      ),
                     ),
-                    title: Text(slot, style: const TextStyle(fontWeight: FontWeight.w600)),
+                    title: Text(
+                      slot,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
                     trailing: const Icon(Icons.chevron_right, size: 20),
                     onTap: () {
                       Navigator.pop(ctx);
@@ -202,21 +210,22 @@ class _MenuDetailScreenState extends ConsumerState<MenuDetailScreen> {
   }
 
   Future<void> _addCookingReminder() async {
-    final defaultTime = _recipe.category.toLowerCase().contains('minuman') ||
+    final defaultTime =
+        _recipe.category.toLowerCase().contains('minuman') ||
             _recipe.category.toLowerCase().contains('camilan')
         ? '15:30'
         : '06:30';
 
-    await ref.read(reminderProvider).addReminder(
-          'Masak ${_recipe.name}',
-          defaultTime,
-          category: 'makan',
-        );
+    await ref
+        .read(reminderProvider)
+        .addReminder('Masak ${_recipe.name}', defaultTime, category: 'makan');
 
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Pengingat masak "${_recipe.name}" jam $defaultTime berhasil dipasang!'),
+        content: Text(
+          'Pengingat masak "${_recipe.name}" jam $defaultTime berhasil dipasang!',
+        ),
         backgroundColor: AppColors.primaryGreenDark,
       ),
     );
@@ -556,7 +565,10 @@ class _MenuDetailScreenState extends ConsumerState<MenuDetailScreen> {
                         icon: const Icon(Icons.alarm_add_outlined, size: 18),
                         label: const Text(
                           'Pengingat Masak',
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
@@ -574,19 +586,17 @@ class _MenuDetailScreenState extends ConsumerState<MenuDetailScreen> {
                         onPressed: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => FoodDiaryScreen(
-                                initialFood: _recipe.name,
-                                initialMeal: _mapCategoryToMealType(
-                                  _recipe.category,
-                                ),
-                              ),
+                              builder: (_) => const FoodDiaryScreen(),
                             ),
                           );
                         },
-                        icon: const Icon(Icons.edit_note_outlined, size: 18),
+                        icon: const Icon(Icons.event_note_outlined, size: 18),
                         label: const Text(
-                          'Form Lengkap',
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                          'Lihat Diary',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),
