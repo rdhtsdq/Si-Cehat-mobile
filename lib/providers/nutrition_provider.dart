@@ -417,6 +417,19 @@ class NutritionProvider extends ChangeNotifier {
     return false;
   }
 
+  Future<bool> deleteEntry({
+    required String childId,
+    required String entryId,
+    required String date,
+  }) async {
+    final res = await _apiClient.delete('${ApiConstants.foodDiary}/$entryId');
+    if (res.isSuccess) {
+      await loadSummary(childId, date);
+      return true;
+    }
+    return false;
+  }
+
   Future<void> saveTarget(String childId, NutritionTarget target) async {
     final values = target.values;
     final res = await _apiClient.put(
