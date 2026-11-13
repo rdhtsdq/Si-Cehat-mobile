@@ -96,6 +96,7 @@ class ApiConstants {
       '/api/nutrition/calculate-batch';
   static const String nutritionTarget = '/api/nutrition/target';
   static const String nutritionSummary = '/api/nutrition/summary';
+  static const String nutritionAnalyzePhoto = '/api/nutrition/analyze-photo';
 
   // Catalog, Meal Plan & Education
   static const String recipes = '/api/recipes';
@@ -104,7 +105,6 @@ class ApiConstants {
   static const String content = '/api/content';
 
   // Consultations & Notifications
-  static const String specialists = '/api/consultations/specialists';
   static const String consultations = '/api/consultations';
   static const String notifications = '/api/notifications';
   static const String notificationsReadAll = '/api/notifications/read-all';

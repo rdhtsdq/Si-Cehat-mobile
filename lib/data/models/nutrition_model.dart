@@ -31,13 +31,13 @@ class NutritionValues {
   }
 
   Map<String, dynamic> toJson() => {
-        'caloriesKkal': caloriesKkal,
-        'carbsGram': carbsGram,
-        'proteinGram': proteinGram,
-        'fatGram': fatGram,
-        'sugarGram': sugarGram,
-        'fiberGram': fiberGram,
-      };
+    'caloriesKkal': caloriesKkal,
+    'carbsGram': carbsGram,
+    'proteinGram': proteinGram,
+    'fatGram': fatGram,
+    'sugarGram': sugarGram,
+    'fiberGram': fiberGram,
+  };
 
   /// Scales a per-100 g value to the requested weight.
   NutritionValues scaled(double weightGram) {
@@ -77,13 +77,13 @@ class NutritionValues {
 
   @override
   int get hashCode => Object.hash(
-        caloriesKkal,
-        carbsGram,
-        proteinGram,
-        fatGram,
-        sugarGram,
-        fiberGram,
-      );
+    caloriesKkal,
+    carbsGram,
+    proteinGram,
+    fatGram,
+    sugarGram,
+    fiberGram,
+  );
 }
 
 class FoodItem {
@@ -117,8 +117,7 @@ class FoodItem {
       aliases: json['aliases'] as String?,
       category: json['category'] as String? ?? 'makanan_pokok',
       per100g: NutritionValues.fromJson(json),
-      portionDescription:
-          json['portionDescription'] as String? ?? '100 g',
+      portionDescription: json['portionDescription'] as String? ?? '100 g',
     );
   }
 }
@@ -201,8 +200,7 @@ class NutritionSummary {
     final percent = <String, int?>{};
     if (rawPercent is Map) {
       for (final entry in rawPercent.entries) {
-        percent[entry.key.toString()] =
-            (entry.value as num?)?.toInt();
+        percent[entry.key.toString()] = (entry.value as num?)?.toInt();
       }
     }
 
@@ -212,9 +210,9 @@ class NutritionSummary {
       childId: json['childId']?.toString() ?? '',
       entries: rawEntries is List
           ? rawEntries
-              .whereType<Map<String, dynamic>>()
-              .map(NutritionEntry.fromJson)
-              .toList()
+                .whereType<Map<String, dynamic>>()
+                .map(NutritionEntry.fromJson)
+                .toList()
           : const [],
       totals: json['totals'] is Map<String, dynamic>
           ? NutritionValues.fromJson(json['totals'] as Map<String, dynamic>)
@@ -223,8 +221,7 @@ class NutritionSummary {
           ? NutritionValues.fromJson(json['target'] as Map<String, dynamic>)
           : NutritionValues.zero,
       remaining: json['remaining'] is Map<String, dynamic>
-          ? NutritionValues.fromJson(
-              json['remaining'] as Map<String, dynamic>)
+          ? NutritionValues.fromJson(json['remaining'] as Map<String, dynamic>)
           : NutritionValues.zero,
       percent: percent,
     );
@@ -247,4 +244,73 @@ class NutritionDraftItem {
 
   NutritionValues get values =>
       preparedValues ?? food.per100g.scaled(weightGram);
+}
+
+class PhotoAnalysisItem {
+  final String? foodId;
+  final String foodName;
+  final double weightGram;
+  final NutritionValues values;
+  final bool isEstimate;
+
+  const PhotoAnalysisItem({
+    this.foodId,
+    required this.foodName,
+    required this.weightGram,
+    required this.values,
+    this.isEstimate = false,
+  });
+
+  factory PhotoAnalysisItem.fromJson(Map<String, dynamic> json) {
+    return PhotoAnalysisItem(
+      foodId: json['foodId']?.toString(),
+      foodName: json['foodName'] as String? ?? 'Makanan',
+      weightGram: (json['weightGram'] as num?)?.toDouble() ?? 0,
+      values: NutritionValues.fromJson(json),
+      isEstimate: json['isEstimate'] as bool? ?? false,
+    );
+  }
+}
+
+class PhotoAnalysisResult {
+  final List<PhotoAnalysisItem> items;
+  final NutritionValues totals;
+  final NutritionValues? target;
+  final Map<String, int?>? percent;
+  final String? note;
+
+  const PhotoAnalysisResult({
+    required this.items,
+    required this.totals,
+    this.target,
+    this.percent,
+    this.note,
+  });
+
+  factory PhotoAnalysisResult.fromJson(Map<String, dynamic> json) {
+    final rawItems = json['items'];
+    final rawPercent = json['percent'];
+    final percent = <String, int?>{};
+    if (rawPercent is Map) {
+      for (final entry in rawPercent.entries) {
+        percent[entry.key.toString()] = (entry.value as num?)?.toInt();
+      }
+    }
+    return PhotoAnalysisResult(
+      items: rawItems is List
+          ? rawItems
+                .whereType<Map<String, dynamic>>()
+                .map(PhotoAnalysisItem.fromJson)
+                .toList()
+          : const [],
+      totals: json['totals'] is Map<String, dynamic>
+          ? NutritionValues.fromJson(json['totals'] as Map<String, dynamic>)
+          : NutritionValues.zero,
+      target: json['target'] is Map<String, dynamic>
+          ? NutritionValues.fromJson(json['target'] as Map<String, dynamic>)
+          : null,
+      percent: percent,
+      note: json['note']?.toString(),
+    );
+  }
 }
