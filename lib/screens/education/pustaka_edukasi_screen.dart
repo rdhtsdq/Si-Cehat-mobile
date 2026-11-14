@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../data/models/education_model.dart';
 import '../../providers/app_providers.dart';
 import 'education_detail_screen.dart';
@@ -12,7 +13,8 @@ class PustakaEdukasiScreen extends ConsumerStatefulWidget {
   const PustakaEdukasiScreen({super.key, this.showAppBar = true});
 
   @override
-  ConsumerState<PustakaEdukasiScreen> createState() => _PustakaEdukasiScreenState();
+  ConsumerState<PustakaEdukasiScreen> createState() =>
+      _PustakaEdukasiScreenState();
 }
 
 class _PustakaEdukasiScreenState extends ConsumerState<PustakaEdukasiScreen> {
@@ -36,11 +38,16 @@ class _PustakaEdukasiScreenState extends ConsumerState<PustakaEdukasiScreen> {
   @override
   Widget build(BuildContext context) {
     final eduProv = ref.watch(educationProvider);
-    final allArticles = eduProv.educationItems.where((e) => e.type == 'artikel' || e.type == 'makanan' || e.type == 'umum').toList();
+    final allArticles = eduProv.educationItems
+        .where(
+          (e) => e.type == 'artikel' || e.type == 'makanan' || e.type == 'umum',
+        )
+        .toList();
 
     // Filter by category and search
     final filtered = allArticles.where((item) {
-      final matchesSearch = _searchQuery.isEmpty ||
+      final matchesSearch =
+          _searchQuery.isEmpty ||
           item.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           item.summary.toLowerCase().contains(_searchQuery.toLowerCase());
 
@@ -69,7 +76,11 @@ class _PustakaEdukasiScreenState extends ConsumerState<PustakaEdukasiScreen> {
               elevation: 0,
               centerTitle: false,
               leading: IconButton(
-                icon: const Icon(Icons.chevron_left, size: 28, color: AppColors.textDark),
+                icon: const Icon(
+                  Icons.chevron_left,
+                  size: 28,
+                  color: AppColors.textDark,
+                ),
                 onPressed: () => Navigator.of(context).pop(),
               ),
               title: Text(
@@ -83,32 +94,43 @@ class _PustakaEdukasiScreenState extends ConsumerState<PustakaEdukasiScreen> {
           children: [
             // Search Bar
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              child: Container(
-                height: 48,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+              padding: EdgeInsets.fromLTRB(
+                widget.showAppBar ? AppSpacing.pageGutter : 0,
+                AppSpacing.xs,
+                widget.showAppBar ? AppSpacing.pageGutter : 0,
+                AppSpacing.xxs,
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minHeight: AppSizes.fieldHeight,
                 ),
                 child: TextField(
                   controller: _searchController,
                   onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                  style: AppTypography.textInput,
+                  textInputAction: TextInputAction.search,
                   decoration: InputDecoration(
                     hintText: 'Cari topik edukasi kesehatan...',
-                    hintStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                    prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary, size: 20),
+                    prefixIcon: const Icon(
+                      Icons.search_rounded,
+                      size: 20,
+                      color: AppColors.textMuted,
+                    ),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear, size: 18),
+                            icon: const Icon(Icons.close_rounded, size: 18),
+                            color: AppColors.textMuted,
+                            tooltip: 'Hapus pencarian',
                             onPressed: () {
                               _searchController.clear();
                               setState(() => _searchQuery = '');
                             },
                           )
                         : null,
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xs,
+                      vertical: 12,
+                    ),
                   ),
                 ),
               ),
@@ -117,28 +139,35 @@ class _PustakaEdukasiScreenState extends ConsumerState<PustakaEdukasiScreen> {
             // Category Chips
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+              padding: EdgeInsets.symmetric(
+                horizontal: widget.showAppBar ? AppSpacing.pageGutter : 0,
+                vertical: AppSpacing.xxs,
+              ),
               child: Row(
                 children: _categories.map((cat) {
                   final isSelected = _selectedCategory == cat;
                   return Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
+                    padding: const EdgeInsets.only(right: AppSpacing.xs),
                     child: FilterChip(
                       label: Text(cat),
                       selected: isSelected,
                       showCheckmark: false,
-                      selectedColor: AppColors.primaryGreen,
-                      backgroundColor: Colors.white,
-                      labelStyle: TextStyle(
-                        color: isSelected ? Colors.white : AppColors.textDark,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                        fontSize: 12,
+                      selectedColor: AppColors.primary,
+                      backgroundColor: AppColors.primarySoft,
+                      side: BorderSide.none,
+                      shape: const StadiumBorder(),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xs,
+                        vertical: 6,
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        side: BorderSide(
-                          color: isSelected ? AppColors.primaryGreen : const Color(0xFFE2E8F0),
-                        ),
+                      labelStyle: TextStyle(
+                        color: isSelected
+                            ? AppColors.onPrimary
+                            : AppColors.primary,
+                        fontWeight: isSelected
+                            ? FontWeight.w700
+                            : FontWeight.w600,
+                        fontSize: 11,
                       ),
                       onSelected: (_) {
                         setState(() => _selectedCategory = cat);
@@ -153,39 +182,52 @@ class _PustakaEdukasiScreenState extends ConsumerState<PustakaEdukasiScreen> {
             // List of Articles
             Expanded(
               child: (eduProv.isLoading && allArticles.isEmpty)
-                  ? const Center(child: CircularProgressIndicator(color: AppColors.primaryGreen))
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryGreen,
+                      ),
+                    )
                   : filtered.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.library_books_outlined, size: 56, color: Colors.grey.shade400),
-                              const SizedBox(height: 12),
-                              Text(
-                                'Materi Tidak Ditemukan',
-                                style: AppTypography.titleCard.copyWith(fontSize: 15),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Coba kata kunci lain atau pilih kategori Semua.',
-                                style: AppTypography.bodySecondary,
-                              ),
-                            ],
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.library_books_outlined,
+                            size: 56,
+                            color: Colors.grey.shade400,
                           ),
-                        )
-                      : RefreshIndicator(
-                          onRefresh: () => eduProv.loadRemoteContent(),
-                          color: AppColors.primaryGreen,
-                          child: ListView.separated(
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                            itemCount: filtered.length,
-                            separatorBuilder: (_, _) => const SizedBox(height: 12),
-                            itemBuilder: (context, index) {
-                              final item = filtered[index];
-                              return _buildArticleCard(context, item);
-                            },
+                          const SizedBox(height: 12),
+                          Text(
+                            'Materi Tidak Ditemukan',
+                            style: AppTypography.titleCard.copyWith(
+                              fontSize: 15,
+                            ),
                           ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Coba kata kunci lain atau pilih kategori Semua.',
+                            style: AppTypography.bodySecondary,
+                          ),
+                        ],
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: () => eduProv.loadRemoteContent(),
+                      color: AppColors.primaryGreen,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 8,
                         ),
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final item = filtered[index];
+                          return _buildArticleCard(context, item);
+                        },
+                      ),
+                    ),
             ),
           ],
         ),
@@ -214,7 +256,9 @@ class _PustakaEdukasiScreenState extends ConsumerState<PustakaEdukasiScreen> {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => EducationDetailScreen(item: item)),
+              MaterialPageRoute(
+                builder: (_) => EducationDetailScreen(item: item),
+              ),
             );
           },
           child: Padding(
@@ -250,13 +294,18 @@ class _PustakaEdukasiScreenState extends ConsumerState<PustakaEdukasiScreen> {
                         item.summary,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: AppTypography.bodySecondary.copyWith(fontSize: 12),
+                        style: AppTypography.bodySecondary.copyWith(
+                          fontSize: 12,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFE2F3E7),
                               borderRadius: BorderRadius.circular(4),
@@ -274,7 +323,10 @@ class _PustakaEdukasiScreenState extends ConsumerState<PustakaEdukasiScreen> {
                           Expanded(
                             child: Text(
                               'Sumber: ${item.speakerOrSource}',
-                              style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: AppColors.textSecondary,
+                              ),
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),

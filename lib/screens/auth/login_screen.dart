@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../providers/app_providers.dart';
@@ -36,9 +37,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final password = _passwordController.text.trim();
 
     setState(() {
-      _identifierError = identifier.isEmpty
-          ? 'Email atau No. HP wajib diisi'
-          : null;
+      _identifierError =
+          identifier.isEmpty ? 'Email atau No. HP wajib diisi' : null;
       _passwordError = password.isEmpty ? 'Password wajib diisi' : null;
       _errorMessage = null;
     });
@@ -71,8 +71,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } else {
       setState(() {
         _isLoading = false;
-        _errorMessage =
-            result['message'] as String? ??
+        _errorMessage = result['message'] as String? ??
             'Gagal masuk. Periksa email & password Anda.';
       });
     }
@@ -84,55 +83,76 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.pageGutter,
+            AppSpacing.xl,
+            AppSpacing.pageGutter,
+            AppSpacing.xl,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 24),
+              Center(
+                child: Container(
+                  width: 72,
+                  height: 72,
+                  decoration: const BoxDecoration(
+                    color: AppColors.veryLightGreen,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.family_restroom_rounded,
+                    size: 34,
+                    color: AppColors.primaryGreenDark,
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
               Text(
                 'Selamat Datang\nKembali!',
                 textAlign: TextAlign.center,
                 style: AppTypography.headingLogin,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.xs),
               Text(
-                'Masuk ke akun orang tua untuk memantau tumbuh kembang & gizi anak',
+                'Masuk ke akun orang tua untuk memantau tumbuh kembang & gizi anak.',
                 textAlign: TextAlign.center,
-                style: AppTypography.bodySecondary.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+                style: AppTypography.bodySecondary.copyWith(fontSize: 14.5),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: AppSpacing.xxl),
 
               if (_errorMessage != null) ...[
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(AppSpacing.sm),
                   decoration: BoxDecoration(
-                    color: Colors.red[50],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red[200]!),
+                    color: AppColors.dangerBg,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    border: Border.all(
+                      color: AppColors.accentRed.withValues(alpha: 0.35),
+                    ),
                   ),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.error_outline,
-                        color: Colors.red[700],
+                      const Icon(
+                        Icons.error_outline_rounded,
+                        color: AppColors.accentRed,
                         size: 20,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppSpacing.xs),
                       Expanded(
                         child: Text(
                           _errorMessage!,
-                          style: TextStyle(
-                            color: Colors.red[800],
-                            fontSize: 13,
+                          style: AppTypography.bodySecondary.copyWith(
+                            color: AppColors.accentRed,
+                            fontSize: 14,
                           ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.md),
               ],
 
               AppTextField(
@@ -147,7 +167,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   }
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.md),
 
               AppTextField(
                 label: 'Password',
@@ -161,7 +181,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   }
                 },
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.xs),
 
               Align(
                 alignment: Alignment.centerRight,
@@ -170,29 +190,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(16),
-                        ),
-                      ),
+                      showDragHandle: true,
                       builder: (_) => const ForgotPasswordSheet(),
                     );
                   },
-                  style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(50, 30),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Text(
-                    'Lupa Password?',
-                    style: AppTypography.bodySecondary.copyWith(
-                      color: AppColors.textSecondary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                  child: const Text('Lupa Password?'),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.md),
 
               PrimaryButton(
                 text: 'Masuk',
@@ -200,36 +205,50 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 onPressed: _handleLogin,
               ),
 
-              const SizedBox(height: 36),
+              const SizedBox(height: AppSpacing.xl),
 
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Belum punya akun? ',
-                    style: AppTypography.bodySecondary.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                    'Belum punya akun?',
+                    style: AppTypography.bodySecondary.copyWith(fontSize: 14.5),
                   ),
-                  GestureDetector(
-                    onTap: () {
+                  TextButton(
+                    onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (_) => const RegisterScreen(),
                         ),
                       );
                     },
+                    child: const Text('Daftar'),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: AppSpacing.lg),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.lock_outline_rounded,
+                    size: 14,
+                    color: AppColors.textMuted,
+                  ),
+                  const SizedBox(width: 6),
+                  Flexible(
                     child: Text(
-                      'Daftar',
-                      style: AppTypography.bodySecondary.copyWith(
-                        color: AppColors.primaryGreen,
-                        fontWeight: FontWeight.w700,
+                      'Data anak disimpan di perangkat ini. Bukan alat diagnosis.',
+                      textAlign: TextAlign.center,
+                      style: AppTypography.caption.copyWith(
+                        fontSize: 12,
+                        color: AppColors.textMuted,
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
             ],
           ),
         ),

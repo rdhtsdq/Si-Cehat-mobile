@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 import '../constants/typography.dart';
+import '../theme/app_tokens.dart';
 
 enum BannerType { demo, simulation, offline, notice }
 
@@ -15,63 +16,60 @@ class SafetyBanner extends StatelessWidget {
     required this.text,
     this.type = BannerType.demo,
     this.customIcon,
-    this.margin = const EdgeInsets.only(bottom: 16),
+    this.margin = const EdgeInsets.only(bottom: AppSpacing.sm),
   });
 
   @override
   Widget build(BuildContext context) {
-    Color bg;
-    Color border;
-    Color textColor;
-    IconData icon;
-
-    switch (type) {
-      case BannerType.simulation:
-        bg = const Color(0xFFFFF8E1);
-        border = const Color(0xFFFFD54F);
-        textColor = const Color(0xFFF57F17);
-        icon = Icons.info_outline;
-        break;
-      case BannerType.offline:
-        bg = const Color(0xFFE8F5E9);
-        border = const Color(0xFFA5D6A7);
-        textColor = AppColors.primaryGreenDark;
-        icon = Icons.cloud_off_outlined;
-        break;
-      case BannerType.notice:
-        bg = const Color(0xFFF5F5F5);
-        border = const Color(0xFFE0E0E0);
-        textColor = AppColors.textSecondary;
-        icon = Icons.help_outline;
-        break;
-      case BannerType.demo:
-        bg = const Color(0xFFFFF3E0);
-        border = const Color(0xFFFFCC80);
-        textColor = const Color(0xFFE65100);
-        icon = Icons.flag_outlined;
-        break;
-    }
+    final (background, border, foreground, icon) = switch (type) {
+      BannerType.simulation => (
+          AppColors.warningBg,
+          AppColors.warning,
+          AppColors.chipPeachFg,
+          Icons.info_outline_rounded,
+        ),
+      BannerType.offline => (
+          AppColors.primarySoft,
+          AppColors.border,
+          AppColors.primary,
+          Icons.cloud_off_outlined,
+        ),
+      BannerType.notice => (
+          AppColors.chipNeutralBg,
+          AppColors.border,
+          AppColors.textMuted,
+          Icons.help_outline_rounded,
+        ),
+      BannerType.demo => (
+          AppColors.chipPeachBg,
+          AppColors.warning,
+          AppColors.chipPeachFg,
+          Icons.flag_outlined,
+        ),
+    };
 
     return Container(
       margin: margin,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: 10,
+      ),
       decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(8),
+        color: background,
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: border, width: 1),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(customIcon ?? icon, size: 18, color: textColor),
-          const SizedBox(width: 10),
+          Icon(customIcon ?? icon, size: 16, color: foreground),
+          const SizedBox(width: AppSpacing.xs),
           Expanded(
             child: Text(
               text,
-              style: AppTypography.badgeText.copyWith(
-                color: textColor,
-                fontSize: 12,
-                height: 1.35,
+              style: AppTypography.caption.copyWith(
+                color: foreground,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),

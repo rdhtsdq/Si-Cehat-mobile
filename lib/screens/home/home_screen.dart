@@ -2,22 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
+import '../../core/theme/app_tokens.dart';
+import '../../core/widgets/avatar_image.dart';
+import '../../core/widgets/section_header.dart';
 import '../../providers/app_providers.dart';
 import '../consultation/consultation_screen.dart';
 import '../consultation/notification_center_screen.dart';
 import '../community/community_screen.dart';
-import '../education/pustaka_edukasi_screen.dart';
-import '../education/playlab_game_screen.dart';
-import '../education/widgets/playlab_score_dialog.dart';
-import '../../data/models/playlab_score_model.dart';
 import '../menu/menu_catalog_screen.dart';
 import '../menu/meal_plan_screen.dart';
 import '../nutrition/nutrition_calculator_screen.dart';
+import '../nutrition/photo_analysis_flow.dart';
+import '../profile/child_manage_sheet.dart';
 import '../profile/child_profile_setup_screen.dart';
 import '../profile/mother_profile_screen.dart';
 import '../reminder/reminder_screen.dart';
 import '../screening/screening_step1_screen.dart';
-import '../../core/widgets/avatar_image.dart';
+import 'widgets/home_menu_tile.dart';
+import 'widgets/nutrition_daily_card.dart';
+import 'widgets/risk_meter_card.dart';
 
 class HomeScreen extends ConsumerWidget {
   final Function(int)? onNavigateTab;
@@ -36,333 +39,248 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(profileProvider);
     final authName = ref.watch(authProvider.select((a) => a.currentUserName));
-    final unreadCount = ref.watch(notificationProvider.select((p) => p.unreadCount));
-    final motherName = (profile.mother?.name.isNotEmpty == true)
+    final unreadCount = ref.watch(
+      notificationProvider.select((p) => p.unreadCount),
+    );
+
+    final motherName = (profile.mother?.name.trim().isNotEmpty == true)
         ? profile.mother!.name
         : (authName ?? 'Ibu Rina');
     final activeChild = profile.activeChild;
+    final tracker = ref.watch(trackerProvider);
+    final latestMeasurement =
+        activeChild != null &&
+            tracker.latestMeasurement?.childId.toString() ==
+                activeChild.id.toString()
+        ? tracker.latestMeasurement
+        : null;
 
-    final riskCat = activeChild?.latestRiskCategory?.toUpperCase();
-    final String riskTitle;
-    final String riskSubtitle;
-    final Color riskColor;
-
-    if (riskCat == 'TINGGI') {
-      riskTitle = 'Risiko Tinggi';
-      riskSubtitle =
-          'Disarankan konsultasi gizi dan batasi konsumsi gula harian.';
-      riskColor = Colors.orange[800]!;
-    } else if (riskCat == 'SEDANG') {
-      riskTitle = 'Risiko Sedang';
-      riskSubtitle =
-          'Perhatikan porsi makan seimbang dan aktivitas fisik harian anak.';
-      riskColor = const Color(0xFFE6A23C);
-    } else if (riskCat == 'RENDAH') {
-      riskTitle = 'Risiko Rendah';
-      riskSubtitle = 'Pertahankan pola hidup sehat anak setiap hari!';
-      riskColor = AppColors.primaryGreen;
-    } else {
-      riskTitle = 'Skrining belum tersedia';
-      riskSubtitle =
-          'Ketuk di sini untuk melakukan skrining risiko diabetes anak.';
-      riskColor = AppColors.primaryGreen;
-    }
+    final risk = _resolveRisk(activeChild?.latestRiskCategory);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Avatar thumbnail
-                  GestureDetector(
-                    onTap: () => _push(context, const MotherProfileScreen()),
-                    child: Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFD6D6D6),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.primaryGreen, width: 2),
-                      ),
-                      child: ClipOval(
-                        child: AvatarImage(
-                          avatarUrl: profile.mother?.avatarUrl,
-                          size: 48,
-                          fallbackIcon: Icons.person,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Halo, $motherName!',
-                          style: AppTypography.headingScreen.copyWith(
-                            fontSize: 22,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _greetingByHour(),
-                          style: AppTypography.bodySecondary.copyWith(
-                            fontSize: 14,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Notification bell with unread badge
-                  Stack(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.notifications_outlined, size: 28, color: AppColors.textDark),
-                        onPressed: () => _push(context, const NotificationCenterScreen()),
-                        tooltip: 'Notifikasi',
-                      ),
-                      if (unreadCount > 0)
-                        Positioned(
-                          right: 8,
-                          top: 8,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Colors.redAccent,
-                              shape: BoxShape.circle,
-                            ),
-                            constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                            child: Text(
-                              unreadCount > 9 ? '9+' : '$unreadCount',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
+      backgroundColor: AppColors.bg,
+      body: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AppHeader(
+              topCaption: _greetingByHour(),
+              title: 'Halo, $motherName!',
+              leading: _HeaderAvatar(
+                avatarUrl: profile.mother?.avatarUrl,
+                onTap: () => _push(context, const MotherProfileScreen()),
               ),
-              if (activeChild != null) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.veryLightGreen,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.child_care,
-                        size: 16,
-                        color: AppColors.primaryGreenDark,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Anak Aktif: ${activeChild.name}',
-                        style: AppTypography.badgeText.copyWith(
-                          color: AppColors.primaryGreenDark,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
+              actions: [
+                HeaderIconButton(
+                  icon: Icons.notifications_none_rounded,
+                  tooltip: 'Notifikasi',
+                  badgeCount: unreadCount,
+                  onPressed: () =>
+                      _push(context, const NotificationCenterScreen()),
                 ),
               ],
-              const SizedBox(height: 18),
-              InkWell(
-                onTap: () => _openScreeningFlow(context, ref),
-                borderRadius: BorderRadius.circular(14),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: AppColors.paleGreenBg,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Container(
-                    color: Colors.white,
-                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Diabetes Risk Meter',
-                          style: AppTypography.titleCard.copyWith(
-                            color: AppColors.textDark,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          riskTitle,
-                          style: AppTypography.headingScreen.copyWith(
-                            fontSize: 24,
-                            color: riskColor,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          riskSubtitle,
-                          style: AppTypography.bodySecondary.copyWith(
-                            color: AppColors.textDark,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
+              bottomChild: activeChild == null
+                  ? null
+                  : _ChildSummaryCard(
+                      name: activeChild.name,
+                      age: _formatAge(activeChild.dateOfBirth),
+                      gender: activeChild.gender,
+                      weight: latestMeasurement?.formattedWeight,
+                      height: latestMeasurement?.formattedHeight,
+                      onTap: () => _openChildSwitcher(context),
                     ),
-                  ),
-                ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.pageGutter,
               ),
-              const SizedBox(height: 24),
-              Text(
-                'Menu Utama',
-                style: AppTypography.titleCard.copyWith(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 14),
-              Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildMenuCard(
-                    'screening.png',
-                    'Skrining',
-                    () => _openScreeningFlow(context, ref),
+                  RiskMeterCard(
+                    title: risk.title,
+                    subtitle: risk.subtitle,
+                    tone: risk.tone,
+                    onTap: () => _openScreeningFlow(context, ref),
                   ),
-                  const SizedBox(width: 12),
-                  _buildMenuCard(
-                    'menu.png',
-                    'Menu',
-                    () => _push(context, const MenuCatalogScreen()),
+                  if (activeChild != null) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    NutritionDailyCard(
+                      childId: activeChild.id?.toString(),
+                      onPhoto: () => runPhotoAnalysis(
+                        context,
+                        ref,
+                        childId: activeChild.id?.toString(),
+                      ),
+                      onDetail: () =>
+                          _push(context, const NutritionCalculatorScreen()),
+                    ),
+                  ],
+                  const SizedBox(height: AppSpacing.lg),
+                  const SectionHeader(
+                    title: 'Menu Utama',
+                    subtitle: 'Yang paling sering dipakai setiap hari',
                   ),
-                  const SizedBox(width: 12),
-                  _buildMenuCard(
-                    'reminder.png',
-                    'Reminder',
-                    () => _push(context, const ReminderScreen()),
+                  const SizedBox(height: AppSpacing.sm),
+                  _buildMenuGrid(context, ref),
+                  const SizedBox(height: AppSpacing.xl),
+                  const SectionHeader(
+                    title: 'Fitur lainnya',
+                    subtitle: 'Bantu susun pola makan sehat keluarga',
                   ),
+                  const SizedBox(height: AppSpacing.sm),
+                  AppListGroup(
+                    children: [
+                      AppListTile(
+                        icon: Icons.menu_book_outlined,
+                        iconBackground: AppColors.primarySoft,
+                        iconForeground: AppColors.primary,
+                        title: 'Rencana Menu',
+                        subtitle: 'Susun menu sehat seminggu',
+                        onTap: () => _push(context, const MealPlanScreen()),
+                      ),
+                      AppListTile(
+                        icon: Icons.calculate_outlined,
+                        iconBackground: AppColors.chipPeachBg,
+                        iconForeground: AppColors.chipPeachFg,
+                        title: 'Kalkulator Nutrisi',
+                        subtitle: 'Hitung kebutuhan gizi harian anak',
+                        onTap: () =>
+                            _push(context, const NutritionCalculatorScreen()),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 96),
                 ],
               ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  _buildMenuCard(
-                    'consultation.png',
-                    'Konsultasi',
-                    () => _push(context, const ConsultationScreen()),
-                  ),
-                  const SizedBox(width: 12),
-                  _buildMenuCard(
-                    'activity.png',
-                    'Komunitas',
-                    () => _push(context, const CommunityScreen()),
-                  ),
-                  const SizedBox(width: 12),
-                  _buildMenuCard(
-                    'meal-plan.png',
-                    'Rencana Menu',
-                    () => _push(context, const MealPlanScreen()),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  _buildMenuCard(
-                    'calculator.png',
-                    'Kalkulator Nutrisi',
-                    () => _push(context, const NutritionCalculatorScreen()),
-                  ),
-                  const SizedBox(width: 12),
-                  _buildMenuCard(
-                    'hello.png',
-                    'Pustaka Edukasi',
-                    () => _push(context, const PustakaEdukasiScreen()),
-                  ),
-                  const SizedBox(width: 12),
-                  _buildMenuCard(
-                    'activity.png',
-                    'PlayLab Game',
-                    () => _openPlayLabGame(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildMenuCard(String asset, String label, VoidCallback onTap) =>
-      Expanded(
-        child: Material(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          elevation: 1,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              constraints: const BoxConstraints(minHeight: 92),
-              padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFFEEEEEE)),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    height: 42,
-                    child: Image.asset(
-                      'assets/dashboard/$asset',
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    label,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    style: AppTypography.titleCard.copyWith(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textDark,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+  String _formatAge(String dateOfBirth) {
+    final dob = DateTime.tryParse(dateOfBirth);
+    if (dob == null) return '';
+    final now = DateTime.now();
+    var months = (now.year - dob.year) * 12 + now.month - dob.month;
+    if (now.day < dob.day) months -= 1;
+    if (months < 0) months = 0;
+    if (months < 12) return '$months bulan';
+    final years = months ~/ 12;
+    final rest = months % 12;
+    return rest == 0 ? '$years tahun' : '$years tahun $rest bulan';
+  }
+
+  ({RiskTone tone, String title, String subtitle}) _resolveRisk(
+    String? category,
+  ) {
+    switch (category?.toUpperCase()) {
+      case 'TINGGI':
+        return (
+          tone: RiskTone.high,
+          title: 'Risiko Tinggi',
+          subtitle:
+              'Disarankan berkonsultasi dengan tenaga kesehatan dan batasi konsumsi gula harian.',
+        );
+      case 'SEDANG':
+        return (
+          tone: RiskTone.medium,
+          title: 'Risiko Sedang',
+          subtitle:
+              'Yuk perbaiki pola makan dan aktivitas si Kecil. Lakukan skrining ulang bulan depan.',
+        );
+      case 'RENDAH':
+        return (
+          tone: RiskTone.low,
+          title: 'Risiko Rendah',
+          subtitle: 'Pertahankan pola hidup sehat si Kecil setiap hari.',
+        );
+      default:
+        return (
+          tone: RiskTone.unknown,
+          title: 'Skrining belum tersedia',
+          subtitle:
+              'Ketuk di sini untuk melakukan skrining risiko diabetes anak.',
+        );
+    }
+  }
+
+  Widget _buildMenuGrid(BuildContext context, WidgetRef ref) {
+    final textScale = MediaQuery.textScalerOf(context).scale(12);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final useTwoColumns = constraints.maxWidth < 320 || textScale > 16;
+        final columns = useTwoColumns ? 2 : 3;
+        final tileWidth =
+            (constraints.maxWidth - AppSpacing.sm * (columns - 1)) / columns;
+
+        final tiles = <Widget>[
+          HomeMenuTile(
+            icon: Icons.assignment_outlined,
+            label: 'Skrining',
+            tint: AppColors.primarySoft,
+            iconColor: AppColors.primary,
+            onTap: () => _openScreeningFlow(context, ref),
           ),
-        ),
-      );
+          HomeMenuTile(
+            icon: Icons.restaurant_outlined,
+            label: 'Menu',
+            tint: AppColors.chipPeachBg,
+            iconColor: AppColors.chipPeachFg,
+            onTap: () => _push(context, const MenuCatalogScreen()),
+          ),
+          HomeMenuTile(
+            icon: Icons.notifications_none_rounded,
+            label: 'Reminder',
+            tint: AppColors.chipTealBg,
+            iconColor: AppColors.chipTealFg,
+            onTap: () => _push(context, const ReminderScreen()),
+          ),
+          HomeMenuTile(
+            icon: Icons.chat_bubble_outline_rounded,
+            label: 'Konsultasi',
+            tint: AppColors.chipRoseBg,
+            iconColor: AppColors.chipRoseFg,
+            onTap: () => _push(context, const ConsultationScreen()),
+          ),
+          HomeMenuTile(
+            icon: Icons.groups_outlined,
+            label: 'Komunitas',
+            tint: AppColors.primarySoft,
+            iconColor: AppColors.primary,
+            onTap: () => _push(context, const CommunityScreen()),
+          ),
+        ];
+
+        return Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          children: [
+            for (final tile in tiles) SizedBox(width: tileWidth, child: tile),
+          ],
+        );
+      },
+    );
+  }
+
+  void _openChildSwitcher(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => const ChildManageSheet(),
+    );
+  }
 
   void _openScreeningFlow(BuildContext context, WidgetRef ref) {
     final profile = ref.read(profileProvider);
     final activeChild = profile.activeChild;
 
-    // Before screening, ensure child profile is fulfilled
     if (activeChild == null || !activeChild.isProfileComplete) {
       Navigator.of(context).push(
         MaterialPageRoute(
@@ -370,9 +288,7 @@ class HomeScreen extends ConsumerWidget {
             initialChild: activeChild,
             onCompleted: () {
               Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (_) => const ScreeningStep1Screen(),
-                ),
+                MaterialPageRoute(builder: (_) => const ScreeningStep1Screen()),
               );
             },
           ),
@@ -385,17 +301,142 @@ class HomeScreen extends ConsumerWidget {
 
   void _push(BuildContext context, Widget page) =>
       Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
+}
 
-  Future<void> _openPlayLabGame(BuildContext context) async {
-    final result = await Navigator.of(context).push<PlayLabScoreResult?>(
-      MaterialPageRoute(builder: (_) => const PlayLabGameScreen()),
+class _HeaderAvatar extends StatelessWidget {
+  final String? avatarUrl;
+  final VoidCallback onTap;
+
+  const _HeaderAvatar({required this.avatarUrl, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Buka profil ibu',
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.transparent,
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: Container(
+            width: AppSizes.avatarHeader,
+            height: AppSizes.avatarHeader,
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.onPrimary.withValues(alpha: 0.7),
+                width: 1.5,
+              ),
+            ),
+            child: ClipOval(
+              child: AvatarImage(
+                avatarUrl: avatarUrl,
+                size: 40,
+                fallbackIcon: Icons.person,
+                backgroundColor: AppColors.primarySoft,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
-    if (!context.mounted || result == null) return;
+  }
+}
 
-    await PlayLabScoreDialog.show(
-      context,
-      result: result,
-      onPlayAgain: () => _openPlayLabGame(context),
+class _ChildSummaryCard extends StatelessWidget {
+  final String name;
+  final String age;
+  final String gender;
+  final String? weight;
+  final String? height;
+  final VoidCallback onTap;
+
+  const _ChildSummaryCard({
+    required this.name,
+    required this.age,
+    required this.gender,
+    required this.onTap,
+    this.weight,
+    this.height,
+  });
+
+  String get _meta {
+    final parts = [
+      if (age.isNotEmpty) age,
+      ?weight,
+      ?height,
+      if (age.isEmpty && weight == null && height == null) gender,
+    ];
+    return parts.join(' · ');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Profil anak $name. $_meta. Ketuk untuk ganti anak.',
+      excludeSemantics: true,
+      child: Material(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              children: [
+                const IconChip(
+                  icon: Icons.sentiment_satisfied_alt_rounded,
+                  size: 44,
+                  background: AppColors.primarySoft,
+                  foreground: AppColors.primary,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.title.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (_meta.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          _meta,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.caption,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 18,
+                  color: AppColors.chevron,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

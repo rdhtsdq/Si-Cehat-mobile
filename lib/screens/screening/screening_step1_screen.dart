@@ -4,6 +4,8 @@ import '../../core/api/api_client.dart';
 import '../../core/api/api_constants.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
+import '../../core/theme/app_tokens.dart';
+import '../../core/widgets/calm_widgets.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../providers/app_providers.dart';
 import '../profile/child_profile_setup_screen.dart';
@@ -15,7 +17,8 @@ class ScreeningStep1Screen extends ConsumerStatefulWidget {
   const ScreeningStep1Screen({super.key, this.isPostRegistration = false});
 
   @override
-  ConsumerState<ScreeningStep1Screen> createState() => _ScreeningStep1ScreenState();
+  ConsumerState<ScreeningStep1Screen> createState() =>
+      _ScreeningStep1ScreenState();
 }
 
 class _ScreeningStep1ScreenState extends ConsumerState<ScreeningStep1Screen> {
@@ -37,6 +40,13 @@ class _ScreeningStep1ScreenState extends ConsumerState<ScreeningStep1Screen> {
     }
   }
 
+  String _formatValue(double value, String unit) {
+    final text = unit == 'Tahun'
+        ? value.toStringAsFixed(0)
+        : value.toStringAsFixed(1).replaceAll('.', ',');
+    return '$text $unit';
+  }
+
   void _showNumericPicker({
     required String title,
     required double initialValue,
@@ -46,37 +56,66 @@ class _ScreeningStep1ScreenState extends ConsumerState<ScreeningStep1Screen> {
     required ValueChanged<double> onSelected,
   }) {
     double tempVal = initialValue.clamp(min, max);
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
+      isScrollControlled: true,
+      showDragHandle: true,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) => Padding(
-          padding: const EdgeInsets.all(24.0),
+          padding: EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.xs,
+            AppSpacing.lg,
+            AppSpacing.lg + bottomInset,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(title, style: AppTypography.titleCard),
-              const SizedBox(height: 16),
               Text(
-                '${tempVal.toStringAsFixed(unit == 'Tahun' ? 0 : 1)} $unit',
-                style: AppTypography.headingScreen.copyWith(
-                  color: AppColors.primaryGreenDark,
-                  fontSize: 30,
+                title,
+                textAlign: TextAlign.center,
+                style: AppTypography.title.copyWith(
+                  color: AppColors.textMuted,
                 ),
               ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                _formatValue(tempVal, unit),
+                style: AppTypography.display.copyWith(
+                  fontSize: 28,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
               Slider(
                 value: tempVal,
                 min: min,
                 max: max,
-                divisions: (max - min).toInt() * (unit == 'Tahun' ? 1 : 2),
-                activeColor: AppColors.primaryGreen,
-                onChanged: (val) {
-                  setModalState(() => tempVal = val);
-                },
+                divisions:
+                    (max - min).toInt() * (unit == 'Tahun' ? 1 : 2),
+                onChanged: (val) => setModalState(() => tempVal = val),
               ),
-              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.xxs,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _formatValue(min, unit),
+                      style: AppTypography.caption,
+                    ),
+                    Text(
+                      _formatValue(max, unit),
+                      style: AppTypography.caption,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.md),
               PrimaryButton(
                 text: 'Pilih Nilai Ini',
                 onPressed: () {
@@ -104,7 +143,6 @@ class _ScreeningStep1ScreenState extends ConsumerState<ScreeningStep1Screen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Harap lengkapi profil anak terlebih dahulu.'),
-          backgroundColor: AppColors.accentOrange,
         ),
       );
       Navigator.of(context).push(
@@ -194,347 +232,283 @@ class _ScreeningStep1ScreenState extends ConsumerState<ScreeningStep1Screen> {
     final activeChild = ref.watch(profileProvider).activeChild;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        centerTitle: false,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.chevron_left,
-            size: 28,
-            color: AppColors.textDark,
+      backgroundColor: AppColors.bg,
+      body: Column(
+        children: [
+          AppHeader(
+            compact: true,
+            title: 'Skrining Risiko Diabetes',
+            onBack: () => Navigator.of(context).pop(),
           ),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(
-          'Skrining Risiko Diabetes',
-          style: AppTypography.headingScreen.copyWith(fontSize: 20),
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (widget.isPostRegistration) ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.veryLightGreen,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: AppColors.primaryGreen.withValues(alpha: 0.4),
-                    ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.pageGutter,
+                AppSpacing.md,
+                AppSpacing.pageGutter,
+                AppSpacing.xl,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const StepProgress(current: 1, total: 3),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    activeChild != null
+                        ? 'Data Awal Anak (${activeChild.name})'
+                        : 'Data Awal Anak',
+                    style: AppTypography.h2,
                   ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Icon(
-                        Icons.celebration_outlined,
-                        color: AppColors.primaryGreenDark,
-                        size: 22,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Akun berhasil dibuat! Mari lakukan skrining awal untuk ${activeChild?.name ?? "anak Anda"} agar rekomendasi gizi lebih akurat.',
-                          style: AppTypography.bodyRegular.copyWith(
-                            fontSize: 13,
-                            color: AppColors.primaryGreenDark,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: AppSpacing.xxs),
+                  Text(
+                    'Masukkan usia, berat badan, tinggi badan, dan kebiasaan harian anak untuk analisis risiko.',
+                    style: AppTypography.caption,
                   ),
-                ),
-                const SizedBox(height: 18),
-              ],
-
-              if (activeChild == null || !activeChild.isProfileComplete) ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF7ED),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: const Color(0xFFFDBA74),
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+                  const SizedBox(height: AppSpacing.md),
+                  if (widget.isPostRegistration) ...[
+                    MintSection(
+                      padding: const EdgeInsets.all(AppSpacing.sm),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(
-                            Icons.info_outline,
-                            color: Color(0xFFC2410C),
-                            size: 20,
+                          const IconChip(
+                            icon: Icons.celebration_outlined,
+                            size: 32,
+                            circle: true,
+                            background: AppColors.surface,
+                            foreground: AppColors.primary,
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: AppSpacing.xs),
                           Expanded(
                             child: Text(
-                              'Profil Anak Belum Lengkap',
-                              style: AppTypography.titleCard.copyWith(
-                                fontSize: 14,
-                                color: const Color(0xFF9A3412),
+                              'Akun berhasil dibuat! Mari lakukan skrining awal untuk ${activeChild?.name ?? "anak Anda"} agar rekomendasi gizi lebih akurat.',
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Lengkapi tanggal lahir dan jenis kelamin anak agar skrining dan kurva pertumbuhan akurat.',
-                        style: AppTypography.bodySecondary.copyWith(
-                          fontSize: 12,
-                          color: const Color(0xFF7C2D12),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 38,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => ChildProfileSetupScreen(
-                                  isPostRegistration: widget.isPostRegistration,
-                                  initialChild: activeChild,
-                                  onCompleted: () {
-                                    setState(() {
-                                      final updated = ref.read(profileProvider).activeChild;
-                                      if (updated != null && updated.dateOfBirth.isNotEmpty) {
-                                        _selectedAge = updated.ageInYears.clamp(1, 18);
-                                      }
-                                    });
-                                  },
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                  ],
+                  if (activeChild == null ||
+                      !activeChild.isProfileComplete) ...[
+                    AppCard(
+                      color: AppColors.warningBg,
+                      borderColor: AppColors.warning,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const IconChip(
+                                icon: Icons.info_outline_rounded,
+                                size: 32,
+                                circle: true,
+                                background: AppColors.surface,
+                                foreground: AppColors.chipPeachFg,
+                              ),
+                              const SizedBox(width: AppSpacing.xs),
+                              Expanded(
+                                child: Text(
+                                  'Profil Anak Belum Lengkap',
+                                  style: AppTypography.title.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ),
-                            );
-                          },
-                          icon: const Icon(Icons.edit_note, size: 18),
-                          label: const Text('Lengkapi Profil Sekarang'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFEA580C),
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            'Lengkapi tanggal lahir dan jenis kelamin anak agar skrining dan kurva pertumbuhan akurat.',
+                            style: AppTypography.caption,
+                          ),
+                          const SizedBox(height: AppSpacing.sm),
+                          AppPillButton(
+                            label: 'Lengkapi Profil Sekarang',
+                            icon: Icons.edit_note_rounded,
+                            height: 40,
+                            onPressed: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => ChildProfileSetupScreen(
+                                    isPostRegistration:
+                                        widget.isPostRegistration,
+                                    initialChild: activeChild,
+                                    onCompleted: () {
+                                      setState(() {
+                                        final updated = ref
+                                            .read(profileProvider)
+                                            .activeChild;
+                                        if (updated != null &&
+                                            updated.dateOfBirth.isNotEmpty) {
+                                          _selectedAge = updated.ageInYears
+                                              .clamp(1, 18);
+                                        }
+                                      });
+                                    },
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                  ],
+                  if (_errorMessage != null) ...[
+                    AppCard(
+                      color: AppColors.dangerBg,
+                      borderColor: AppColors.riskHighBorder,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.error_outline_rounded,
+                            size: 18,
+                            color: AppColors.dangerText,
+                          ),
+                          const SizedBox(width: AppSpacing.xs),
+                          Expanded(
+                            child: Text(
+                              _errorMessage!,
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.dangerText,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                  ],
+                  _buildSelectorRow(
+                    label: 'Usia Anak (Tahun)',
+                    value: '$_selectedAge Tahun',
+                    onTap: () {
+                      _showNumericPicker(
+                        title: 'Pilih Usia Anak',
+                        initialValue: _selectedAge.toDouble(),
+                        min: 1,
+                        max: 18,
+                        unit: 'Tahun',
+                        onSelected: (val) =>
+                            setState(() => _selectedAge = val.toInt()),
+                      );
+                    },
                   ),
-                ),
-                const SizedBox(height: 18),
-              ],
-
-              Text(
-                'Langkah 1 dari 3',
-                style: AppTypography.badgeText.copyWith(
-                  color: AppColors.primaryGreenDark,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                activeChild != null
-                    ? 'Data Awal Anak (${activeChild.name})'
-                    : 'Data Awal Anak',
-                style: AppTypography.titleCard.copyWith(fontSize: 16),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Masukkan usia, berat badan, tinggi badan, dan kebiasaan harian anak untuk analisis risiko.',
-                style: AppTypography.bodySecondary,
-              ),
-              const SizedBox(height: 20),
-
-              if (_errorMessage != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red[50],
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.red[200]!),
+                  const SizedBox(height: AppSpacing.sm),
+                  _buildSelectorRow(
+                    label: 'Berat Badan (Kg)',
+                    value: _formatValue(_selectedWeight, 'Kg'),
+                    onTap: () {
+                      _showNumericPicker(
+                        title: 'Pilih Berat Badan Anak',
+                        initialValue: _selectedWeight,
+                        min: 8,
+                        max: 90,
+                        unit: 'Kg',
+                        onSelected: (val) =>
+                            setState(() => _selectedWeight = val),
+                      );
+                    },
                   ),
-                  child: Text(
-                    _errorMessage!,
-                    style: TextStyle(color: Colors.red[800], fontSize: 13),
+                  const SizedBox(height: AppSpacing.sm),
+                  _buildSelectorRow(
+                    label: 'Tinggi Badan (Cm)',
+                    value: _formatValue(_selectedHeight, 'Cm'),
+                    onTap: () {
+                      _showNumericPicker(
+                        title: 'Pilih Tinggi Badan Anak',
+                        initialValue: _selectedHeight,
+                        min: 60,
+                        max: 185,
+                        unit: 'Cm',
+                        onSelected: (val) =>
+                            setState(() => _selectedHeight = val),
+                      );
+                    },
                   ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              _buildSelectorRow(
-                label: 'Usia Anak (Tahun)',
-                value: '$_selectedAge Tahun',
-                onTap: () {
-                  _showNumericPicker(
-                    title: 'Pilih Usia Anak',
-                    initialValue: _selectedAge.toDouble(),
-                    min: 1,
-                    max: 18,
-                    unit: 'Tahun',
-                    onSelected: (val) =>
-                        setState(() => _selectedAge = val.toInt()),
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-
-              _buildSelectorRow(
-                label: 'Berat Badan (Kg)',
-                value: '${_selectedWeight.toStringAsFixed(1)} Kg',
-                onTap: () {
-                  _showNumericPicker(
-                    title: 'Pilih Berat Badan Anak',
-                    initialValue: _selectedWeight,
-                    min: 8,
-                    max: 90,
-                    unit: 'Kg',
-                    onSelected: (val) => setState(() => _selectedWeight = val),
-                  );
-                },
-              ),
-              const SizedBox(height: 16),
-
-              _buildSelectorRow(
-                label: 'Tinggi Badan (Cm)',
-                value: '${_selectedHeight.toStringAsFixed(0)} Cm',
-                onTap: () {
-                  _showNumericPicker(
-                    title: 'Pilih Tinggi Badan Anak',
-                    initialValue: _selectedHeight,
-                    min: 60,
-                    max: 185,
-                    unit: 'Cm',
-                    onSelected: (val) => setState(() => _selectedHeight = val),
-                  );
-                },
-              ),
-              const SizedBox(height: 20),
-
-              Text(
-                'Riwayat Diabetes Keluarga',
-                style: AppTypography.labelInput.copyWith(fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: ChoiceChip(
-                      label: const SizedBox(
-                        width: double.infinity,
-                        child: Text('Tidak Ada', textAlign: TextAlign.center),
-                      ),
-                      selected: !_familyHistory,
-                      selectedColor: AppColors.veryLightGreen,
-                      onSelected: (_) => setState(() => _familyHistory = false),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    'Riwayat Diabetes Keluarga',
+                    style: AppTypography.formLabel.copyWith(
+                      fontSize: 13,
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ChoiceChip(
-                      label: const SizedBox(
-                        width: double.infinity,
-                        child: Text('Ada Riwayat', textAlign: TextAlign.center),
-                      ),
-                      selected: _familyHistory,
-                      selectedColor: AppColors.veryLightGreen,
-                      onSelected: (_) => setState(() => _familyHistory = true),
+                  const SizedBox(height: AppSpacing.xs),
+                  ChoiceChipGroup(
+                    options: const ['Tidak Ada', 'Ada Riwayat'],
+                    selected: _familyHistory ? 'Ada Riwayat' : 'Tidak Ada',
+                    onSelected: (value) => setState(
+                      () => _familyHistory = value == 'Ada Riwayat',
                     ),
                   ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    'Frekuensi Minuman Manis / Kemasan',
+                    style: AppTypography.formLabel.copyWith(
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  ChoiceChipGroup(
+                    options: const ['Jarang', 'Kadang', 'Sering'],
+                    selected: switch (_sweetDrinkFrequency) {
+                      'sering' => 'Sering',
+                      'kadang' => 'Kadang',
+                      _ => 'Jarang',
+                    },
+                    onSelected: (value) => setState(
+                      () => _sweetDrinkFrequency = switch (value) {
+                        'Sering' => 'sering',
+                        'Kadang' => 'kadang',
+                        _ => 'jarang',
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    'Aktivitas Fisik / Bermain Aktif Harian',
+                    style: AppTypography.formLabel.copyWith(
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  ChoiceChipGroup(
+                    options: const ['< 45 Menit', '≥ 60 Menit'],
+                    selected: _physicalActivityHours < 0.75
+                        ? '< 45 Menit'
+                        : '≥ 60 Menit',
+                    onSelected: (value) => setState(
+                      () => _physicalActivityHours =
+                          value == '< 45 Menit' ? 0.5 : 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 96),
                 ],
               ),
-              const SizedBox(height: 16),
-
-              Text(
-                'Frekuensi Minuman Manis / Kemasan',
-                style: AppTypography.labelInput.copyWith(fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  for (final entry in const [
-                    ('jarang', 'Jarang'),
-                    ('kadang', 'Kadang'),
-                    ('sering', 'Sering'),
-                  ])
-                    Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(
-                          right: entry.$1 == 'sering' ? 0 : 8,
-                        ),
-                        child: ChoiceChip(
-                          label: SizedBox(
-                            width: double.infinity,
-                            child: Text(entry.$2, textAlign: TextAlign.center),
-                          ),
-                          selected: _sweetDrinkFrequency == entry.$1,
-                          selectedColor: AppColors.veryLightGreen,
-                          onSelected: (_) =>
-                              setState(() => _sweetDrinkFrequency = entry.$1),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              Text(
-                'Aktivitas Fisik / Bermain Aktif Harian',
-                style: AppTypography.labelInput.copyWith(fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: ChoiceChip(
-                      label: const SizedBox(
-                        width: double.infinity,
-                        child: Text('< 45 Menit', textAlign: TextAlign.center),
-                      ),
-                      selected: _physicalActivityHours < 0.75,
-                      selectedColor: AppColors.veryLightGreen,
-                      onSelected: (_) =>
-                          setState(() => _physicalActivityHours = 0.5),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ChoiceChip(
-                      label: const SizedBox(
-                        width: double.infinity,
-                        child: Text('≥ 60 Menit', textAlign: TextAlign.center),
-                      ),
-                      selected: _physicalActivityHours >= 0.75,
-                      selectedColor: AppColors.veryLightGreen,
-                      onSelected: (_) =>
-                          setState(() => _physicalActivityHours = 1.0),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 28),
-
-              PrimaryButton(
-                text: 'Analisis Risiko Diabetes',
-                isLoading: _isLoading,
-                onPressed: _handleCalculate,
-              ),
-              const SizedBox(height: 16),
-            ],
+            ),
           ),
+        ],
+      ),
+      bottomNavigationBar: Container(
+        color: AppColors.bg,
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.pageGutter,
+          AppSpacing.xs,
+          AppSpacing.pageGutter,
+          AppSpacing.sm + MediaQuery.paddingOf(context).bottom,
+        ),
+        child: PrimaryButton(
+          text: 'Analisis Risiko Diabetes',
+          isLoading: _isLoading,
+          onPressed: _handleCalculate,
         ),
       ),
     );
@@ -548,42 +522,51 @@ class _ScreeningStep1ScreenState extends ConsumerState<ScreeningStep1Screen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AppTypography.labelInput.copyWith(fontSize: 14)),
+        Text(
+          label,
+          style: AppTypography.formLabel.copyWith(fontSize: 13),
+        ),
         const SizedBox(height: 6),
-        InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            width: double.infinity,
-            constraints: const BoxConstraints(minHeight: 52),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFE0E0E0)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  value,
-                  style: AppTypography.bodyRegular.copyWith(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+        Semantics(
+          button: true,
+          label: '$label, $value',
+          excludeSemantics: true,
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: AppRadius.input,
+            child: Container(
+              width: double.infinity,
+              constraints: const BoxConstraints(
+                minHeight: AppSizes.fieldHeight,
+              ),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: AppRadius.input,
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.textInput.copyWith(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
-                ),
-                const Icon(
-                  Icons.keyboard_arrow_down,
-                  color: AppColors.textSecondary,
-                ),
-              ],
+                  const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 18,
+                    color: AppColors.chevron,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

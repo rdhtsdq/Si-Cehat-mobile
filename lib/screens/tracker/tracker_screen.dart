@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/widgets/primary_button.dart';
+import '../../core/widgets/section_header.dart';
 import '../../data/models/measurement_model.dart';
 import '../../providers/app_providers.dart';
 import 'add_measurement_sheet.dart';
@@ -49,400 +51,366 @@ class _TrackerScreenState extends ConsumerState<TrackerScreen> {
     final measurements = trackerProv.measurements;
     final latest = trackerProv.latestMeasurement;
 
-    final String lastWeight = latest != null ? latest.formattedWeight : '- kg';
-    final String lastHeight = latest != null ? latest.formattedHeight : '- cm';
+    final lastWeight = latest != null ? latest.formattedWeight : '- kg';
+    final lastHeight = latest != null ? latest.formattedHeight : '- cm';
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        centerTitle: false,
-        automaticallyImplyLeading: false,
-        leading: widget.showBackButton
-            ? IconButton(
-                icon: const Icon(
-                  Icons.chevron_left,
-                  size: 28,
-                  color: AppColors.textDark,
-                ),
-                onPressed: () => Navigator.of(context).maybePop(),
+      backgroundColor: AppColors.bg,
+      body: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (widget.showBackButton)
+              AppHeader(
+                compact: true,
+                title: 'Tracker',
+                onBack: () => Navigator.of(context).maybePop(),
               )
-            : null,
-        title: Text(
-          'Tracker',
-          style: AppTypography.headingScreen.copyWith(fontSize: 24),
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+            else
+              const AppHeader(
+                title: 'Tracker',
+                subtitle: 'Pantau tumbuh kembang anak',
+              ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.pageGutter,
+                AppSpacing.md,
+                AppSpacing.pageGutter,
+                96,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: _buildTabButton(
-                      title: 'Tumbuh Kembang',
-                      isActive: _selectedTab == 0,
-                      onTap: () => setState(() => _selectedTab = 0),
-                    ),
+                  SegmentedPills(
+                    labels: const ['Tumbuh Kembang', 'Aktivitas'],
+                    selectedIndex: _selectedTab,
+                    onSelected: (index) =>
+                        setState(() => _selectedTab = index),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildTabButton(
-                      title: 'Aktivitas',
-                      isActive: _selectedTab == 1,
-                      onTap: () => setState(() => _selectedTab = 1),
-                    ),
-                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  if (_selectedTab == 0)
+                    _buildGrowthSection(measurements, lastWeight, lastHeight)
+                  else
+                    const HabitLogView(),
                 ],
               ),
-              const SizedBox(height: 20),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-              if (_selectedTab == 0) ...[
-                Text(
-                  'Grafik BB (Kg)',
-                  style: AppTypography.titleCard.copyWith(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                Container(
+  Widget _buildGrowthSection(
+    List<MeasurementModel> measurements,
+    String lastWeight,
+    String lastHeight,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionHeader(
+          title: 'Grafik BB (Kg)',
+          subtitle: measurements.isEmpty
+              ? 'Belum ada pengukuran'
+              : '${measurements.length} pengukuran tercatat',
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        MintSection(
+          child: AppCard(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.xs,
+              AppSpacing.sm,
+              AppSpacing.xs,
+              AppSpacing.xs,
+            ),
+            child: Column(
+              children: [
+                SizedBox(
+                  height: 180,
                   width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFEEEEEE)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 6,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
+                  child: measurements.isEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const IconChip(
+                                icon: Icons.insights_rounded,
+                                size: 40,
+                                circle: true,
+                                background: AppColors.primarySoft,
+                                foreground: AppColors.primary,
+                              ),
+                              const SizedBox(height: AppSpacing.xs),
+                              Text(
+                                'Belum ada data berat.\n'
+                                'Tambah pengukuran untuk melihat grafik.',
+                                textAlign: TextAlign.center,
+                                style: AppTypography.caption.copyWith(
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : CustomPaint(
+                          painter: _GrowthChartPainter(
+                            measurements: measurements,
+                          ),
+                        ),
+                ),
+                if (measurements.isNotEmpty) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xs,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: measurements
+                          .skip(
+                            measurements.length > 5
+                                ? measurements.length - 5
+                                : 0,
+                          )
+                          .map(
+                            (m) => Text(
+                              m.date.length >= 10
+                                  ? m.date.substring(5, 10)
+                                  : m.date,
+                              style: AppTypography.micro.copyWith(
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
                   ),
-                  child: Column(
-                    children: [
-                      SizedBox(
-                        height: 180,
-                        width: double.infinity,
-                        child: measurements.isEmpty
-                            ? Center(
-                                child: Text(
-                                  'Belum ada riwayat pengukuran.\nTambahkan pengukuran atau lakukan skrining.',
-                                  textAlign: TextAlign.center,
-                                  style: AppTypography.bodySecondary.copyWith(
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              )
-                            : CustomPaint(
-                                painter: _GrowthChartPainter(
-                                  measurements: measurements,
-                                ),
-                              ),
-                      ),
-                      if (measurements.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: measurements
-                              .skip(
-                                measurements.length > 5
-                                    ? measurements.length - 5
-                                    : 0,
-                              )
-                              .map(
-                                (m) => Text(
-                                  m.date.length >= 10
-                                      ? m.date.substring(5, 10)
-                                      : m.date,
-                                  style: const TextStyle(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 18),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 14,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.fieldBackground,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Berat Badan Terakhir',
-                              style: AppTypography.bodySecondary.copyWith(
-                                fontSize: 11,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              lastWeight,
-                              style: AppTypography.titleCard.copyWith(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textDark,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 14,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.fieldBackground,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Tinggi Badan Terakhir',
-                              style: AppTypography.bodySecondary.copyWith(
-                                fontSize: 11,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              lastHeight,
-                              style: AppTypography.titleCard.copyWith(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.textDark,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 24),
-
-                PrimaryButton(
-                  text: '+ Tambah Pengukuran',
-                  onPressed: () {
-                    showModalBottomSheet(
-                      context: context,
-                      isScrollControlled: true,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius: BorderRadius.vertical(
-                          top: Radius.circular(16),
-                        ),
-                      ),
-                      builder: (_) => const AddMeasurementSheet(),
-                    );
-                  },
-                ),
-                const SizedBox(height: 24),
-
-                // Riwayat Pengukuran
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Riwayat Pengukuran',
-                      style: AppTypography.titleCard.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      '${measurements.length} Catatan',
-                      style: AppTypography.bodySecondary.copyWith(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                if (measurements.isEmpty)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFFEEEEEE)),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Belum ada data pengukuran.',
-                        style: AppTypography.bodySecondary,
-                      ),
-                    ),
-                  )
-                else
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: measurements.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 10),
-                      itemBuilder: (context, index) {
-                        final m = measurements[measurements.length - 1 - index];
-                        return _buildMeasurementHistoryTile(context, m);
-                      },
-                    ),
-                ] else ...[
-                  // Tab Aktivitas (E07)
-                  const HabitLogView(),
                 ],
-                const SizedBox(height: 20),
               ],
             ),
           ),
         ),
-      );
-    }
-
-    Widget _buildMeasurementHistoryTile(BuildContext context, MeasurementModel m) {
-      return Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFFEEEEEE)),
-        ),
-        child: Row(
+        const SizedBox(height: AppSpacing.md),
+        Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.veryLightGreen,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.calendar_today, size: 20, color: AppColors.primaryGreenDark),
-            ),
-            const SizedBox(width: 12),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
+              child: _LatestStat(
+                icon: Icons.monitor_weight_outlined,
+                label: 'Berat Badan Terakhir',
+                value: lastWeight,
+                iconBackground: AppColors.primarySoft,
+                iconColor: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: _LatestStat(
+                icon: Icons.height_rounded,
+                label: 'Tinggi Badan Terakhir',
+                value: lastHeight,
+                iconBackground: AppColors.chipPeachBg,
+                iconColor: AppColors.chipPeachFg,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.md),
+        PrimaryButton(
+          text: 'Tambah Pengukuran',
+          icon: const Icon(Icons.add_rounded),
+          onPressed: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              showDragHandle: true,
+              builder: (_) => const AddMeasurementSheet(),
+            );
+          },
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        SectionHeader(
+          title: 'Riwayat Pengukuran',
+          subtitle: '${measurements.length} catatan',
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        if (measurements.isEmpty)
+          AppCard(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+            child: Center(
+              child: Text(
+                'Belum ada data pengukuran.',
+                style: AppTypography.caption,
+              ),
+            ),
+          )
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: measurements.length,
+            separatorBuilder: (_, _) =>
+                const SizedBox(height: AppSpacing.xs),
+            itemBuilder: (context, index) {
+              final m = measurements[measurements.length - 1 - index];
+              return _buildMeasurementHistoryTile(context, m);
+            },
+          ),
+      ],
+    );
+  }
+
+  Widget _buildMeasurementHistoryTile(
+    BuildContext context,
+    MeasurementModel m,
+  ) {
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      child: Row(
+        children: [
+          const IconChip(
+            icon: Icons.calendar_today_rounded,
+            size: 40,
+            background: AppColors.primarySoft,
+            foreground: AppColors.primary,
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
                         m.date,
-                        style: AppTypography.titleCard.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.title.copyWith(
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                      if (m.source.isNotEmpty) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFE8F5E9),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            m.source,
-                            style: const TextStyle(fontSize: 10, color: Color(0xFF2E7D32), fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ],
+                    ),
+                    if (m.source.isNotEmpty) ...[
+                      const SizedBox(width: 6),
+                      StatusBadge(
+                        label: m.source,
+                        background: AppColors.primarySoft,
+                        foreground: AppColors.primary,
+                        borderColor: null,
+                      ),
                     ],
+                  ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
-                  'BB: ${m.formattedWeight}  •  TB: ${m.formattedHeight}',
-                  style: AppTypography.bodySecondary.copyWith(
-                    fontSize: 13,
-                    color: AppColors.textDark,
-                  ),
+                  'BB: ${m.formattedWeight} · TB: ${m.formattedHeight}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.caption,
                 ),
               ],
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.delete_outline, size: 20, color: Colors.redAccent),
-            tooltip: 'Hapus Pengukuran',
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (dialogCtx) => AlertDialog(
-                  title: const Text('Hapus Pengukuran?'),
-                  content: Text('Hapus catatan pengukuran tanggal ${m.date}? Tindakan ini tidak dapat dibatalkan.'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(dialogCtx).pop(),
-                      child: const Text('Batal'),
-                    ),
-                    TextButton(
-                      onPressed: () async {
-                        Navigator.of(dialogCtx).pop();
-                        if (m.id != null) {
-                          await ref.read(trackerProvider).deleteMeasurement(m.id);
-                        }
-                      },
-                      style: TextButton.styleFrom(foregroundColor: Colors.red),
-                      child: const Text('Hapus'),
-                    ),
-                  ],
-                ),
-              );
-            },
+            icon: const Icon(
+              Icons.delete_outline_rounded,
+              size: 18,
+              color: AppColors.dangerText,
+            ),
+            style: IconButton.styleFrom(
+              backgroundColor: AppColors.dangerBg,
+              minimumSize: const Size(36, 36),
+              fixedSize: const Size(36, 36),
+              padding: EdgeInsets.zero,
+            ),
+            tooltip: 'Hapus pengukuran',
+            onPressed: () => _confirmDeleteMeasurement(context, m),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTabButton({
-    required String title,
-    required bool isActive,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: isActive ? AppColors.primaryGreen : AppColors.fieldBackground,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          height: 44,
-          alignment: Alignment.center,
-          child: Text(
-            title,
-            style: AppTypography.buttonText.copyWith(
-              color: isActive ? Colors.white : AppColors.textDark,
-              fontSize: 14,
-              fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-            ),
-          ),
+  void _confirmDeleteMeasurement(BuildContext context, MeasurementModel m) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('Hapus Pengukuran?'),
+        content: Text(
+          'Hapus catatan pengukuran tanggal ${m.date}? '
+          'Tindakan ini tidak dapat dibatalkan.',
+          style: AppTypography.body,
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.of(dialogCtx).pop();
+              if (m.id != null) {
+                await ref.read(trackerProvider).deleteMeasurement(m.id);
+              }
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.dangerText,
+              minimumSize: const Size(0, 40),
+            ),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LatestStat extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color iconBackground;
+  final Color iconColor;
+
+  const _LatestStat({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.iconBackground,
+    required this.iconColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          IconChip(
+            icon: icon,
+            size: 32,
+            background: iconBackground,
+            foreground: iconColor,
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            label,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.caption,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.hero.copyWith(fontSize: 20),
+          ),
+        ],
       ),
     );
   }
@@ -456,29 +424,30 @@ class _GrowthChartPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final gridPaint = Paint()
-      ..color = const Color(0xFFEEEEEE)
+      ..color = AppColors.divider
       ..strokeWidth = 1.0;
 
     for (int i = 1; i <= 4; i++) {
       final y = size.height * (i / 4.0);
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+      _drawDashedLine(canvas, Offset(0, y), Offset(size.width, y), gridPaint);
     }
 
     if (measurements.isEmpty) return;
 
-    const toscaColor = Color(0xFF009688);
     final linePaint = Paint()
-      ..color = toscaColor
-      ..strokeWidth = 3.0
+      ..color = AppColors.primary
+      ..strokeWidth = 2.5
       ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
 
-    final dotPaint = Paint()
-      ..color = toscaColor
-      ..style = PaintingStyle.fill;
+    final dotRing = Paint()
+      ..color = AppColors.primary
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
 
-    final dotInner = Paint()
-      ..color = Colors.white
+    final dotFill = Paint()
+      ..color = AppColors.surface
       ..style = PaintingStyle.fill;
 
     List<Offset> points = [];
@@ -497,22 +466,15 @@ class _GrowthChartPainter extends CustomPainter {
       final range = graphMax - graphMin;
 
       for (int i = 0; i < measurements.length; i++) {
-        final double x = size.width * (0.06 + (0.88 * (i / (measurements.length - 1))));
-        final double normalizedY = 1.0 - ((measurements[i].weight - graphMin) / range).clamp(0.08, 0.92);
+        final double x =
+            size.width * (0.06 + (0.88 * (i / (measurements.length - 1))));
+        final double normalizedY =
+            1.0 - ((measurements[i].weight - graphMin) / range).clamp(0.08, 0.92);
         final double y = size.height * normalizedY;
         points.add(Offset(x, y));
       }
     } else if (measurements.length == 1) {
       points = [Offset(size.width * 0.5, size.height * 0.5)];
-    } else {
-      // Nilai fallback BB (19.0 sampai 20.5 kg)
-      points = <Offset>[
-        Offset(size.width * 0.05, size.height * 0.85),
-        Offset(size.width * 0.28, size.height * 0.65),
-        Offset(size.width * 0.50, size.height * 0.50),
-        Offset(size.width * 0.73, size.height * 0.35),
-        Offset(size.width * 0.95, size.height * 0.15),
-      ];
     }
 
     if (points.length >= 2) {
@@ -525,8 +487,25 @@ class _GrowthChartPainter extends CustomPainter {
     }
 
     for (final p in points) {
-      canvas.drawCircle(p, 6.0, dotPaint);
-      canvas.drawCircle(p, 3.0, dotInner);
+      canvas.drawCircle(p, 5, dotFill);
+      canvas.drawCircle(p, 5, dotRing);
+    }
+  }
+
+  void _drawDashedLine(Canvas canvas, Offset start, Offset end, Paint paint) {
+    const dash = 4.0;
+    const gap = 4.0;
+    final distance = (end - start).distance;
+    final direction = (end - start) / distance;
+    var travelled = 0.0;
+    while (travelled < distance) {
+      final segmentEnd = (travelled + dash).clamp(0.0, distance);
+      canvas.drawLine(
+        start + direction * travelled,
+        start + direction * segmentEnd,
+        paint,
+      );
+      travelled += dash + gap;
     }
   }
 

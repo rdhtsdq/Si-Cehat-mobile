@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 import '../constants/typography.dart';
+import '../theme/app_tokens.dart';
 
+/// Primary call-to-action used across Si Cehat.
+///
+/// Pill shaped, 48dp tall, flat — matching the Calm Sage button spec.
 class PrimaryButton extends StatelessWidget {
   final String text;
   final VoidCallback? onPressed;
@@ -20,53 +24,73 @@ class PrimaryButton extends StatelessWidget {
     this.isOutlined = false,
     this.backgroundColor,
     this.textColor,
-    this.height = 52.0,
+    this.height = AppSizes.buttonHeight,
     this.icon,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDisabled = isLoading || onPressed == null;
     final effectiveBg = backgroundColor ??
-        (isOutlined ? Colors.transparent : AppColors.primaryGreen);
+        (isOutlined ? AppColors.surface : AppColors.primary);
     final effectiveText = textColor ??
-        (isOutlined ? AppColors.primaryGreenDark : Colors.white);
+        (isOutlined ? AppColors.primary : AppColors.onPrimary);
 
-    return SizedBox(
-      width: double.infinity,
-      height: height,
-      child: isOutlined
-          ? OutlinedButton(
-              onPressed: isLoading ? null : onPressed,
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: AppColors.primaryGreen, width: 1.5),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+    final child = _buildChild(effectiveText);
+
+    return Semantics(
+      button: true,
+      enabled: !isDisabled,
+      label: isLoading ? '$text, sedang diproses' : text,
+      excludeSemantics: true,
+      child: SizedBox(
+        width: double.infinity,
+        height: height,
+        child: isOutlined
+            ? OutlinedButton(
+                onPressed: isDisabled ? null : onPressed,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: effectiveText,
+                  backgroundColor: effectiveBg,
+                  side: BorderSide(
+                    color: isDisabled ? AppColors.border : AppColors.primary,
+                    width: 1,
+                  ),
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: AppRadius.button,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                  ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-              ),
-              child: _buildChild(effectiveText),
-            )
-          : ElevatedButton(
-              onPressed: isLoading ? null : onPressed,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: effectiveBg,
-                disabledBackgroundColor: AppColors.primaryGreen.withValues(alpha: 0.4),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                child: child,
+              )
+            : FilledButton(
+                onPressed: isDisabled ? null : onPressed,
+                style: FilledButton.styleFrom(
+                  backgroundColor: effectiveBg,
+                  foregroundColor: effectiveText,
+                  disabledBackgroundColor: AppColors.primarySoft,
+                  disabledForegroundColor: AppColors.textPlaceholder,
+                  elevation: 0,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: AppRadius.button,
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                  ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: child,
               ),
-              child: _buildChild(effectiveText),
-            ),
+      ),
     );
   }
 
   Widget _buildChild(Color currentTextColor) {
     if (isLoading) {
       return SizedBox(
-        width: 22,
-        height: 22,
+        width: 20,
+        height: 20,
         child: CircularProgressIndicator(
           strokeWidth: 2.5,
           valueColor: AlwaysStoppedAnimation<Color>(currentTextColor),
@@ -74,24 +98,24 @@ class PrimaryButton extends StatelessWidget {
       );
     }
 
-    if (icon != null) {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          icon!,
-          const SizedBox(width: 8),
-          Text(
-            text,
-            style: AppTypography.buttonText.copyWith(color: currentTextColor),
-          ),
-        ],
-      );
-    }
-
-    return Text(
+    final textWidget = Text(
       text,
       textAlign: TextAlign.center,
-      style: AppTypography.buttonText.copyWith(color: currentTextColor),
+      style: AppTypography.buttonLabel.copyWith(color: currentTextColor),
+    );
+
+    if (icon == null) return textWidget;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconTheme(
+          data: IconThemeData(color: currentTextColor, size: 18),
+          child: icon!,
+        ),
+        const SizedBox(width: AppSpacing.xs),
+        Flexible(child: textWidget),
+      ],
     );
   }
 }

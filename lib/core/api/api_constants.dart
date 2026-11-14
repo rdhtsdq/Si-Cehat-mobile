@@ -8,7 +8,7 @@ class ApiConstants {
   /// Convenience constant for local Android emulator testing.
   static const String defaultEmulatorUrl = 'http://10.0.2.2:3000';
 
-  static const String _baseUrlPrefKey = 'custom_api_base_url';
+  static const String _baseUrlPrefKey = 'http://192.168.1.4:3000';
   static String? _customBaseUrl;
 
   /// Loads a previously saved custom API base URL from SharedPreferences.

@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../core/constants/colors.dart';
 import '../../core/constants/typography.dart';
+import '../../core/theme/app_tokens.dart';
+import '../../core/widgets/calm_widgets.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/safety_banner.dart';
 import '../menu/menu_catalog_screen.dart';
@@ -26,194 +28,166 @@ class ScreeningResultScreen extends StatelessWidget {
     this.isRealResult = false,
   });
 
+  RiskLevel get _level {
+    switch (category.toUpperCase()) {
+      case 'TINGGI':
+        return RiskLevel.high;
+      case 'SEDANG':
+        return RiskLevel.medium;
+      case 'RENDAH':
+        return RiskLevel.low;
+      default:
+        return RiskLevel.unknown;
+    }
+  }
+
+  String get _riskLabel {
+    switch (category.toUpperCase()) {
+      case 'TINGGI':
+        return 'Risiko Tinggi';
+      case 'SEDANG':
+        return 'Risiko Sedang';
+      case 'RENDAH':
+        return 'Risiko Rendah';
+      default:
+        return 'Kategori $category';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final titleMessage =
         statusText ??
         (category.toUpperCase() == 'TINGGI'
-            ? 'Anak memiliki potensi risiko tinggi\nterhadap diabetes melitus'
+            ? 'Anak memiliki potensi risiko tinggi terhadap diabetes melitus'
             : category.toUpperCase() == 'RENDAH'
-            ? 'Anak memiliki risiko rendah\nterhadap diabetes melitus'
-            : 'Anak memiliki risiko sedang\nterhadap diabetes melitus');
+            ? 'Anak memiliki risiko rendah terhadap diabetes melitus'
+            : 'Anak memiliki risiko sedang terhadap diabetes melitus');
 
-    Color categoryColor = AppColors.primaryGreen;
-    if (category.toUpperCase() == 'TINGGI') {
-      categoryColor = Colors.orange[800]!;
-    } else if (category.toUpperCase() == 'SEDANG') {
-      categoryColor = const Color(0xFFE6A23C);
-    }
+    final palette = RiskPalette.of(_level);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        centerTitle: false,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.chevron_left,
-            size: 28,
-            color: AppColors.textDark,
-          ),
-          onPressed: () =>
-              Navigator.of(context).popUntil((route) => route.isFirst),
-        ),
-        title: Text(
-          'Hasil Skrining',
-          style: AppTypography.headingScreen.copyWith(fontSize: 20),
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SafetyBanner(
-                text: isRealResult
-                    ? 'Hasil analisis berdasarkan antropometri & gaya hidup anak.'
-                    : 'SIMULASI \u00b7 50% hanya contoh desain tampilan, bukan risiko klinis anak.',
-                type: isRealResult ? BannerType.notice : BannerType.simulation,
-              ),
-              const SizedBox(height: 16),
-
-              Center(
-                child: SizedBox(
-                  width: 170,
-                  height: 170,
-                  child: CustomPaint(
-                    painter: _DonutChartPainter(percentage: score.toDouble()),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '$score%',
-                            style: AppTypography.headingScreen.copyWith(
-                              fontSize: 34,
-                              fontWeight: FontWeight.w800,
-                              color: categoryColor,
-                            ),
-                          ),
-                          Text(
-                            'Kategori $category',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: categoryColor,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              Text(
-                titleMessage,
-                textAlign: TextAlign.center,
-                style: AppTypography.titleCard.copyWith(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textDark,
-                  height: 1.35,
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Rekomendasi Tindak Lanjut',
-                  style: AppTypography.titleCard.copyWith(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              ...recommendations.map(
-                (rec) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: _buildRecommendationItem(
-                    text: rec,
-                    icon: Icons.check_circle_outline,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              PrimaryButton(
-                text: 'Selanjutnya',
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const MenuCatalogScreen(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-
-              OutlinedButton(
-                onPressed: () =>
-                    Navigator.of(context).popUntil((route) => route.isFirst),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 48),
-                  side: const BorderSide(color: AppColors.primaryGreen),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: const Text(
-                  'Kembali ke Beranda',
-                  style: TextStyle(
-                    color: AppColors.primaryGreen,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildRecommendationItem({
-    required String text,
-    required IconData icon,
-  }) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
-      ),
-      child: Row(
+      backgroundColor: AppColors.bg,
+      body: Column(
         children: [
-          Icon(icon, color: AppColors.primaryGreen, size: 22),
-          const SizedBox(width: 12),
+          AppHeader(
+            compact: true,
+            title: 'Hasil Skrining',
+            onBack: () =>
+                Navigator.of(context).popUntil((route) => route.isFirst),
+          ),
           Expanded(
-            child: Text(
-              text,
-              style: AppTypography.bodyRegular.copyWith(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.pageGutter,
+                AppSpacing.md,
+                AppSpacing.pageGutter,
+                AppSpacing.xl,
+              ),
+              child: Column(
+                children: [
+                  SafetyBanner(
+                    text: isRealResult
+                        ? 'Hasil analisis berdasarkan antropometri & gaya hidup anak.'
+                        : 'SIMULASI · 50% hanya contoh desain tampilan, bukan risiko klinis anak.',
+                    type: isRealResult
+                        ? BannerType.notice
+                        : BannerType.simulation,
+                    margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  ),
+                  AppCard(
+                    radius: AppRadius.xl,
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          width: 160,
+                          height: 160,
+                          child: CustomPaint(
+                            painter: _DonutChartPainter(
+                              percentage: score.toDouble(),
+                              color: palette.foreground,
+                              trackColor: AppColors.primarySoft,
+                            ),
+                            child: Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '$score%',
+                                    style: AppTypography.display.copyWith(
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.w700,
+                                      color: palette.foreground,
+                                    ),
+                                  ),
+                                  Text(
+                                    'skor risiko',
+                                    style: AppTypography.caption,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+                        RiskBadge(label: _riskLabel, level: _level),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          titleMessage,
+                          textAlign: TextAlign.center,
+                          style: AppTypography.h2.copyWith(
+                            fontSize: 15,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Rekomendasi Tindak Lanjut',
+                      style: AppTypography.h2,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  AppListGroup(
+                    children: [
+                      for (final rec in recommendations)
+                        AppListTile(
+                          icon: Icons.check_circle_outline_rounded,
+                          iconBackground: AppColors.primarySoft,
+                          iconForeground: AppColors.primary,
+                          title: rec,
+                          trailing: const SizedBox.shrink(),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  PrimaryButton(
+                    text: 'Selanjutnya',
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const MenuCatalogScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  GhostButton(
+                    label: 'Kembali ke Beranda',
+                    height: 48,
+                    expanded: true,
+                    onPressed: () => Navigator.of(context)
+                        .popUntil((route) => route.isFirst),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                ],
               ),
             ),
-          ),
-          const Icon(
-            Icons.chevron_right,
-            color: AppColors.textSecondary,
-            size: 20,
           ),
         ],
       ),
@@ -223,7 +197,14 @@ class ScreeningResultScreen extends StatelessWidget {
 
 class _DonutChartPainter extends CustomPainter {
   final double percentage;
-  _DonutChartPainter({this.percentage = 50.0});
+  final Color color;
+  final Color trackColor;
+
+  _DonutChartPainter({
+    this.percentage = 50.0,
+    required this.color,
+    required this.trackColor,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -232,14 +213,14 @@ class _DonutChartPainter extends CustomPainter {
     const strokeWidth = 18.0;
 
     final bgPaint = Paint()
-      ..color = const Color(0xFFE8F5E9)
+      ..color = trackColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth;
     canvas.drawCircle(center, radius - strokeWidth / 2, bgPaint);
 
     final sweepAngle = 2 * math.pi * (percentage / 100.0);
     final fillPaint = Paint()
-      ..color = AppColors.primaryGreen
+      ..color = color
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeWidth = strokeWidth;
@@ -255,5 +236,7 @@ class _DonutChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _DonutChartPainter oldDelegate) =>
-      oldDelegate.percentage != percentage;
+      oldDelegate.percentage != percentage ||
+      oldDelegate.color != color ||
+      oldDelegate.trackColor != trackColor;
 }

@@ -94,7 +94,8 @@ class _YouTubeEmbeddedPlayerState extends State<YouTubeEmbeddedPlayer> {
     widget.onPlaybackStarted?.call();
 
     try {
-      final embedHtml = '''
+      final embedHtml =
+          '''
 <!DOCTYPE html>
 <html>
 <head>
@@ -128,21 +129,27 @@ class _YouTubeEmbeddedPlayerState extends State<YouTubeEmbeddedPlayer> {
               if (mounted) setState(() => _isLoading = false);
             },
             onWebResourceError: (error) {
-              debugPrint('[YouTubePlayer] WebResourceError: ${error.description}');
+              debugPrint(
+                '[YouTubePlayer] WebResourceError: ${error.description}',
+              );
               if (mounted) {
                 // If main frame error
                 if (error.isForMainFrame ?? true) {
                   setState(() {
                     _isLoading = false;
                     _hasError = true;
-                    _errorMessage = 'Gagal memuat pemutar video (${error.description}).';
+                    _errorMessage =
+                        'Gagal memuat pemutar video (${error.description}).';
                   });
                 }
               }
             },
           ),
         )
-        ..loadHtmlString(embedHtml, baseUrl: 'https://www.youtube-nocookie.com');
+        ..loadHtmlString(
+          embedHtml,
+          baseUrl: 'https://www.youtube-nocookie.com',
+        );
     } catch (e) {
       setState(() {
         _hasError = true;
@@ -172,7 +179,9 @@ class _YouTubeEmbeddedPlayerState extends State<YouTubeEmbeddedPlayer> {
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Tidak dapat membuka aplikasi YouTube.')),
+          const SnackBar(
+            content: Text('Tidak dapat membuka aplikasi YouTube.'),
+          ),
         );
       }
     }
@@ -245,37 +254,77 @@ class _YouTubeEmbeddedPlayerState extends State<YouTubeEmbeddedPlayer> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.error_outline, color: Colors.orangeAccent, size: 36),
+                      const Icon(
+                        Icons.error_outline,
+                        color: Colors.orangeAccent,
+                        size: 36,
+                      ),
                       const SizedBox(height: 8),
-                      Text(
-                        _errorMessage ?? 'Gagal memuat video preview.',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(color: Colors.white70, fontSize: 12),
+                      Flexible(
+                        child: Text(
+                          _errorMessage ?? 'Gagal memuat video preview.',
+                          textAlign: TextAlign.center,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 12),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          OutlinedButton.icon(
-                            onPressed: _startEmbeddedPlayer,
-                            icon: const Icon(Icons.refresh, size: 16, color: Colors.white),
-                            label: const Text('Coba Lagi', style: TextStyle(color: Colors.white, fontSize: 12)),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.white30),
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            OutlinedButton.icon(
+                              onPressed: _startEmbeddedPlayer,
+                              icon: const Icon(
+                                Icons.refresh,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                              label: const Text(
+                                'Coba Lagi',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.white30),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          ElevatedButton.icon(
-                            onPressed: _openExternalYouTube,
-                            icon: const Icon(Icons.open_in_new, size: 16, color: Colors.white),
-                            label: const Text('Buka di YouTube', style: TextStyle(color: Colors.white, fontSize: 12)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red.shade700,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            const SizedBox(width: 8),
+                            ElevatedButton.icon(
+                              onPressed: _openExternalYouTube,
+                              icon: const Icon(
+                                Icons.open_in_new,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                              label: const Text(
+                                'Buka di YouTube',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red.shade700,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -294,7 +343,11 @@ class _YouTubeEmbeddedPlayerState extends State<YouTubeEmbeddedPlayer> {
                   errorBuilder: (context, error, stackTrace) => Container(
                     color: const Color(0xFF1E293B),
                     child: const Center(
-                      child: Icon(Icons.movie_outlined, size: 54, color: Colors.white38),
+                      child: Icon(
+                        Icons.movie_outlined,
+                        size: 54,
+                        color: Colors.white38,
+                      ),
                     ),
                   ),
                 )
@@ -302,7 +355,11 @@ class _YouTubeEmbeddedPlayerState extends State<YouTubeEmbeddedPlayer> {
                 Container(
                   color: const Color(0xFF1E293B),
                   child: const Center(
-                    child: Icon(Icons.movie_outlined, size: 54, color: Colors.white38),
+                    child: Icon(
+                      Icons.movie_outlined,
+                      size: 54,
+                      color: Colors.white38,
+                    ),
                   ),
                 ),
 
@@ -354,7 +411,10 @@ class _YouTubeEmbeddedPlayerState extends State<YouTubeEmbeddedPlayer> {
                 top: 10,
                 right: 12,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black.withAlpha(180),
                     borderRadius: BorderRadius.circular(6),
@@ -363,7 +423,11 @@ class _YouTubeEmbeddedPlayerState extends State<YouTubeEmbeddedPlayer> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.ondemand_video, color: Colors.redAccent, size: 13),
+                      const Icon(
+                        Icons.ondemand_video,
+                        color: Colors.redAccent,
+                        size: 13,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         vId != null ? 'YouTube Video' : 'Video Tutorial',
@@ -387,63 +451,99 @@ class _YouTubeEmbeddedPlayerState extends State<YouTubeEmbeddedPlayer> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     // Putar Langsung CTA
-                    GestureDetector(
-                      onTap: _startEmbeddedPlayer,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryGreen,
-                          borderRadius: BorderRadius.circular(8),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primaryGreen.withAlpha(100),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
+                    Flexible(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: GestureDetector(
+                          onTap: _startEmbeddedPlayer,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
                             ),
-                          ],
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.play_circle_fill, color: Colors.white, size: 16),
-                            SizedBox(width: 6),
-                            Text(
-                              'Putar Video',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryGreen,
+                              borderRadius: BorderRadius.circular(8),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primaryGreen.withAlpha(100),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
                             ),
-                          ],
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.play_circle_fill,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                                SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    'Putar Video',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
+                    const SizedBox(width: 8),
 
                     // External YouTube launcher button
-                    GestureDetector(
-                      onTap: _openExternalYouTube,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withAlpha(190),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.white30, width: 0.8),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.open_in_new, color: Colors.white70, size: 13),
-                            SizedBox(width: 4),
-                            Text(
-                              'Buka YouTube',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
+                    Flexible(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: GestureDetector(
+                          onTap: _openExternalYouTube,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withAlpha(190),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Colors.white30,
+                                width: 0.8,
                               ),
                             ),
-                          ],
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.open_in_new,
+                                  color: Colors.white70,
+                                  size: 13,
+                                ),
+                                SizedBox(width: 4),
+                                Flexible(
+                                  child: Text(
+                                    'Buka YouTube',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -464,7 +564,10 @@ class _YouTubeEmbeddedPlayerState extends State<YouTubeEmbeddedPlayer> {
                     GestureDetector(
                       onTap: _stopEmbeddedPlayer,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.black.withAlpha(200),
                           borderRadius: BorderRadius.circular(6),
@@ -473,7 +576,11 @@ class _YouTubeEmbeddedPlayerState extends State<YouTubeEmbeddedPlayer> {
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.stop_circle_outlined, color: Colors.white, size: 14),
+                            Icon(
+                              Icons.stop_circle_outlined,
+                              color: Colors.white,
+                              size: 14,
+                            ),
                             SizedBox(width: 4),
                             Text(
                               'Tutup Player',
