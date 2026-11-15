@@ -8,7 +8,7 @@ class ApiConstants {
   /// Convenience constant for local Android emulator testing.
   static const String defaultEmulatorUrl = 'http://10.0.2.2:3000';
 
-  static const String _baseUrlPrefKey = 'http://192.168.1.4:3000';
+  static const String _baseUrlPrefKey = 'api_base_url';
   static String? _customBaseUrl;
 
   /// Loads a previously saved custom API base URL from SharedPreferences.
@@ -109,6 +109,18 @@ class ApiConstants {
   static const String notifications = '/api/notifications';
   static const String notificationsReadAll = '/api/notifications/read-all';
   static const String notificationsDevices = '/api/notifications/devices';
+
+  // Community
+  static const String communityPosts = '/api/community/posts';
+  static String communityPost(String id) => '/api/community/posts/$id';
+  static String communityPostComments(String id) =>
+      '/api/community/posts/$id/comments';
+  static String communityLikeToggle(String id) =>
+      '/api/community/posts/$id/like';
+  static String communityComment(String id) => '/api/community/comments/$id';
+
+  // Chatbot "Tanya Si Cehat"
+  static const String chat = '/api/chat';
 
   // Profile Avatar
   static const String parentProfileAvatar = '/api/parent/profile/avatar';

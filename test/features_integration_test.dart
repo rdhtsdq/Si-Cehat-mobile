@@ -166,7 +166,7 @@ void main() {
       expect(find.text('Grafik BB (Kg)'), findsOneWidget);
       expect(find.text('Berat Badan Terakhir'), findsOneWidget);
       expect(find.text('Tinggi Badan Terakhir'), findsOneWidget);
-      expect(find.text('+ Tambah Pengukuran'), findsOneWidget);
+      expect(find.text('Tambah Pengukuran'), findsOneWidget);
       expect(find.text('Riwayat Pengukuran'), findsOneWidget);
 
       // Switch to Aktivitas tab
@@ -175,22 +175,22 @@ void main() {
 
       expect(find.text('Target Aktivitas Fisik'), findsOneWidget);
       expect(find.text('Konsumsi Air Putih'), findsOneWidget);
-      expect(find.text('+ Catat Aktivitas Baru'), findsOneWidget);
+      expect(find.text('Catat Aktivitas Baru'), findsOneWidget);
 
       // Increment water glasses
-      final addWaterBtn = find.byTooltip('Tambah 1 Gelas');
+      final addWaterBtn = find.byTooltip('Tambah 1 gelas');
       expect(addWaterBtn, findsOneWidget);
       await tester.tap(addWaterBtn);
       await tester.pumpAndSettle();
-      expect(find.text('1 dari 8 Gelas (~250 ml)'), findsOneWidget);
+      expect(find.text('1 dari 8 gelas (~250 ml)'), findsOneWidget);
 
       // Open Add Activity Sheet
-      final addBtn = find.text('+ Catat Aktivitas Baru');
+      final addBtn = find.text('Catat Aktivitas Baru');
       await tester.ensureVisible(addBtn);
       await tester.tap(addBtn);
       await tester.pumpAndSettle();
 
-      expect(find.text('Catat Aktivitas Baru'), findsOneWidget);
+      expect(find.text('Kategori Aktivitas'), findsOneWidget);
       expect(find.text('Bermain Sepeda'), findsOneWidget);
 
       // Tap preset

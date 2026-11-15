@@ -14,16 +14,12 @@ local fallback for demo mode.
 
 ## Findings / Integration Issues
 
-### P1 — Authenticated users lose local data when offline
-`loadProfiles()` (`profile_provider.dart:127-136`) gates the SQLite fallback on
-`token == null || token.isEmpty`:
-```dart
-if (!apiLoaded && (token == null || token.isEmpty)) { ... local DB ... }
-```
-A **logged-in** user who goes offline keeps a cached token → the remote calls
-fail → `apiLoaded` stays false → but the local fallback is **skipped** because the
-token is non-empty. Result: empty `_children`/`_activeChild` and no profile
-offline, contradicting NFR-05 and the offline-first intent.
+### ✅ Accepted — Offline profile gap is out of scope (always-online)
+`loadProfiles()` (`profile_provider.dart:127-136`) only falls back to SQLite when
+there is **no** token, so a logged-in user going offline would see an empty
+profile. Per the confirmed "always online" decision this is **not a bug** for the
+current target; it is noted here only for traceability if offline is ever
+required.
 
 ### P2 — Demo profile data is duplicated across provider + DB
 `ProfileProvider` constructor hardcodes `Ibu Rina`/`Ahmad` (`:26-45`) and then
@@ -57,13 +53,13 @@ is later cached locally).
 | PROF-04 | Edit mother | Profil Ibu → Edit → change name/education | Changes persist after restart (demo) |
 | PROF-05 | Avatar preset | Profil Ibu → camera → preset "Ibu Si Cehat" | Avatar updates + success snackbar |
 | PROF-06 | Avatar upload | Profil Anak → camera → Galeri/Kamera | Image picker opens; avatar updates |
-| PROF-07 | Offline as logged-in user | Real login → enable airplane mode → open Profil | **Currently expected to fail** (empty profile) — record against NFR-05 |
+| PROF-07 | Offline behavior (logged-in) | Real login → airplane mode → open Profil | App shows a graceful error (always-online app; empty profile accepted for now) |
 | PROF-08 | Logout clears session | Logout → relaunch | No residual guardian/child session data |
 
 ## Open questions
 
-1. For authenticated offline, should the local DB mirror the last-known server
-   children, or is "empty until online" acceptable for D1?
+1. Should the local DB mirror the last-known server children (useful if offline
+   is later required), or is local-only for demo mode sufficient?
 2. Should remote and local children be merged, or is remote authoritative and
    local is demo-only?
 

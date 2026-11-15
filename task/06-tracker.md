@@ -17,15 +17,17 @@ derived from `DateTime` via `toIso8601String().substring(0,10)`.
 `tracker_screen.dart:222` renders `PrimaryButton(text: 'Tambah Pengukuran')`
 with a leading `Icon(Icons.add_rounded)`. The tests
 (`si_cehat_full_test.dart:55`, `features_integration_test.dart:169`) expect the
-literal `"+ Tambah Pengukuran"`. This is test failure #2/#3 — the UI copy changed
-without updating the integration suite.
+literal `"+ Tambah Pengukuran"`. Consistent with the "Home" decision, **the UI is
+canonical** — update the tests to match `"Tambah Pengukuran"` (failures #2/#3).
 
-### P2 — Date drift risk (NFR-09)
-`loadActivities` computes `dateStr = _activityDate.toIso8601String().substring(0,10)`
-(`tracker_provider.dart:153`) and `setWater` does the same (`:239`). If
-`_activityDate` ever carries a UTC `DateTime` (e.g. converted from a server
-value), the local Asia/Jakarta date can shift by one day. NFR-09 requires
-date-only values to not be timezone-converted.
+### ✅ Verified non-bug — date handling (NFR-09)
+`loadActivities` derives `dateStr = _activityDate.toIso8601String().substring(0,10)`
+(`tracker_provider.dart:153`) and `setWater` the same (`:239`). `_activityDate`
+is always a **local** `DateTime.now()`, so `toIso8601String()` yields the local
+calendar date — no drift. Date-only model fields (`MeasurementModel.date`,
+`ChildModel.dateOfBirth`) are stored as strings and parsed without timezone
+conversion. No code change needed; revisit only if a D1 server contract starts
+sending UTC timestamps for date-only fields.
 
 ### P2 — `addMeasurement` double-writes local even when remote is authoritative
 `addMeasurement` (`:89-123`) POSTs to the server, then **always** inserts locally
@@ -60,10 +62,9 @@ activity category contributing to the daily minute target is ignored, so the
 
 ## Open questions
 
-1. Is `"Tambah Pengukuran"` (icon, no "+" prefix) the final copy, or should tests
-   be updated to a canonical `"+ Tambah Pengukuran"`?
-2. Should measurements carry a `remote_id` for idempotent offline sync (D1)?
-3. Which activity categories should count toward the 60-min target — only
+1. Should measurements carry a `remote_id` for idempotent sync (when/if offline
+   sync becomes a requirement)?
+2. Which activity categories should count toward the 60-min target — only
    "Aktivitas Fisik" or a broader set?
 
 ## Out of scope

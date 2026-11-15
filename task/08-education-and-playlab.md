@@ -15,12 +15,12 @@ See `docs/playlab-integration-guide.md`.
 
 ## Findings / Integration Issues
 
-### P2 — PlayLab activity-log date uses UTC `toIso8601String`
+### ✅ Verified non-bug — PlayLab date handling (NFR-09)
 `playlab_storage_service.dart:84` derives the diary date via
-`result.completedAt.toIso8601String().substring(0,10)`. If `completedAt` is a UTC
-`DateTime`, the activity can land on the wrong Asia/Jakarta calendar day
-(NFR-09). Also, this is the same date the diary uses (`date`), so a single late-
-night (local) completion could be filed under the wrong day.
+`result.completedAt.toIso8601String().substring(0,10)`. `completedAt` defaults to
+`DateTime.now()` (local) and the game's `GAME_COMPLETED` payload does not send
+`completedAt`, so the value is local and the date is correct. No code change
+needed; revisit only if the game later sends a UTC `completedAt`.
 
 ### P2 — `fetchRecipeDetail` returns null for bundled ids
 `education_provider.dart:112-114`:

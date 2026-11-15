@@ -35,13 +35,19 @@ Because providers seed from `SeedData` first and then overwrite from DB/remote,
 the visible `createdAt`/ordering of the same two notifications differs depending
 on which source won. See `09-reminder-and-notifications.md`.
 
-### P2 — `resetDemoData` does not clear water/activity/queue state
-`resetDemoData()` (`database_helper.dart:631-643`) deletes `notifications`,
-`reminders`, `growth_measurements`, `child_profile`, `mother_profile` and
-re-seeds, but does **not** clear `activity_logs`, `daily_water_logs`, or the
-SharedPreferences-held state (`pending_nutrition_batches`, PlayLab score
-history, avatar prefs). After a "reset demo", stale activity/water/score data can
-reappear or orphan rows referencing re-seeded child IDs.
+### ✅ Fixed — `resetDemoData` now clears activity/water logs
+`resetDemoData()` (`database_helper.dart:631`) previously deleted only
+`notifications`, `reminders`, `growth_measurements`, `child_profile`,
+`mother_profile`, leaving orphan rows in `activity_logs` and `daily_water_logs`.
+Fixed: it now also deletes `activity_logs` + `daily_water_logs`, and the in-memory
+fallback clears `_fallbackActivities` + `_fallbackWater` (regression test in
+`test/database_reset_test.dart`).
+
+**Remaining note:** SharedPreferences-held state (`pending_nutrition_batches`,
+PlayLab score history, avatar prefs) is still not cleared by reset — but the
+"Reset Data Demo" UI entry point itself is currently **not wired** (see
+`05`/DESIGN_PLAN AC-06). Clearing prefs is deferred until the reset button is
+added.
 
 ### P2 — `setActiveChild` accepts arbitrary id without FK-level guard
 `setActiveChild` (`:407-417`) updates `is_active` across all children to 0/1 by
@@ -64,7 +70,7 @@ gets out of sync.
 | DB-01 | First launch seeds | Clear app data → launch → open Tracker & Reminder | Default mother (Ibu Rina), child (Ahmad), 5 measurements, 4 reminders, 2 notifications present |
 | DB-02 | Persistence across restart | Add measurement, rename mother, toggle reminder off → force-stop → relaunch | All edits persist (Android D0) |
 | DB-03 | Migration path | Install an old build (schema < 4) → upgrade to current → relaunch | Data survives; no crash; new columns/tables exist |
-| DB-04 | Reset demo | Profile → "Reset Data Demo" → confirm | Returns to seed state; then verify no orphan activity/water rows (currently expected to fail — see finding) |
+| DB-04 | Reset demo | Profile → "Reset Data Demo" → confirm | Returns to seed state; no orphan activity/water rows (fixed; but the reset button itself is not yet wired in the UI) |
 | DB-05 | Web/desktop fallback | Run on web/desktop → add data → reload | Data resets to demo (in-memory). Confirm UI warns the user it is ephemeral (currently it does not — record as fail) |
 | DB-06 | Single active child | Add 2 children, switch active several times → restart | Exactly one active child, matching last selection |
 

@@ -2,7 +2,8 @@
 
 ## Context
 
-The app is **offline-first** with a thin HTTP layer. `ApiClient`
+The app is **always-online** (per product decision) with a thin HTTP layer and
+local fallbacks that still exist for resilience. `ApiClient`
 (`lib/core/api/api_client.dart`) wraps `package:http` and exposes `get/post/
 put/patch/delete`, all returning a custom `ApiResponse` (`isSuccess`,
 `statusCode`, `data`, `errorMessage`, `isOffline`). Auth is a JWT stored in
@@ -34,16 +35,12 @@ URL (a leftover LAN address). Consequences:
 **Impact:** the LAN/debug URL feature ("run on physical device without rebuild")
 silently does not work. The hardcoded IP is also a data-hygiene smell.
 
-### P0 — Production URL is the default for *every* build, including debug
-`api_constants.dart:4-6` and the `baseUrl` getter (line 58-71) return
-`https://sicehat.id` when no override is set. The comment explicitly says this is
-"the default for every build, including debug". This conflicts with:
-- PRD D0 "demo lokal tidak mengakses backend nyata" and "mode demo tidak
-  mengakses backend nyata" (Acceptance).
-- NFR-07 (sensitive data must not leave the device in demo).
-
-**Impact:** a plain `flutter run` of the demo phones home to production. Offline
-fallbacks hide it, but any online run leaks demo identifiers to prod.
+### ✅ Accepted — Production URL default (always-online app)
+Per the confirmed "always online" decision, the app talks to the backend, so
+`productionUrl = 'https://sicehat.id'` as the default (`api_constants.dart:4-6`)
+is **intended**, not a bug. The `--dart-define=API_BASE_URL` override remains the
+recommended way to point at a dev/staging server. The *saved*-URL override is
+broken (see the P0 finding above) — fix it or drop the feature.
 
 ### P2 — JWT replayed as a session cookie
 `api_client.dart:131-147` (`_buildHeaders`) sets `Cookie: sicehat_session=$token`
@@ -71,9 +68,9 @@ API contract.
 
 | ID | Scenario | Steps | Expected |
 | --- | --- | --- | --- |
-| API-01 | Offline start | Enable airplane mode → launch app → complete onboarding → demo login | App works fully on bundled/local data; no hang; no crash |
-| API-02 | Online demo does not phone home | Point device at a packet capture / set `API_BASE_URL` to an unreachable host → run demo flow | No request to `sicehat.id`; UI still functional |
-| API-03 | Custom base URL persists | Run with `--dart-define=API_BASE_URL=http://10.0.2.2:3000` → observe requests → restart app with same define | Base URL honored (define path works); saved-URL path (prefs) is broken — record as fail |
+| API-01 | No connectivity (graceful error) | Enable airplane mode → launch app → attempt login/fetch | App shows a clear offline error; no hang or crash (resilience only — app is always-online by design) |
+| API-02 | Base URL override (dev/staging) | Run with `--dart-define=API_BASE_URL=http://10.0.2.2:3000` → observe requests | Requests go to the override host, not `sicehat.id` |
+| API-03 | Saved base URL persists | Set custom URL via debug UI/settings (if present) → restart | Saved URL restored from prefs (currently broken — record as fail against the P0 finding) |
 | API-04 | Unknown route → not "success" | Force `baseUrl` to a SPA host that returns HTML 200 for any path | Client returns "Endpoint API tidak ditemukan", not success |
 | API-05 | Timeout / unreachable host | Point at `http://10.0.2.2:1` (closed port) | Requests resolve to `isOffline` failure within ~10s; UI shows offline state |
 | API-06 | 401 handling | Stale/expired token → call `auth/me` | `_loadState` clears auth and routes to login |
@@ -83,8 +80,8 @@ API contract.
 1. Is the `email`+`identifier` (login) and `motherName`+`name` (register)
    duplication required by the current backend, or should the client send a
    single canonical field?
-2. Should debug/demo builds default to a local/offline base URL, or require an
-   explicit `--dart-define` before any network access (safety-first)?
+2. Should the custom base URL feature (`setCustomBaseUrl`) be fixed and retained
+   for pointing at staging/dev, or is `--dart-define` sufficient?
 3. Should the JWT-as-cookie fallback be removed entirely in favor of
    `Authorization: Bearer` only?
 

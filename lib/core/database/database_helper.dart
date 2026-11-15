@@ -97,6 +97,9 @@ class DatabaseHelper {
         createdAt: DateTime.now().subtract(const Duration(minutes: 30)),
       ),
     ]);
+
+    _fallbackActivities.clear();
+    _fallbackWater.clear();
   }
 
   Future<Database> _initDB(String filePath) async {
@@ -637,6 +640,8 @@ class DatabaseHelper {
     await db.delete('notifications');
     await db.delete('reminders');
     await db.delete('growth_measurements');
+    await db.delete('activity_logs');
+    await db.delete('daily_water_logs');
     await db.delete('child_profile');
     await db.delete('mother_profile');
     await _seedDatabase(db);

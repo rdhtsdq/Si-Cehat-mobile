@@ -17,14 +17,14 @@ Two related subsystems:
 
 ## Findings / Integration Issues
 
-### P2 — Triple source of truth (SeedData vs SQLite vs remote)
+### ⏳ Deferred — Triple source of truth (SeedData vs SQLite vs remote)
 Reminders/notifications are seeded in `SeedData` (`seed_data.dart:132-192`, fixed
 IDs/`createdAt 2026-01-15`), again in `_seedDatabase` (`database_helper.dart:309-342`,
 `created_at = now()`), and in the in-memory fallback (`now()-1h/30m`). Providers
-initialize from `SeedData` then overwrite from DB/remote. The same two
-notifications can appear with **different `createdAt` values** depending on the
-source, which changes ordering in the notification center. (Also see
-`02-local-persistence.md`.)
+initialize from `SeedData` then immediately overwrite from DB/remote, so the
+fixed dates never actually surface in the Android path — it is a **code smell,
+not a user-facing bug**. Consolidating the seeds is deferred to a dedicated
+refactor to avoid behavior-change risk. (Also see `02-local-persistence.md`.)
 
 ### P2 — `_reschedule()` only runs on the local-fallback path
 `reminder_provider.dart:63` calls `_reschedule()` inside the local-fallback

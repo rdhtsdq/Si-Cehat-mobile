@@ -35,9 +35,10 @@ void main() {
     expect(find.text('Konsultasi'), findsOneWidget);
     expect(find.text('Komunitas'), findsOneWidget);
 
-    // Verify 4 bottom navigation items
-    expect(find.text('Beranda'), findsOneWidget);
+    // Verify 5 bottom navigation items (Tanya sits in the middle)
+    expect(find.text('Home'), findsOneWidget);
     expect(find.text('Tracker'), findsOneWidget);
+    expect(find.text('Tanya'), findsOneWidget);
     expect(find.text('Edukasi'), findsOneWidget);
     expect(find.text('Profil'), findsOneWidget);
   });
@@ -52,7 +53,7 @@ void main() {
 
     // Verify BB chart heading & CTA
     expect(find.text('Grafik BB (Kg)'), findsOneWidget);
-    expect(find.text('+ Tambah Pengukuran'), findsOneWidget);
+    expect(find.text('Tambah Pengukuran'), findsOneWidget);
   });
 
   testWidgets('S12 Menu Tradisional lists traditional dishes', (tester) async {

@@ -6,6 +6,7 @@ import '../home/home_screen.dart';
 import '../tracker/tracker_screen.dart';
 import '../education/education_screen.dart';
 import '../profile/profile_select_screen.dart';
+import '../chat/chat_screen.dart';
 
 class MainShellScreen extends StatefulWidget {
   final int initialIndex;
@@ -27,6 +28,7 @@ class _MainShellScreenState extends State<MainShellScreen> {
     _pages = [
       HomeScreen(onNavigateTab: _onTabSelected),
       const TrackerScreen(showBackButton: false),
+      const ChatScreen(),
       const EducationScreen(showBackButton: false),
       const ProfileSelectScreen(),
     ];
@@ -52,6 +54,10 @@ class _MainShellScreenState extends State<MainShellScreen> {
         items: const [
           AppNavItem(icon: Icons.home_outlined, label: 'Home'),
           AppNavItem(icon: Icons.show_chart_rounded, label: 'Tracker'),
+          AppNavItem(
+            icon: Icons.chat_bubble_outline_rounded,
+            label: 'Tanya',
+          ),
           AppNavItem(icon: Icons.menu_book_outlined, label: 'Edukasi'),
           AppNavItem(icon: Icons.person_outline_rounded, label: 'Profil'),
         ],

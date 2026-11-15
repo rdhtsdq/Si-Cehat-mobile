@@ -21,11 +21,11 @@ distinguish "saved to server" from "queued offline". If the UI shows a failure
 toast while the batch is actually queued (or vice versa), the user may retry and
 double-submit. Verify the queued state is surfaced (see `pendingSyncCount`).
 
-### P2 — Photo analysis save has no offline queue
-Unlike `saveDraftToDiary`, `savePhotoResultToDiary` (`:371-418`) returns `false`
-on failure and does **not** enqueue to `PendingNutritionQueue`. A photo-derived
-meal captured offline is lost (no retry), inconsistent with the text-path
-offline behavior.
+### ✅ Accepted — Photo analysis has no offline queue (always-online)
+`savePhotoResultToDiary` (`nutrition_provider.dart:371-418`) returns `false` on
+failure and does **not** enqueue to `PendingNutritionQueue`, unlike the text path.
+Per the "always online" decision this parity gap is **not a bug** for the current
+target; noted for traceability if offline sync is later required.
 
 ### P2 — Local food ids use `local-` prefix heuristic
 `calculateDraft` (`:252`) and `saveDraftToDiary` (`:293`) decide whether to send
@@ -58,16 +58,15 @@ them as the product rule.
 | NUT-06 | Save offline → queue | Airplane mode → save batch | Batch queued (pendingSyncCount>0); no data loss on retry |
 | NUT-07 | Queue flush on reconnect | Offline save → go online → reopen Nutrition | Pending batch flushes; no duplicates |
 | NUT-08 | Photo analysis | Upload food photo → analyze | Result items returned; save-to-diary works (online) |
-| NUT-09 | Photo analysis offline | Airplane mode → analyze/save | **Currently expected to fail** — result not queued (record against NUT-06 parity) |
+| NUT-09 | Photo analysis error handling | Force a network error → analyze/save | Graceful failure message; no crash (no offline queue — accepted) |
 | NUT-10 | Target edit | Edit daily target → save | Persists (cache + `PUT /api/nutrition/target`) |
 | NUT-11 | Unit conversion | Test gram/porsi/potong/gelas | Matches doc rules (150/60/200g equivalents) |
 
 ## Open questions
 
-1. Should photo-analysis results be enqueued offline like text batches (parity)?
-2. How should the UI label a batch that is "queued offline" vs "saved"? Current
-   provider returns `false` for both server-failure-queued and hard-failure.
-3. Is the `local-` id prefix a stable contract, or should offline items use a
+1. How should the UI label a batch that is "queued" vs "saved"? Current provider
+   returns `false` for both server-failure-queued and hard-failure.
+2. Is the `local-` id prefix a stable contract, or should offline items use a
    dedicated `source: 'local'` field?
 
 ## Out of scope
