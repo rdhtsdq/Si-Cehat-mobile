@@ -936,6 +936,7 @@ class _MealPlanScreenState extends ConsumerState<MealPlanScreen> {
                                 trailing: AppPillButton(
                                   label: 'Pilih',
                                   height: 36,
+                                  expanded: false,
                                   onPressed: () {
                                     final newItem = MealPlanItemModel(
                                       type: currentMeal.type,

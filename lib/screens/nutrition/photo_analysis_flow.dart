@@ -52,8 +52,13 @@ Future<void> runPhotoAnalysis(
   if (file == null) return;
 
   final bytes = await file.readAsBytes();
+  if (!context.mounted) return;
+
   final provider = ref.read(nutritionProvider);
-  final result = await provider.analyzePhoto(base64Encode(bytes), id);
+  final result = await _withAnalyzingDialog(
+    context,
+    () => provider.analyzePhoto(base64Encode(bytes), id),
+  );
 
   if (!context.mounted) return;
   if (result == null) {
@@ -92,6 +97,78 @@ Future<void> runPhotoAnalysis(
       },
     ),
   );
+}
+
+/// Runs [task] behind a non-dismissible "analyzing" dialog so the user gets
+/// immediate feedback between capturing a photo and receiving the AI result.
+Future<T> _withAnalyzingDialog<T>(
+  BuildContext context,
+  Future<T> Function() task,
+) async {
+  var dialogVisible = true;
+  final dialogFuture = showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    useRootNavigator: true,
+    builder: (_) => const _AnalyzingPhotoDialog(),
+  ).whenComplete(() => dialogVisible = false);
+
+  try {
+    return await task();
+  } finally {
+    if (dialogVisible && context.mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+    await dialogFuture;
+  }
+}
+
+class _AnalyzingPhotoDialog extends StatelessWidget {
+  const _AnalyzingPhotoDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      child: AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        content: Row(
+          children: [
+            const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Menganalisis foto...',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'AI sedang memperkirakan asupan gizi. Mohon tunggu sebentar.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.35,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 String? _activeChildId(WidgetRef ref) {

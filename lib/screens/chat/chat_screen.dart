@@ -6,6 +6,7 @@ import '../../core/theme/app_tokens.dart';
 import '../../core/widgets/calm_widgets.dart';
 import '../../data/models/chat_message.dart';
 import '../../providers/app_providers.dart';
+import 'widgets/chat_message_body.dart';
 
 /// "Tanya Si Cehat" — the 5th shell tab, pinned in the middle of the bar.
 ///
@@ -24,6 +25,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     'Berapa jam tidur yang ideal?',
     'Cara mengurangi minuman manis?',
     'Olahraga ringan apa yang bisa di rumah?',
+    'Apa hubungan obesitas dengan diabetes?',
+    'Bagaimana cara menjaga kadar gula darah?',
+    'Apa saja tanda diabetes?',
+    'Makanan apa yang dapat mencegah diabetes?',
+    'Berapa lama waktu olahraga yang dianjurkan?',
+    'Apakah remaja bisa terkena diabetes?',
   ];
 
   final TextEditingController _inputController = TextEditingController();
@@ -153,8 +160,9 @@ class _MessageBubble extends StatelessWidget {
           ),
           border: isUser ? null : Border.all(color: AppColors.border),
         ),
-        child: Text(
-          message.content,
+        child: ChatMessageBody(
+          content: message.content,
+          isUser: isUser,
           style: AppTypography.body.copyWith(
             color: isUser ? AppColors.onPrimary : AppColors.text,
             height: 1.5,

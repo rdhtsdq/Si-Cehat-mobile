@@ -163,8 +163,11 @@ class _NutritionDailyCardState extends ConsumerState<NutritionDailyCard> {
               ],
               const SizedBox(height: AppSpacing.md),
               AppPillButton(
-                label: 'Foto Makanan',
+                label: nutrition.isAnalyzingPhoto
+                    ? 'Menganalisis foto...'
+                    : 'Foto Makanan',
                 icon: Icons.photo_camera_rounded,
+                isLoading: nutrition.isAnalyzingPhoto,
                 onPressed: nutrition.isAnalyzingPhoto ? null : widget.onPhoto,
               ),
             ],

@@ -825,6 +825,10 @@ class AppPillButton extends StatelessWidget {
   final double height;
   final bool expanded;
 
+  /// Replaces the leading icon with a spinner so an in-flight action is
+  /// visually obvious even though the button is disabled.
+  final bool isLoading;
+
   const AppPillButton({
     super.key,
     required this.label,
@@ -833,6 +837,7 @@ class AppPillButton extends StatelessWidget {
     this.variant = AppPillVariant.primary,
     this.height = AppSizes.buttonHeight,
     this.expanded = true,
+    this.isLoading = false,
   });
 
   @override
@@ -852,7 +857,14 @@ class AppPillButton extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        if (icon != null) ...[
+        if (isLoading) ...[
+          SizedBox(
+            width: height <= 34 ? 14 : 18,
+            height: height <= 34 ? 14 : 18,
+            child: CircularProgressIndicator(strokeWidth: 2, color: foreground),
+          ),
+          const SizedBox(width: 6),
+        ] else if (icon != null) ...[
           Icon(icon, size: height <= 34 ? 14 : 18, color: foreground),
           const SizedBox(width: 6),
         ],
@@ -894,7 +906,10 @@ class AppPillButton extends StatelessWidget {
                     ? null
                     : Border.all(color: border, width: 1),
               ),
-              child: Center(child: child),
+              // `widthFactor` keeps a non-expanded pill shrink-wrapped even
+              // when the parent hands down a bounded max width (e.g. a
+              // ListTile trailing slot), otherwise it would fill the tile.
+              child: Center(widthFactor: expanded ? null : 1, child: child),
             ),
           ),
         ),
